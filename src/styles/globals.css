@@ -78,6 +78,14 @@ button {
   cursor: pointer;
 }
 
+.button-danger {
+  background: var(--danger);
+}
+
+.button-danger:hover {
+  background: #972626;
+}
+
 button:disabled {
   opacity: 0.7;
   cursor: not-allowed;
@@ -121,8 +129,9 @@ button:disabled {
   gap: var(--space-3);
 }
 
-.panel.danger {
-  border-color: rgba(180, 50, 50, 0.5);
+.panel--delete-action {
+  display: grid;
+  gap: var(--space-2);
 }
 
 @media (min-width: 768px) {

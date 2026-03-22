@@ -200,10 +200,13 @@ export function ProfilePage(): ReactElement {
           </form>
         </article>
 
-        <article className="panel danger">
-          <h2>{t('profile:sections.danger')}</h2>
+        <article className="panel panel--delete-action">
           {!showDeleteForm ? (
-            <button type="button" onClick={() => setShowDeleteForm(true)}>
+            <button
+              className="button-danger"
+              type="button"
+              onClick={() => setShowDeleteForm(true)}
+            >
               {t('profile:actions.startDelete')}
             </button>
           ) : (
@@ -211,7 +214,9 @@ export function ProfilePage(): ReactElement {
               <label htmlFor="deletePassword">{t('profile:fields.password')}</label>
               <input id="deletePassword" type="password" {...deleteForm.register('password')} />
               <div className="button-row">
-                <button type="submit">{t('profile:actions.confirmDelete')}</button>
+                <button className="button-danger" type="submit">
+                  {t('profile:actions.confirmDelete')}
+                </button>
                 <button type="button" onClick={() => setShowDeleteForm(false)}>
                   {t('profile:actions.cancelDelete')}
                 </button>
