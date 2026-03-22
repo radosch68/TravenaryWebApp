@@ -13,7 +13,33 @@ let authHandlers: ApiAuthHandlers | undefined
 let refreshInFlight: Promise<AuthTokens> | null = null
 
 function baseUrl(): string {
-  return import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'
+  const configuredBaseUrl = import.meta.env.VITE_API_BASE_URL
+  if (configuredBaseUrl) {
+    if (typeof window !== 'undefined') {
+      try {
+        const configuredUrl = new URL(configuredBaseUrl)
+        const browserHost = window.location.hostname
+        const isConfiguredLocalhost =
+          configuredUrl.hostname === 'localhost' || configuredUrl.hostname === '127.0.0.1'
+        const isBrowserLocalhost = browserHost === 'localhost' || browserHost === '127.0.0.1'
+
+        if (isConfiguredLocalhost && !isBrowserLocalhost) {
+          configuredUrl.hostname = browserHost
+          return configuredUrl.toString().replace(/\/$/, '')
+        }
+      } catch {
+        // Ignore malformed configured URL and continue using fallback behavior.
+      }
+    }
+
+    return configuredBaseUrl
+  }
+
+  if (typeof window !== 'undefined') {
+    return `${window.location.protocol}//${window.location.hostname}:3000`
+  }
+
+  return 'http://localhost:3000'
 }
 
 function normalizeApiError(status: number, payload: unknown): ApiError {
