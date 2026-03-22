@@ -10,9 +10,12 @@ export const passwordChangeSchema = z.object({
 })
 
 export const deleteAccountSchema = z.object({
-  password: z.string().min(1, 'validation.passwordRequired'),
+  password: z.string().optional().transform((value) => {
+    const normalized = value?.trim()
+    return normalized ? normalized : undefined
+  }),
 })
 
 export type DisplayNameFormData = z.infer<typeof displayNameSchema>
 export type PasswordChangeFormData = z.infer<typeof passwordChangeSchema>
-export type DeleteAccountFormData = z.infer<typeof deleteAccountSchema>
+export type DeleteAccountFormData = z.input<typeof deleteAccountSchema>

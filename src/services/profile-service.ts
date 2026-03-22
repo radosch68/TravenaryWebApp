@@ -27,11 +27,11 @@ export async function changePassword(
   })
 }
 
-export async function deleteAccount(password: string): Promise<void> {
+export async function deleteAccount(password?: string): Promise<void> {
   await apiRequest<void>('/users/me', {
     method: 'DELETE',
     protected: true,
     skipAuthRefreshOn401: true,
-    body: { password },
+    body: password ? { password } : {},
   })
 }

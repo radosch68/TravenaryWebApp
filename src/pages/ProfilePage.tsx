@@ -36,6 +36,8 @@ export function ProfilePage(): ReactElement {
   const [passwordStatus, setPasswordStatus] = useState('')
   const [deleteError, setDeleteError] = useState('')
   const [showDeleteForm, setShowDeleteForm] = useState(false)
+  const requiresDeletePassword = profile?.authProviders?.includes('password') ?? true
+  const hasSocialProvider = profile?.authProviders?.some((provider) => provider !== 'password') ?? false
 
   const activeLocale = preferredLanguage === 'cs-CZ' ? 'cs-CZ' : 'en'
 
@@ -112,6 +114,15 @@ export function ProfilePage(): ReactElement {
 
   const submitDelete = deleteForm.handleSubmit(async (values) => {
     setDeleteError('')
+
+    if (requiresDeletePassword && !values.password) {
+      deleteForm.setError('password', {
+        type: 'required',
+        message: 'validation.passwordRequired',
+      })
+      return
+    }
+
     try {
       await deleteAccount(values.password)
       await signOut()
@@ -211,8 +222,24 @@ export function ProfilePage(): ReactElement {
             </button>
           ) : (
             <form className="form" onSubmit={(event) => void submitDelete(event)}>
-              <label htmlFor="deletePassword">{t('profile:fields.password')}</label>
-              <input id="deletePassword" type="password" {...deleteForm.register('password')} />
+              {requiresDeletePassword ? (
+                <>
+                  <p>
+                    {hasSocialProvider
+                      ? t('profile:messages.deletePasswordRequiredMixed')
+                      : t('profile:messages.deletePasswordRequired')}
+                  </p>
+                  <label htmlFor="deletePassword">{t('profile:fields.password')}</label>
+                  <input id="deletePassword" type="password" {...deleteForm.register('password')} />
+                  {deleteForm.formState.errors.password?.message ? (
+                    <p className="error">
+                      {t(`profile:${String(deleteForm.formState.errors.password.message)}`)}
+                    </p>
+                  ) : null}
+                </>
+              ) : (
+                <p>{t('profile:messages.deleteNoPassword')}</p>
+              )}
               <div className="button-row">
                 <button className="button-danger" type="submit">
                   {t('profile:actions.confirmDelete')}

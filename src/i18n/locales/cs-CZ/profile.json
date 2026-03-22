@@ -39,6 +39,9 @@
     "passwordSaved": "Heslo bylo úspěšně změněno.",
     "passwordError": "Současné heslo je nesprávné.",
     "deleteError": "Účet se nepodařilo smazat. Zkontrolujte heslo a zkuste to znovu.",
+    "deletePasswordRequired": "Smazání účtu potvrďte heslem.",
+    "deletePasswordRequiredMixed": "Tento účet podporuje přihlášení heslem i sociálním účtem. Smazání potvrďte heslem.",
+    "deleteNoPassword": "Tento účet používá pouze sociální přihlášení. Potvrzení místním heslem není potřeba.",
     "displayNameRequired": "Zobrazované jméno je povinné.",
     "displayNameMax": "Zobrazované jméno může mít maximálně 80 znaků.",
     "passwordRequired": "Heslo je povinné."
