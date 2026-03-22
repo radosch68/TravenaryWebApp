@@ -6,8 +6,8 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 
 import { acquireAppleIdToken } from '@/features/auth/apple-auth'
-import { acquireGoogleIdToken } from '@/features/auth/google-auth'
-import { handleSocialAuth } from '@/features/auth/social-auth-handlers'
+import { GoogleSignInButton } from '@/features/auth/GoogleSignInButton'
+import { completeSocialAuth, handleSocialAuth } from '@/features/auth/social-auth-handlers'
 import { type SignInFormData, signInSchema } from '@/features/auth/schemas'
 import { signIn } from '@/services/auth-service'
 import { ApiError } from '@/services/contracts'
@@ -30,6 +30,8 @@ export function SignInPage(): ReactElement {
   })
 
   const socialAuthEnabled = import.meta.env.VITE_ENABLE_SOCIAL_AUTH === 'true'
+  const googleEnabled = socialAuthEnabled && Boolean(import.meta.env.VITE_GOOGLE_OAUTH_CLIENT_ID)
+  const appleEnabled = socialAuthEnabled && Boolean(import.meta.env.VITE_APPLE_OAUTH_CLIENT_ID)
 
   const onSubmit = form.handleSubmit(async (values) => {
     setApiError('')
@@ -47,12 +49,13 @@ export function SignInPage(): ReactElement {
     }
   })
 
-  const onGoogle = async (): Promise<void> => {
-    await handleSocialAuth('google', acquireGoogleIdToken, navigate, setApiError)
-  }
-
   const onApple = async (): Promise<void> => {
     await handleSocialAuth('apple', acquireAppleIdToken, navigate, setApiError)
+  }
+
+  const onGoogleIdToken = async (idToken: string): Promise<void> => {
+    setApiError('')
+    await completeSocialAuth('google', idToken, navigate, setApiError)
   }
 
   return (
@@ -79,14 +82,16 @@ export function SignInPage(): ReactElement {
           </button>
         </form>
 
-        {socialAuthEnabled ? (
+        {googleEnabled || appleEnabled ? (
           <div className="social-row">
-            <button type="button" onClick={() => void onGoogle()}>
-              {t('auth:actions.continueGoogle')}
-            </button>
-            <button type="button" onClick={() => void onApple()}>
-              {t('auth:actions.continueApple')}
-            </button>
+            {googleEnabled ? (
+              <GoogleSignInButton onIdToken={onGoogleIdToken} />
+            ) : null}
+            {appleEnabled ? (
+              <button type="button" onClick={() => void onApple()}>
+                {t('auth:actions.continueApple')}
+              </button>
+            ) : null}
           </div>
         ) : (
           <p>{t('auth:social.disabled')}</p>

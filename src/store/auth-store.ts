@@ -12,6 +12,7 @@ import { useProfileStore } from '@/store/profile-store'
 export interface AuthProviderIdentity {
   provider: 'google' | 'apple'
   idToken: string
+  email?: string
   linkStatus: 'collision_blocked' | 'linked'
 }
 
