@@ -36,6 +36,7 @@ export function ProfilePage(): ReactElement {
   const [passwordStatus, setPasswordStatus] = useState('')
   const [deleteError, setDeleteError] = useState('')
   const [showDeleteForm, setShowDeleteForm] = useState(false)
+  const hasPasswordProvider = profile?.authProviders?.includes('password') ?? true
   const requiresDeletePassword = profile?.authProviders?.includes('password') ?? true
   const hasSocialProvider = profile?.authProviders?.some((provider) => provider !== 'password') ?? false
 
@@ -189,27 +190,29 @@ export function ProfilePage(): ReactElement {
           </form>
         </article>
 
-        <article className="panel">
-          <h2>{t('profile:sections.password')}</h2>
-          <form className="form" onSubmit={(event) => void submitPassword(event)}>
-            <label htmlFor="currentPassword">{t('profile:fields.currentPassword')}</label>
-            <input id="currentPassword" type="password" {...passwordForm.register('currentPassword')} />
-            {passwordForm.formState.errors.currentPassword?.message ? (
-              <p className="error">
-                {t(`profile:${String(passwordForm.formState.errors.currentPassword.message)}`)}
-              </p>
-            ) : null}
-            <label htmlFor="newPassword">{t('profile:fields.newPassword')}</label>
-            <input id="newPassword" type="password" {...passwordForm.register('newPassword')} />
-            {passwordForm.formState.errors.newPassword?.message ? (
-              <p className="error">
-                {t(`profile:${String(passwordForm.formState.errors.newPassword.message)}`)}
-              </p>
-            ) : null}
-            <button type="submit">{t('profile:actions.savePassword')}</button>
-            {passwordStatus && <p>{passwordStatus}</p>}
-          </form>
-        </article>
+        {hasPasswordProvider ? (
+          <article className="panel">
+            <h2>{t('profile:sections.password')}</h2>
+            <form className="form" onSubmit={(event) => void submitPassword(event)}>
+              <label htmlFor="currentPassword">{t('profile:fields.currentPassword')}</label>
+              <input id="currentPassword" type="password" {...passwordForm.register('currentPassword')} />
+              {passwordForm.formState.errors.currentPassword?.message ? (
+                <p className="error">
+                  {t(`profile:${String(passwordForm.formState.errors.currentPassword.message)}`)}
+                </p>
+              ) : null}
+              <label htmlFor="newPassword">{t('profile:fields.newPassword')}</label>
+              <input id="newPassword" type="password" {...passwordForm.register('newPassword')} />
+              {passwordForm.formState.errors.newPassword?.message ? (
+                <p className="error">
+                  {t(`profile:${String(passwordForm.formState.errors.newPassword.message)}`)}
+                </p>
+              ) : null}
+              <button type="submit">{t('profile:actions.savePassword')}</button>
+              {passwordStatus && <p>{passwordStatus}</p>}
+            </form>
+          </article>
+        ) : null}
 
         <article className="panel panel--delete-action">
           {!showDeleteForm ? (
