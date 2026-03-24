@@ -7,6 +7,7 @@ import { useTranslation } from 'react-i18next'
 
 import { BrandBanner } from '@/components/BrandBanner'
 import { acquireAppleIdToken } from '@/features/auth/apple-auth'
+import { GithubSignInButton } from '@/features/auth/GithubSignInButton'
 import { GoogleSignInButton } from '@/features/auth/GoogleSignInButton'
 import { completeSocialAuth, handleSocialAuth } from '@/features/auth/social-auth-handlers'
 import { type SignInFormData, signInSchema } from '@/features/auth/schemas'
@@ -78,9 +79,7 @@ export function SignInPage(): ReactElement {
               <GoogleSignInButton onIdToken={onGoogleIdToken} />
             ) : null}
             {githubEnabled ? (
-              <button type="button" onClick={() => void onGithub()}>
-                {t('auth:actions.continueGithub')}
-              </button>
+              <GithubSignInButton onClick={onGithub} label={t('auth:actions.continueGithub')} />
             ) : null}
             {appleEnabled ? (
               <button type="button" onClick={() => void onApple()}>
