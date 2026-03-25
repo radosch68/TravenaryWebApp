@@ -1,73 +1,36 @@
-# React + TypeScript + Vite
+# Travenary Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+React + TypeScript + Vite SPA for authentication, profile management, and itinerary dashboard flows.
 
-Currently, two official plugins are available:
+## Run locally
+From repository root:
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+1. Install dependencies:
+   - `npm --prefix frontend install`
+2. Start dev server:
+   - `npm --prefix frontend run dev`
 
-## React Compiler
+## Environment
+Configure API URL with:
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- `VITE_API_BASE_URL` (example: `http://localhost:3000`)
 
-## Expanding the ESLint configuration
+If not set, frontend defaults to same host on port `3000`.
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+## Implemented flows
+- Sign-up/sign-in/sign-out and token refresh handling.
+- Dashboard list at `/` with deterministic sorting from backend:
+  - `sortBy=plannedStartDate`
+  - `sortOrder=asc`
+- One-click template-backed create action (`POST /itineraries` with empty payload).
+- Detail route at `/itineraries/:itineraryId`.
+- Delete itinerary from detail with confirmation and dashboard return.
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+## Scripts
+- `npm run dev` start Vite dev server.
+- `npm run build` produce production bundle.
+- `npm run lint` run TypeScript + ESLint checks.
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
-
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
-
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+## i18n and responsive rules
+- User-facing strings must be externalized in locale files.
+- Dashboard and detail pages should remain usable on phone and desktop widths.

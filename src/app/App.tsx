@@ -5,6 +5,7 @@ import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { CollisionGuardRoute } from './guards/CollisionGuardRoute'
 import { ProtectedRoute } from './guards/ProtectedRoute'
 import { PublicOnlyRoute } from './guards/PublicOnlyRoute'
+import { ItineraryDetailPage } from '@/pages/ItineraryDetailPage'
 import { HomePage } from '../pages/HomePage'
 import { GithubOAuthCallbackPage } from '../pages/GithubOAuthCallbackPage'
 import { LinkProviderPage } from '../pages/LinkProviderPage'
@@ -57,6 +58,14 @@ export default function App(): ReactElement {
           element={
             <ProtectedRoute>
               <HomePage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/itineraries/:itineraryId"
+          element={
+            <ProtectedRoute>
+              <ItineraryDetailPage />
             </ProtectedRoute>
           }
         />

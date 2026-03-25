@@ -316,6 +316,86 @@ button:disabled {
   gap: var(--space-3);
 }
 
+.dashboard-actions {
+  display: grid;
+  gap: var(--space-2);
+  margin-bottom: var(--space-3);
+}
+
+.itinerary-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--space-2);
+}
+
+.itinerary-card {
+  border: 1px solid var(--surface-border);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.9);
+}
+
+.itinerary-card__main {
+  display: grid;
+  gap: 0.35rem;
+  padding: 0.9rem;
+  color: inherit;
+}
+
+.itinerary-card__headline {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--space-2);
+}
+
+.itinerary-card__headline h3 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.itinerary-card__visibility {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.itinerary-card__dates {
+  margin: 0;
+  color: var(--text-muted);
+}
+
+.itinerary-card__meta {
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+  font-size: 0.84rem;
+}
+
+.itinerary-detail-panel {
+  width: min(100%, 760px);
+}
+
+.itinerary-detail-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.itinerary-day-list {
+  list-style: none;
+  padding: 0;
+  display: grid;
+  gap: var(--space-2);
+}
+
+.itinerary-day-list li {
+  padding: 0.7rem 0.8rem;
+  border-radius: 10px;
+  border: 1px solid var(--surface-border);
+  background: rgba(255, 255, 255, 0.7);
+}
+
 .panel--delete-action {
   display: grid;
   gap: var(--space-2);

@@ -46,3 +46,68 @@ export interface ApiRequestOptions {
   timeoutMs?: number
   skipAuthRefreshOn401?: boolean
 }
+
+export interface WebReference {
+  url: string
+  caption?: string
+  type?: 'photo' | 'video' | 'webpage'
+}
+
+export interface ItineraryActivity {
+  id: string
+  type: 'note' | 'flight' | 'accommodation' | 'transfer' | 'poi' | 'carRental' | 'custom'
+  subType?: 'start' | 'end'
+  title: string
+  text?: string
+  time?: string
+  timeEnd?: string
+}
+
+export interface ItineraryDay {
+  dayNumber: number
+  date?: string
+  summary?: string
+  activities: ItineraryActivity[]
+}
+
+export interface ItinerarySummary {
+  id: string
+  title: string
+  coverPhoto?: WebReference
+  tags: string[]
+  visibility: 'private' | 'shared' | 'public'
+  startDate?: string
+  endDate?: string
+  dayCount: number
+  activityCount: number
+  createdAt: string
+  updatedAt: string
+}
+
+export interface ItineraryDetail {
+  id: string
+  userId: string
+  templateId?: string
+  title: string
+  description?: string
+  tags: string[]
+  visibility: 'private' | 'shared' | 'public'
+  coverPhoto?: WebReference
+  days: ItineraryDay[]
+  createdAt: string
+  updatedAt: string
+}
+
+export interface ItineraryListResponse {
+  items: ItinerarySummary[]
+  page: number
+  limit: number
+  total: number
+}
+
+export interface ItineraryListParams {
+  page?: number
+  limit?: number
+  sortBy?: 'plannedStartDate'
+  sortOrder?: 'asc'
+}
