@@ -1,13 +1,13 @@
 import { z } from 'zod'
 
 export const signUpSchema = z.object({
-  email: z.email('validation.emailInvalid'),
+  email: z.string().email('validation.emailInvalid'),
   password: z.string().min(8, 'validation.passwordMin'),
   displayName: z.string().trim().optional(),
 })
 
 export const signInSchema = z.object({
-  email: z.email('validation.emailInvalid'),
+  email: z.string().email('validation.emailInvalid'),
   password: z.string().min(8, 'validation.passwordMin'),
 })
 

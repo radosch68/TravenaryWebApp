@@ -172,7 +172,6 @@ export async function apiRequest<T>(
           isRetrying: true,
         })
       } catch {
-        authHandlers?.onRefreshFailure()
         throw new ApiError(401, {
           code: 'UNAUTHORIZED',
           message: 'Session expired',
