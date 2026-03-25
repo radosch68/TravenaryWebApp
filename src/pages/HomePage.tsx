@@ -50,7 +50,6 @@ export function HomePage(): ReactElement {
       <Header />
       <section className="home-panel">
         <h1>{profile?.displayName || profile?.email}</h1>
-        <p>{t('common:homePlaceholder')}</p>
         <div className="dashboard-actions">
           <button type="button" onClick={() => void handleCreate()} disabled={createState === 'creating'}>
             {createState === 'creating' ? t('common:itinerary.creating') : t('common:createItinerary')}
