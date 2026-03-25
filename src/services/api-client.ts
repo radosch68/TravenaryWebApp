@@ -15,6 +15,7 @@ let refreshInFlight: Promise<AuthTokens> | null = null
 function baseUrl(): string {
   const configuredBaseUrl = import.meta.env.VITE_API_BASE_URL
   if (configuredBaseUrl) {
+    const normalizedConfiguredBaseUrl = configuredBaseUrl.replace(/\/$/, '')
     if (typeof window !== 'undefined') {
       try {
         const configuredUrl = new URL(configuredBaseUrl)
@@ -32,7 +33,7 @@ function baseUrl(): string {
       }
     }
 
-    return configuredBaseUrl
+    return normalizedConfiguredBaseUrl
   }
 
   if (typeof window !== 'undefined') {

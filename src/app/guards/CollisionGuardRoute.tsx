@@ -11,7 +11,7 @@ export function CollisionGuardRoute({ children }: CollisionGuardRouteProps): Rea
   const collision = useAuthStore((state) => state.identityCollision)
 
   if (!collision || collision.linkStatus !== 'collision_blocked') {
-    return <Navigate replace to="/signin" />
+    return <Navigate replace to="/signin" state={{ oneTimeMessageKey: 'auth:errors.restartSocialSignIn' }} />
   }
 
   return children

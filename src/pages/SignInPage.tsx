@@ -2,7 +2,7 @@ import type { ReactElement } from 'react'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useEffect, useRef, useState } from 'react'
 import { useForm } from 'react-hook-form'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 
 import { BrandBanner } from '@/components/BrandBanner'
@@ -22,6 +22,10 @@ const HEALTH_CHECK_TIMEOUT_MS = 2_500
 const HEALTH_READY_CACHE_KEY = 'backendHealthReadyAt'
 const HEALTH_READY_CACHE_TTL_MS = 90_000
 
+type SignInLocationState = {
+  oneTimeMessageKey?: string
+}
+
 function hasRecentHealthyBackend(): boolean {
   const rawValue = window.sessionStorage.getItem(HEALTH_READY_CACHE_KEY)
   if (!rawValue) {
@@ -37,6 +41,7 @@ function hasRecentHealthyBackend(): boolean {
 }
 
 export function SignInPage(): ReactElement {
+  const location = useLocation()
   const navigate = useNavigate()
   const { t } = useTranslation(['auth', 'errors'])
   const bootstrapAuthenticatedSession = useAuthStore(
@@ -63,6 +68,17 @@ export function SignInPage(): ReactElement {
   const githubEnabled = socialAuthEnabled && Boolean(import.meta.env.VITE_GITHUB_OAUTH_CLIENT_ID)
   const authActionsDisabled = !isBackendReady
   const controlsDisabled = authActionsDisabled || isAuthTransitioning
+
+  useEffect(() => {
+    const state = location.state as SignInLocationState | null
+    const oneTimeMessageKey = state?.oneTimeMessageKey
+    if (!oneTimeMessageKey) {
+      return
+    }
+
+    setApiError(t(oneTimeMessageKey))
+    navigate(location.pathname, { replace: true, state: null })
+  }, [location.pathname, location.state, navigate, t])
 
   useEffect(() => {
     let disposed = false
@@ -121,10 +137,10 @@ export function SignInPage(): ReactElement {
     } catch (error) {
       if (error instanceof ApiError && error.status === 401) {
         setApiError(t('auth:errors.invalidCredentials'))
-        return
+      } else {
+        setApiError(t('errors:server'))
       }
-
-      setApiError(t('errors:server'))
+    } finally {
       setIsAuthTransitioning(false)
     }
   })
