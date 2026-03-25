@@ -1,6 +1,6 @@
 import type { ChangeEvent, ReactElement } from 'react'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
@@ -69,6 +69,12 @@ export function ProfilePage(): ReactElement {
       displayName: profile?.displayName || '',
     },
   })
+
+  useEffect(() => {
+    if (!displayNameForm.formState.isDirty) {
+      displayNameForm.reset({ displayName: profile?.displayName || '' })
+    }
+  }, [displayNameForm, profile?.displayName])
 
   const passwordForm = useForm<PasswordChangeFormData>({
     resolver: zodResolver(passwordChangeSchema),

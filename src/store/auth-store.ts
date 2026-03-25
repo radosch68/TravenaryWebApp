@@ -85,10 +85,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
     set({ refreshState: 'refreshing' })
     try {
-      const tokens = await refreshSessionTokens()
+      await refreshSessionTokens()
       const profile = await getMe()
       useProfileStore.getState().setProfile(profile)
-      get().setSessionFromTokens(tokens)
     } catch {
       get().clearSession()
     } finally {
