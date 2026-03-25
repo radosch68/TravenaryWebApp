@@ -43,6 +43,7 @@ export function SignInPage(): ReactElement {
     (state) => state.bootstrapAuthenticatedSession,
   )
   const [apiError, setApiError] = useState('')
+  const [isAuthTransitioning, setIsAuthTransitioning] = useState(false)
   const [isBackendReady, setIsBackendReady] = useState(() => hasRecentHealthyBackend())
   const [isBackendChecking, setIsBackendChecking] = useState(() => !hasRecentHealthyBackend())
   const healthProbeInFlight = useRef(false)
@@ -60,6 +61,7 @@ export function SignInPage(): ReactElement {
   const appleEnabled = socialAuthEnabled && Boolean(import.meta.env.VITE_APPLE_OAUTH_CLIENT_ID)
   const githubEnabled = socialAuthEnabled && Boolean(import.meta.env.VITE_GITHUB_OAUTH_CLIENT_ID)
   const authActionsDisabled = !isBackendReady
+  const controlsDisabled = authActionsDisabled || isAuthTransitioning
 
   useEffect(() => {
     let disposed = false
@@ -109,6 +111,7 @@ export function SignInPage(): ReactElement {
       return
     }
 
+    setIsAuthTransitioning(true)
     setApiError('')
     try {
       const tokens = await signIn(values)
@@ -121,6 +124,7 @@ export function SignInPage(): ReactElement {
       }
 
       setApiError(t('errors:server'))
+      setIsAuthTransitioning(false)
     }
   })
 
@@ -130,7 +134,9 @@ export function SignInPage(): ReactElement {
       return
     }
 
+    setIsAuthTransitioning(true)
     await handleSocialAuth('apple', acquireAppleIdToken, navigate, setApiError)
+    setIsAuthTransitioning(false)
   }
 
   const onGoogleIdToken = async (idToken: string): Promise<void> => {
@@ -139,8 +145,10 @@ export function SignInPage(): ReactElement {
       return
     }
 
+    setIsAuthTransitioning(true)
     setApiError('')
     await completeSocialAuth('google', idToken, navigate, setApiError)
+    setIsAuthTransitioning(false)
   }
 
   const onGithub = async (): Promise<void> => {
@@ -149,7 +157,9 @@ export function SignInPage(): ReactElement {
       return
     }
 
+    setIsAuthTransitioning(true)
     await handleSocialAuth('github', acquireGithubAuthCode, navigate, setApiError)
+    setIsAuthTransitioning(false)
   }
 
   return (
@@ -162,7 +172,7 @@ export function SignInPage(): ReactElement {
         {googleEnabled || appleEnabled || githubEnabled ? (
           <div className="social-row">
             {googleEnabled ? (
-              authActionsDisabled ? (
+              controlsDisabled ? (
                 <button className="social-provider-btn" disabled type="button">
                   {t('auth:actions.continueGoogle')}
                 </button>
@@ -172,13 +182,13 @@ export function SignInPage(): ReactElement {
             ) : null}
             {githubEnabled ? (
               <GithubSignInButton
-                disabled={authActionsDisabled}
+                disabled={controlsDisabled}
                 onClick={onGithub}
                 label={t('auth:actions.continueGithub')}
               />
             ) : null}
             {appleEnabled ? (
-              <button type="button" disabled={authActionsDisabled} onClick={() => void onApple()}>
+              <button type="button" disabled={controlsDisabled} onClick={() => void onApple()}>
                 {t('auth:actions.continueApple')}
               </button>
             ) : null}
@@ -192,6 +202,13 @@ export function SignInPage(): ReactElement {
             <span className="backend-waking-alert__spinner" aria-hidden="true" />
             <span>{t('auth:social.backendStartingLine1')}</span>
             <span>{t('auth:social.backendStartingLine2')}</span>
+          </div>
+        ) : null}
+
+        {isAuthTransitioning ? (
+          <div className="backend-waking-alert backend-waking-alert--success" role="status" aria-live="polite">
+            <span className="backend-waking-alert__spinner" aria-hidden="true" />
+            <span>{t('auth:social.signingIn')}</span>
           </div>
         ) : null}
 
@@ -212,7 +229,7 @@ export function SignInPage(): ReactElement {
 
           {apiError && <p className="error">{apiError}</p>}
 
-          <button type="submit" disabled={form.formState.isSubmitting || authActionsDisabled}>
+          <button type="submit" disabled={form.formState.isSubmitting || controlsDisabled}>
             {form.formState.isSubmitting
               ? t('auth:actions.signingIn')
               : t('auth:actions.signIn')}
@@ -221,7 +238,7 @@ export function SignInPage(): ReactElement {
 
         <p>
           {t('auth:signIn.noAccount')}{' '}
-          {isBackendReady ? (
+          {!controlsDisabled ? (
             <Link to="/signup">{t('auth:actions.createAccount')}</Link>
           ) : (
             <span aria-disabled="true" className="auth-link-disabled">

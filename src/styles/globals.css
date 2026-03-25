@@ -172,6 +172,17 @@ button:disabled {
   grid-row: 1 / span 2;
 }
 
+.backend-waking-alert--success {
+  border-color: rgba(13, 124, 102, 0.3);
+  background: linear-gradient(135deg, rgba(168, 234, 214, 0.45), rgba(235, 255, 248, 0.78));
+  color: #0b5f4f;
+}
+
+.backend-waking-alert--success .backend-waking-alert__spinner {
+  border-color: rgba(11, 95, 79, 0.2);
+  border-top-color: #0d7c66;
+}
+
 @keyframes spin {
   to {
     transform: rotate(360deg);
