@@ -122,7 +122,7 @@ export function DayDetailPage(): ReactElement {
         <h1>
           {day.date ? formatWeekday(day.date, i18n.language) : '—'} {day.date ? formatLocalDate(day.date, i18n.language) : t('common:itinerary.missingDate')}
         </h1>
-        {day.summary ? <p>{day.summary}</p> : <p>{t('common:itinerary.empty')}</p>}
+        {day.summary ? <p>{day.summary}</p> : <p>{t('common:itinerary.noDaySummary')}</p>}
 
         <div className="button-row">
           <Link to={`/itineraries/${itinerary.id}`}>{t('common:back')}</Link>

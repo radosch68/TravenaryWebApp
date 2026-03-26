@@ -22,6 +22,7 @@
     "loadError": "Could not load itineraries.",
     "createError": "Could not create itinerary.",
     "missingDate": "Dates not set",
+    "noDaySummary": "No summary for this day yet.",
     "coverPresent": "Cover photo available",
     "coverMissing": "No cover photo",
     "dayCount_one": "{{count}} day",

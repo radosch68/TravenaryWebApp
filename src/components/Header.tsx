@@ -67,7 +67,6 @@ export function Header(): ReactElement {
         <button
           type="button"
           className="user-menu__trigger"
-          aria-haspopup="menu"
           aria-expanded={menuOpen}
           aria-label={t('profile:title')}
           onClick={() => setMenuOpen((current) => !current)}
@@ -83,13 +82,12 @@ export function Header(): ReactElement {
           </svg>
         </button>
         {menuOpen ? (
-          <div className="user-menu__panel" role="menu">
-            <Link to="/profile" role="menuitem" className="user-menu__item" onClick={() => setMenuOpen(false)}>
+          <div className="user-menu__panel">
+            <Link to="/profile" className="user-menu__item" onClick={() => setMenuOpen(false)}>
               {t('profile:title')}
             </Link>
             <button
               type="button"
-              role="menuitem"
               className="user-menu__item user-menu__item--danger"
               onClick={() => void handleSignOut()}
               disabled={isBusy}

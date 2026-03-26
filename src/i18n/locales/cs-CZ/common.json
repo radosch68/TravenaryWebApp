@@ -22,6 +22,7 @@
     "loadError": "Itineráře se nepodařilo načíst.",
     "createError": "Itinerář se nepodařilo vytvořit.",
     "missingDate": "Data nenastavena",
+    "noDaySummary": "Pro tento den zatím není k dispozici žádné shrnutí.",
     "coverPresent": "Fotka obálky k dispozici",
     "coverMissing": "Žádná fotka obálky",
     "dayCount_one": "{{count}} den",
