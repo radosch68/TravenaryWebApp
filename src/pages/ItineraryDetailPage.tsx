@@ -13,6 +13,12 @@ function formatLocalDate(isoDate: string, locale: string): string {
   return new Intl.DateTimeFormat(locale, { dateStyle: 'medium' }).format(new Date(year, month - 1, day))
 }
 
+function formatWeekday(isoDate: string, locale: string): string {
+  const [year, month, day] = isoDate.split('-').map(Number)
+  const weekday = new Intl.DateTimeFormat(locale, { weekday: 'long' }).format(new Date(year, month - 1, day))
+  return weekday.charAt(0).toUpperCase() + weekday.slice(1)
+}
+
 function computeDateSpan(days: ItineraryDetail['days'], locale: string): string | undefined {
   const dated = days.map((day) => day.date).filter((value): value is string => Boolean(value))
   if (dated.length === 0) {
@@ -170,10 +176,17 @@ export function ItineraryDetailPage(): ReactElement {
         <ul className="itinerary-day-list">
           {itinerary.days.map((day) => (
             <li key={day.dayNumber}>
-              <strong>
-                {t('common:itinerary.dayNumber', { dayNumber: day.dayNumber })}
-              </strong>
-              {day.date ? <span>{` · ${formatLocalDate(day.date, i18n.language)}`}</span> : null}
+              <div className="itinerary-day-header">
+                <span className="itinerary-day-header__weekday">
+                  {day.date ? formatWeekday(day.date, i18n.language) : '—'}
+                </span>
+                <span className="itinerary-day-header__date">
+                  {day.date ? formatLocalDate(day.date, i18n.language) : t('common:itinerary.missingDate')}
+                </span>
+                <span className="itinerary-day-header__index">
+                  {t('common:itinerary.dayNumber', { dayNumber: day.dayNumber })}
+                </span>
+              </div>
               {day.summary ? <p>{day.summary}</p> : null}
             </li>
           ))}
