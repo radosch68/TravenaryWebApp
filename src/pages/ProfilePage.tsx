@@ -5,8 +5,7 @@ import { useForm } from 'react-hook-form'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 
-import {
-  type DeleteAccountFormData,
+import {  type DeleteAccountFormData,
   type DisplayNameFormData,
   type PasswordChangeFormData,
   deleteAccountSchema,
@@ -14,6 +13,7 @@ import {
   passwordChangeSchema,
 } from '@/features/profile/schemas'
 import { Header } from '@/components/Header'
+import { Breadcrumb } from '@/components/Breadcrumb'
 import { signOut } from '@/services/auth-service'
 import {
   changePassword,
@@ -153,6 +153,7 @@ export function ProfilePage(): ReactElement {
   return (
     <main className="app-shell">
       <Header />
+      <Breadcrumb items={[{ icon: 'home', to: '/', ariaLabel: 'Dashboard' }, { label: profile?.displayName || profile?.email }]} />
       <section className="profile-grid">
         <article className="panel">
           <h1>{t('profile:title')}</h1>

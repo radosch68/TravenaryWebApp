@@ -8,6 +8,7 @@
   "homePlaceholder": "Váš panel itinerářů je připraven. Začněte vytvořením první cesty.",
   "createItinerary": "Vytvořit itinerář",
   "itinerary": {
+    "itineraries": "Itineráře: {{count}}",
     "loading": "Načítání itinerářů...",
     "detailLoading": "Načítání itineráře...",
     "creating": "Vytváření itineráře...",

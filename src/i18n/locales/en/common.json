@@ -8,6 +8,7 @@
   "homePlaceholder": "Your itinerary dashboard is ready. Start by creating your first trip.",
   "createItinerary": "Create itinerary",
   "itinerary": {
+    "itineraries": "Itineraries: {{count}}",
     "loading": "Loading itineraries...",
     "detailLoading": "Loading itinerary...",
     "creating": "Creating itinerary...",

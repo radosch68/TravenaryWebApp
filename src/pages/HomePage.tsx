@@ -71,18 +71,27 @@ export function HomePage(): ReactElement {
       <section className="home-panel">
         <h1>{profile?.displayName || profile?.email}</h1>
         <div className="dashboard-actions">
-          <button type="button" onClick={() => void handleCreate()} disabled={createState === 'creating'}>
-            {createState === 'creating' ? t('common:itinerary.creating') : t('common:createItinerary')}
+          <h2 className="dashboard-actions__heading">
+            {t('common:itinerary.itineraries', { count: total })}
+          </h2>
+          <button
+            type="button"
+            onClick={() => void handleCreate()}
+            disabled={createState === 'creating'}
+            className="dashboard-actions__add-button"
+            aria-label={t('common:createItinerary')}
+          >
+            {createState === 'creating' ? t('common:itinerary.creating') : '+'}
           </button>
-          {createState === 'error' ? (
-            <p className="error">
-              {t('common:itinerary.createError')}{' '}
-              <button type="button" onClick={() => void handleCreate()}>
-                {t('common:itinerary.retry')}
-              </button>
-            </p>
-          ) : null}
         </div>
+        {createState === 'error' ? (
+          <p className="error">
+            {t('common:itinerary.createError')}{' '}
+            <button type="button" onClick={() => void handleCreate()}>
+              {t('common:itinerary.retry')}
+            </button>
+          </p>
+        ) : null}
 
         {loadState === 'loading' || loadState === 'idle' ? <p>{t('common:itinerary.loading')}</p> : null}
 

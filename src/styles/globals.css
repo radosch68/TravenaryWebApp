@@ -487,9 +487,45 @@ button:disabled {
 }
 
 .dashboard-actions {
-  display: grid;
-  gap: var(--space-2);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
   margin-bottom: var(--space-3);
+}
+
+.dashboard-actions__heading {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--text-main);
+}
+
+.dashboard-actions__add-button {
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #0f7f69;
+  color: white;
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+  border: none;
+  font-size: 1.8rem;
+  font-weight: 400;
+  line-height: 1;
+}
+
+.dashboard-actions__add-button:hover:not(:disabled) {
+  opacity: 0.85;
+}
+
+.dashboard-actions__add-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .itinerary-list {
