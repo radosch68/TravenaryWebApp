@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { Header } from '@/components/Header'
+import { Breadcrumb } from '@/components/Breadcrumb'
 import { ItineraryList } from '@/components/itinerary/ItineraryList'
 import { createItineraryFromTemplate, listItineraries } from '@/services/itinerary-service'
 import type { ItinerarySummary } from '@/services/contracts'
@@ -48,6 +49,7 @@ export function HomePage(): ReactElement {
   return (
     <main className="app-shell">
       <Header />
+      <Breadcrumb items={[{ icon: 'home', ariaLabel: 'Dashboard' }]} />
       <section className="home-panel">
         <h1>{profile?.displayName || profile?.email}</h1>
         <div className="dashboard-actions">

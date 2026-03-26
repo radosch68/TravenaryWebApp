@@ -4,6 +4,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 
 import { Header } from '@/components/Header'
+import { Breadcrumb } from '@/components/Breadcrumb'
 import { ApiError } from '@/services/contracts'
 import { deleteItinerary, getItinerary } from '@/services/itinerary-service'
 import type { ItineraryDetail } from '@/services/contracts'
@@ -154,6 +155,7 @@ export function ItineraryDetailPage(): ReactElement {
   return (
     <main className="app-shell">
       <Header />
+      <Breadcrumb items={[{ icon: 'home', to: '/', ariaLabel: t('common:itinerary.backToDashboard') }, { label: itinerary.title }]} />
       <section className="panel itinerary-detail-panel">
         {itinerary.coverPhoto?.url ? (
           <div className="itinerary-detail-cover">
@@ -195,18 +197,20 @@ export function ItineraryDetailPage(): ReactElement {
         <ul className="itinerary-day-list">
           {itinerary.days.map((day) => (
             <li key={day.dayNumber}>
-              <div className="itinerary-day-header">
-                <span className="itinerary-day-header__weekday">
-                  {day.date ? formatWeekday(day.date, i18n.language) : '—'}
-                </span>
-                <span className="itinerary-day-header__date">
-                  {day.date ? formatLocalDate(day.date, i18n.language) : t('common:itinerary.missingDate')}
-                </span>
-                <span className="itinerary-day-header__index">
-                  {t('common:itinerary.dayNumber', { dayNumber: day.dayNumber })}
-                </span>
-              </div>
-              {day.summary ? <p>{day.summary}</p> : null}
+              <Link to={`/itineraries/${itinerary.id}/days/${day.dayNumber}`} className="itinerary-day-link">
+                <div className="itinerary-day-header">
+                  <span className="itinerary-day-header__weekday">
+                    {day.date ? formatWeekday(day.date, i18n.language) : '—'}
+                  </span>
+                  <span className="itinerary-day-header__date">
+                    {day.date ? formatLocalDate(day.date, i18n.language) : t('common:itinerary.missingDate')}
+                  </span>
+                  <span className="itinerary-day-header__index">
+                    {t('common:itinerary.dayNumber', { dayNumber: day.dayNumber })}
+                  </span>
+                </div>
+                {day.summary ? <p>{day.summary}</p> : null}
+              </Link>
             </li>
           ))}
         </ul>

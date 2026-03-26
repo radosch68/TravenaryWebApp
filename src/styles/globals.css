@@ -404,6 +404,71 @@ button:disabled {
   color: var(--danger);
 }
 
+.breadcrumb {
+  width: 100%;
+  padding: 0.5rem 0 0 0;
+  margin-bottom: var(--space-2);
+}
+
+.breadcrumb__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+}
+
+.breadcrumb__item {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.breadcrumb__link {
+  color: var(--accent-strong);
+  text-decoration: none;
+  font-size: 0.9rem;
+  padding: 0.1rem 0.35rem;
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  transition: background 0.15s ease;
+}
+
+.breadcrumb__link--icon {
+  padding: 0;
+}
+
+.breadcrumb__link:hover {
+  background: rgba(13, 124, 102, 0.1);
+}
+
+.breadcrumb__text {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  display: inline-flex;
+  align-items: center;
+}
+
+.breadcrumb__text--icon {
+  padding: 0;
+  color: var(--accent-strong);
+}
+
+.breadcrumb__icon {
+  width: 1.1rem;
+  height: 1.1rem;
+  display: block;
+}
+
+.breadcrumb__separator {
+  color: var(--text-muted);
+  margin: 0 0.15rem;
+  font-size: 0.85rem;
+}
+
 .topbar__nav,
 .topbar__actions {
   display: flex;
