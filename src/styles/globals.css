@@ -80,10 +80,19 @@ a {
   box-shadow: none;
 }
 
-.auth-card,
+.auth-card {
+  width: min(100%, 560px);
+  margin: 0 auto;
+  border: 1px solid var(--surface-border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  background: var(--surface);
+  padding: var(--space-5);
+}
+
 .panel,
 .home-panel {
-  width: min(100%, 560px);
+  width: 100%;
   margin: 0 auto;
   border: 1px solid var(--surface-border);
   border-radius: var(--radius);
@@ -288,6 +297,9 @@ button:disabled {
   display: grid;
   gap: var(--space-3);
   margin-bottom: var(--space-4);
+  width: 100%;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .topbar__brand {
@@ -295,8 +307,63 @@ button:disabled {
 }
 
 .topbar__brand .brand-banner {
-  width: min(100%, 640px);
+  width: 100%;
   margin: 0 auto;
+}
+
+.topbar__menu {
+  display: flex;
+  justify-content: flex-end;
+  position: relative;
+}
+
+.user-menu__trigger {
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #0f7f69;
+}
+
+.user-menu__trigger svg {
+  width: 22px;
+  height: 22px;
+}
+
+.user-menu__panel {
+  position: absolute;
+  top: calc(100% + 0.4rem);
+  right: 0;
+  min-width: 170px;
+  padding: 0.35rem;
+  border-radius: 12px;
+  border: 1px solid var(--surface-border);
+  background: #fff;
+  box-shadow: 0 8px 24px rgba(58, 36, 9, 0.2);
+  display: grid;
+  gap: 0.25rem;
+  z-index: 30;
+}
+
+.user-menu__item {
+  border-radius: 9px;
+  border: none;
+  background: transparent;
+  color: var(--text-main);
+  text-align: left;
+  padding: 0.5rem 0.6rem;
+  cursor: pointer;
+}
+
+.user-menu__item:hover {
+  background: rgba(13, 124, 102, 0.1);
+}
+
+.user-menu__item--danger {
+  color: var(--danger);
 }
 
 .topbar__nav,
@@ -402,7 +469,7 @@ button:disabled {
 }
 
 .itinerary-detail-panel {
-  width: min(100%, 760px);
+  width: 100%;
 }
 
 .itinerary-detail-cover {
@@ -489,27 +556,6 @@ button:disabled {
   }
 
   .topbar {
-    grid-template-columns: 1fr auto;
-    grid-template-areas:
-      'brand brand'
-      'nav actions';
-    align-items: start;
-  }
-
-  .topbar__brand {
-    grid-area: brand;
-  }
-
-  .topbar__nav {
-    grid-area: nav;
-  }
-
-  .topbar__actions {
-    grid-area: actions;
-    justify-content: flex-end;
-  }
-
-  .home-panel {
-    width: min(100%, 640px);
+    align-items: stretch;
   }
 }
