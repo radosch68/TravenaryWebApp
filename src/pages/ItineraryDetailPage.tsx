@@ -115,7 +115,7 @@ export function ItineraryDetailPage(): ReactElement {
       <main className="app-shell">
         <Header />
         <section className="panel">
-          <p>{t('common:itinerary.loading')}</p>
+          <p>{t('common:itinerary.detailLoading')}</p>
         </section>
       </main>
     )

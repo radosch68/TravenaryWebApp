@@ -9,6 +9,7 @@
   "createItinerary": "Vytvořit itinerář",
   "itinerary": {
     "loading": "Načítání itinerářů...",
+    "detailLoading": "Načítání itineráře...",
     "creating": "Vytváření itineráře...",
     "empty": "Zatím žádné itineráře. Vytvořte svůj první.",
     "retry": "Zkusit znovu",

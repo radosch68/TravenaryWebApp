@@ -9,6 +9,7 @@
   "createItinerary": "Create itinerary",
   "itinerary": {
     "loading": "Loading itineraries...",
+    "detailLoading": "Loading itinerary...",
     "creating": "Creating itinerary...",
     "empty": "No itineraries yet. Create your first one.",
     "retry": "Retry",
