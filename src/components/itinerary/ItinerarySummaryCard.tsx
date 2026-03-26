@@ -77,6 +77,27 @@ export function ItinerarySummaryCard({ itinerary }: ItinerarySummaryCardProps): 
           <p className="itinerary-card__dates">
             {dateLabel.length > 0 ? dateLabel : t('common:itinerary.missingDate')}
           </p>
+          {itinerary.tags.length > 0 ? (
+            <div className="itinerary-tags" aria-label="Tags">
+              <svg className="itinerary-tags__icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                <path
+                  d="M20 10L13 3H6L3 6V13L10 20L20 10Z"
+                  stroke="currentColor"
+                  strokeWidth="1.7"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+                <circle cx="7.8" cy="7.8" r="1.6" fill="currentColor" />
+              </svg>
+              <div className="itinerary-tags__list">
+                {itinerary.tags.map((tag) => (
+                  <span key={tag} className="itinerary-tag-chip">
+                    {tag}
+                  </span>
+                ))}
+              </div>
+            </div>
+          ) : null}
           <div className="itinerary-card__meta">
             <span>{t('common:itinerary.dayCount', { count: itinerary.dayCount })}</span>
             <span>{t('common:itinerary.activityCount', { count: itinerary.activityCount })}</span>
