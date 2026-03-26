@@ -353,7 +353,15 @@ button:disabled {
 }
 
 .itinerary-card__cover--empty {
-  background: var(--surface-border);
+  background: linear-gradient(135deg, rgba(10, 63, 123, 0.16), rgba(0, 153, 204, 0.18));
+  display: grid;
+  place-items: center;
+  color: rgba(10, 63, 123, 0.75);
+}
+
+.itinerary-card__placeholder-icon {
+  width: 44px;
+  height: 44px;
 }
 
 .itinerary-card__body {

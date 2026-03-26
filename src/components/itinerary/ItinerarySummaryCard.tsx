@@ -47,7 +47,18 @@ export function ItinerarySummaryCard({ itinerary }: ItinerarySummaryCardProps): 
             loading="lazy"
           />
         ) : (
-          <div className="itinerary-card__cover itinerary-card__cover--empty" aria-hidden="true" />
+          <div className="itinerary-card__cover itinerary-card__cover--empty" aria-hidden="true">
+            <svg
+              className="itinerary-card__placeholder-icon"
+              viewBox="0 0 24 24"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path d="M3 18L9 12L13 16L17 12L21 16V20H3V18Z" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+              <path d="M3 20V6C3 4.9 3.9 4 5 4H19C20.1 4 21 4.9 21 6V20" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+              <circle cx="8" cy="8" r="1.8" stroke="currentColor" strokeWidth="1.6" />
+            </svg>
+          </div>
         )}
         <div className="itinerary-card__body">
           <div className="itinerary-card__headline">
