@@ -19,6 +19,16 @@ function formatDateRange(startDate: string | undefined, endDate: string | undefi
   }
 
   if (startDate && endDate) {
+    const [startYear, startMonth, startDay] = startDate.split('-').map(Number)
+    const [endYear, endMonth, endDay] = endDate.split('-').map(Number)
+    const start = new Date(startYear, startMonth - 1, startDay)
+    const end = new Date(endYear, endMonth - 1, endDay)
+
+    if (startYear === endYear) {
+      const formatMonthDay = new Intl.DateTimeFormat(locale, { month: 'short', day: 'numeric' })
+      return `${formatMonthDay.format(start)} – ${formatMonthDay.format(end)}`
+    }
+
     return `${formatLocalDate(startDate, locale)} – ${formatLocalDate(endDate, locale)}`
   }
 
@@ -63,9 +73,6 @@ export function ItinerarySummaryCard({ itinerary }: ItinerarySummaryCardProps): 
         <div className="itinerary-card__body">
           <div className="itinerary-card__headline">
             <h3>{itinerary.title}</h3>
-            <span className="itinerary-card__visibility">
-              {t(`common:itinerary.visibility.${itinerary.visibility}`)}
-            </span>
           </div>
           <p className="itinerary-card__dates">
             {dateLabel.length > 0 ? dateLabel : t('common:itinerary.missingDate')}
