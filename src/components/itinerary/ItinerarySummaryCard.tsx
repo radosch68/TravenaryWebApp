@@ -3,37 +3,10 @@ import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 
 import type { ItinerarySummary } from '@/services/contracts'
+import { formatDateRange } from '@/utils/date-format'
 
 interface ItinerarySummaryCardProps {
   itinerary: ItinerarySummary
-}
-
-function formatLocalDate(isoDate: string, locale: string): string {
-  const [year, month, day] = isoDate.split('-').map(Number)
-  return new Intl.DateTimeFormat(locale, { dateStyle: 'medium' }).format(new Date(year, month - 1, day))
-}
-
-function formatDateRange(startDate: string | undefined, endDate: string | undefined, locale: string): string {
-  if (!startDate && !endDate) {
-    return ''
-  }
-
-  if (startDate && endDate) {
-    const [startYear, startMonth, startDay] = startDate.split('-').map(Number)
-    const [endYear, endMonth, endDay] = endDate.split('-').map(Number)
-    const start = new Date(startYear, startMonth - 1, startDay)
-    const end = new Date(endYear, endMonth - 1, endDay)
-
-    if (startYear === endYear) {
-      const formatMonthDay = new Intl.DateTimeFormat(locale, { month: 'numeric', day: 'numeric' })
-      const formatMonthDayYear = new Intl.DateTimeFormat(locale, { month: 'numeric', day: 'numeric', year: 'numeric' })
-      return `${formatMonthDay.format(start)} – ${formatMonthDayYear.format(end)}`
-    }
-
-    return `${formatLocalDate(startDate, locale)} – ${formatLocalDate(endDate, locale)}`
-  }
-
-  return formatLocalDate((startDate || endDate) as string, locale)
 }
 
 function buildThumbSrc(url: string): string {

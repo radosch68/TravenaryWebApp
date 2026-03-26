@@ -8,17 +8,7 @@ import { Breadcrumb } from '@/components/Breadcrumb'
 import { ApiError } from '@/services/contracts'
 import { getItinerary } from '@/services/itinerary-service'
 import type { ItineraryDetail, ItineraryDay } from '@/services/contracts'
-
-function formatLocalDate(isoDate: string, locale: string): string {
-  const [year, month, day] = isoDate.split('-').map(Number)
-  return new Intl.DateTimeFormat(locale, { dateStyle: 'medium' }).format(new Date(year, month - 1, day))
-}
-
-function formatWeekday(isoDate: string, locale: string): string {
-  const [year, month, day] = isoDate.split('-').map(Number)
-  const weekday = new Intl.DateTimeFormat(locale, { weekday: 'long' }).format(new Date(year, month - 1, day))
-  return weekday.charAt(0).toUpperCase() + weekday.slice(1)
-}
+import { formatLocalDate, formatWeekday } from '@/utils/date-format'
 
 export function DayDetailPage(): ReactElement {
   const { itineraryId, dayNumber } = useParams<{ itineraryId: string; dayNumber: string }>()
@@ -77,19 +67,6 @@ export function DayDetailPage(): ReactElement {
     )
   }
 
-  if (state === 'not-found' || !itinerary || !day) {
-    return (
-      <main className="app-shell">
-        <Header />
-        <section className="panel">
-          <h1>{t('common:itinerary.notFoundTitle')}</h1>
-          <p>{t('common:itinerary.notFoundMessage')}</p>
-          <Link to="/">{t('common:itinerary.backToDashboard')}</Link>
-        </section>
-      </main>
-    )
-  }
-
   if (state === 'error') {
     return (
       <main className="app-shell">
@@ -103,6 +80,19 @@ export function DayDetailPage(): ReactElement {
             </button>
             <Link to="/">{t('common:itinerary.backToDashboard')}</Link>
           </div>
+        </section>
+      </main>
+    )
+  }
+
+  if (state === 'not-found' || !itinerary || !day) {
+    return (
+      <main className="app-shell">
+        <Header />
+        <section className="panel">
+          <h1>{t('common:itinerary.notFoundTitle')}</h1>
+          <p>{t('common:itinerary.notFoundMessage')}</p>
+          <Link to="/">{t('common:itinerary.backToDashboard')}</Link>
         </section>
       </main>
     )

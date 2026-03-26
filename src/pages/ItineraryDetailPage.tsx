@@ -8,17 +8,7 @@ import { Breadcrumb } from '@/components/Breadcrumb'
 import { ApiError } from '@/services/contracts'
 import { deleteItinerary, getItinerary } from '@/services/itinerary-service'
 import type { ItineraryDetail } from '@/services/contracts'
-
-function formatLocalDate(isoDate: string, locale: string): string {
-  const [year, month, day] = isoDate.split('-').map(Number)
-  return new Intl.DateTimeFormat(locale, { dateStyle: 'medium' }).format(new Date(year, month - 1, day))
-}
-
-function formatWeekday(isoDate: string, locale: string): string {
-  const [year, month, day] = isoDate.split('-').map(Number)
-  const weekday = new Intl.DateTimeFormat(locale, { weekday: 'long' }).format(new Date(year, month - 1, day))
-  return weekday.charAt(0).toUpperCase() + weekday.slice(1)
-}
+import { formatLocalDate, formatWeekday } from '@/utils/date-format'
 
 function computeDateSpan(days: ItineraryDetail['days'], locale: string): string | undefined {
   const dated = days.map((day) => day.date).filter((value): value is string => Boolean(value))
