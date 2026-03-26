@@ -27,6 +27,13 @@ function computeDateSpan(days: ItineraryDetail['days'], locale: string): string 
     : `${formatLocalDate(start, locale)} – ${formatLocalDate(end, locale)}`
 }
 
+function buildHeroSrc(url: string): string {
+  if (url.includes('images.unsplash.com')) {
+    return `${url}?w=1200&q=85&fit=crop`
+  }
+  return url
+}
+
 export function ItineraryDetailPage(): ReactElement {
   const { itineraryId } = useParams<{ itineraryId: string }>()
   const navigate = useNavigate()
@@ -144,6 +151,14 @@ export function ItineraryDetailPage(): ReactElement {
     <main className="app-shell">
       <Header />
       <section className="panel itinerary-detail-panel">
+        {itinerary.coverPhoto?.url ? (
+          <div className="itinerary-detail-cover">
+            <img
+              src={buildHeroSrc(itinerary.coverPhoto.url)}
+              alt={itinerary.coverPhoto.caption ?? itinerary.title}
+            />
+          </div>
+        ) : null}
         <h1>{itinerary.title}</h1>
         {itinerary.description ? <p>{itinerary.description}</p> : null}
 

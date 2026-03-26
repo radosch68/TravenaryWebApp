@@ -25,6 +25,13 @@ function formatDateRange(startDate: string | undefined, endDate: string | undefi
   return formatLocalDate((startDate || endDate) as string, locale)
 }
 
+function buildThumbSrc(url: string): string {
+  if (url.includes('images.unsplash.com')) {
+    return `${url}?w=240&q=80&fit=crop`
+  }
+  return url
+}
+
 export function ItinerarySummaryCard({ itinerary }: ItinerarySummaryCardProps): ReactElement {
   const { t, i18n } = useTranslation(['common'])
   const dateLabel = formatDateRange(itinerary.startDate, itinerary.endDate, i18n.language)
@@ -32,23 +39,30 @@ export function ItinerarySummaryCard({ itinerary }: ItinerarySummaryCardProps): 
   return (
     <li className="itinerary-card">
       <Link className="itinerary-card__main" to={`/itineraries/${itinerary.id}`}>
-        <div className="itinerary-card__headline">
-          <h3>{itinerary.title}</h3>
-          <span className="itinerary-card__visibility">
-            {t(`common:itinerary.visibility.${itinerary.visibility}`)}
-          </span>
-        </div>
-        <p className="itinerary-card__dates">
-          {dateLabel.length > 0 ? dateLabel : t('common:itinerary.missingDate')}
-        </p>
-        <div className="itinerary-card__meta">
-          <span>{t('common:itinerary.dayCount', { count: itinerary.dayCount })}</span>
-          <span>{t('common:itinerary.activityCount', { count: itinerary.activityCount })}</span>
-          <span>
-            {itinerary.coverPhoto?.url
-              ? t('common:itinerary.coverPresent')
-              : t('common:itinerary.coverMissing')}
-          </span>
+        {itinerary.coverPhoto?.url ? (
+          <img
+            className="itinerary-card__cover"
+            src={buildThumbSrc(itinerary.coverPhoto.url)}
+            alt={itinerary.coverPhoto.caption ?? itinerary.title}
+            loading="lazy"
+          />
+        ) : (
+          <div className="itinerary-card__cover itinerary-card__cover--empty" aria-hidden="true" />
+        )}
+        <div className="itinerary-card__body">
+          <div className="itinerary-card__headline">
+            <h3>{itinerary.title}</h3>
+            <span className="itinerary-card__visibility">
+              {t(`common:itinerary.visibility.${itinerary.visibility}`)}
+            </span>
+          </div>
+          <p className="itinerary-card__dates">
+            {dateLabel.length > 0 ? dateLabel : t('common:itinerary.missingDate')}
+          </p>
+          <div className="itinerary-card__meta">
+            <span>{t('common:itinerary.dayCount', { count: itinerary.dayCount })}</span>
+            <span>{t('common:itinerary.activityCount', { count: itinerary.activityCount })}</span>
+          </div>
         </div>
       </Link>
     </li>

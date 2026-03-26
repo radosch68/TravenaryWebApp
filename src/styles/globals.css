@@ -334,13 +334,34 @@ button:disabled {
   border: 1px solid var(--surface-border);
   border-radius: 12px;
   background: rgba(255, 255, 255, 0.9);
+  overflow: hidden;
 }
 
 .itinerary-card__main {
+  display: flex;
+  align-items: stretch;
+  color: inherit;
+  text-decoration: none;
+}
+
+.itinerary-card__cover {
+  width: 110px;
+  flex-shrink: 0;
+  object-fit: cover;
+  object-position: center;
+  display: block;
+}
+
+.itinerary-card__cover--empty {
+  background: var(--surface-border);
+}
+
+.itinerary-card__body {
+  flex: 1;
+  min-width: 0;
   display: grid;
   gap: 0.35rem;
   padding: 0.9rem;
-  color: inherit;
 }
 
 .itinerary-card__headline {
@@ -374,6 +395,21 @@ button:disabled {
 
 .itinerary-detail-panel {
   width: min(100%, 760px);
+}
+
+.itinerary-detail-cover {
+  width: 100%;
+  border-radius: 12px;
+  overflow: hidden;
+  margin-bottom: var(--space-4);
+}
+
+.itinerary-detail-cover img {
+  display: block;
+  width: 100%;
+  height: 300px;
+  object-fit: cover;
+  object-position: center;
 }
 
 .itinerary-detail-meta {
