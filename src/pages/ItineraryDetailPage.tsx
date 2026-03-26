@@ -197,7 +197,7 @@ export function ItineraryDetailPage(): ReactElement {
         <ul className="itinerary-day-list">
           {itinerary.days.map((day) => (
             <li key={day.dayNumber}>
-              <Link to={`/itineraries/${itinerary.id}/days/${day.dayNumber}`} className="itinerary-day-link">
+              <Link to={`/itineraries/${itinerary.id}/days/${day.dayNumber}`} className="itinerary-day-link" style={{ display: 'block', color: 'inherit' }}>
                 <div className="itinerary-day-header">
                   <span className="itinerary-day-header__weekday">
                     {day.date ? formatWeekday(day.date, i18n.language) : '—'}

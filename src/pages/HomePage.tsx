@@ -57,11 +57,12 @@ export function HomePage(): ReactElement {
     setCreateState('creating')
     try {
       await createItineraryFromTemplate()
-      setCreateState('idle')
-      await fetchItems()
     } catch {
       setCreateState('error')
+      return
     }
+    setCreateState('idle')
+    await fetchItems()
   }
 
   return (

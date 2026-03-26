@@ -154,7 +154,7 @@ export function ProfilePage(): ReactElement {
   return (
     <main className="app-shell">
       <Header />
-      <Breadcrumb items={[{ icon: 'home', to: '/', ariaLabel: t('common:navigation.dashboard') }, { label: profile?.displayName || profile?.email }]} />
+      <Breadcrumb items={[{ icon: 'home', to: '/', ariaLabel: t('common:navigation.dashboard') }, { label: profile?.displayName || profile?.email || t('profile:title') }]} />
       <section className="profile-grid">
         <article className="panel">
           <h1>{t('profile:title')}</h1>
