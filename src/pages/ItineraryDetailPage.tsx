@@ -49,6 +49,7 @@ export function ItineraryDetailPage(): ReactElement {
   const [state, setState] = useState<'loading' | 'ready' | 'error' | 'not-found'>('loading')
   const [deleteBusy, setDeleteBusy] = useState(false)
   const [deleteError, setDeleteError] = useState(false)
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
 
   const loadDetail = useCallback(async (): Promise<void> => {
     if (!itineraryId) {
@@ -58,6 +59,7 @@ export function ItineraryDetailPage(): ReactElement {
 
     setState('loading')
     setDeleteError(false)
+    setDeleteConfirmOpen(false)
 
     try {
       const payload = await getItinerary(itineraryId)
@@ -90,11 +92,6 @@ export function ItineraryDetailPage(): ReactElement {
       return
     }
 
-    const confirmed = window.confirm(t('common:itinerary.deleteConfirm'))
-    if (!confirmed) {
-      return
-    }
-
     setDeleteBusy(true)
     setDeleteError(false)
     try {
@@ -105,6 +102,7 @@ export function ItineraryDetailPage(): ReactElement {
         setState('not-found')
       } else {
         setDeleteError(true)
+        setDeleteConfirmOpen(true)
       }
     } finally {
       setDeleteBusy(false)
@@ -195,9 +193,37 @@ export function ItineraryDetailPage(): ReactElement {
         {deleteError ? <p className="error">{t('common:itinerary.deleteError')}</p> : null}
 
         <div className="button-row">
-          <button className="button-danger" type="button" onClick={() => void handleDelete()} disabled={deleteBusy}>
-            {deleteBusy ? t('common:itinerary.deleting') : t('common:itinerary.delete')}
-          </button>
+          {deleteConfirmOpen ? (
+            <>
+              <p className="itinerary-delete-confirm">{t('common:itinerary.deleteConfirm')}</p>
+              <div className="button-row button-row--inline">
+                <button className="button-danger" type="button" onClick={() => void handleDelete()} disabled={deleteBusy}>
+                  {deleteBusy ? t('common:itinerary.deleting') : t('common:itinerary.delete')}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setDeleteConfirmOpen(false)
+                    setDeleteError(false)
+                  }}
+                  disabled={deleteBusy}
+                >
+                  {t('common:cancel')}
+                </button>
+              </div>
+            </>
+          ) : (
+            <button
+              className="button-danger"
+              type="button"
+              onClick={() => {
+                setDeleteConfirmOpen(true)
+                setDeleteError(false)
+              }}
+            >
+              {t('common:itinerary.delete')}
+            </button>
+          )}
           <Link to="/">{t('common:itinerary.backToDashboard')}</Link>
         </div>
       </section>
