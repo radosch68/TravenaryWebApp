@@ -37,10 +37,20 @@ function formatDateRange(startDate: string | undefined, endDate: string | undefi
 }
 
 function buildThumbSrc(url: string): string {
-  if (url.includes('images.unsplash.com')) {
-    return `${url}?w=240&q=80&fit=crop`
+  if (!url.includes('images.unsplash.com')) {
+    return url
   }
-  return url
+
+  try {
+    const parsedUrl = new URL(url)
+    parsedUrl.searchParams.set('w', '240')
+    parsedUrl.searchParams.set('q', '80')
+    parsedUrl.searchParams.set('fit', 'crop')
+    return parsedUrl.toString()
+  } catch {
+    const separator = url.includes('?') ? '&' : '?'
+    return `${url}${separator}w=240&q=80&fit=crop`
+  }
 }
 
 export function ItinerarySummaryCard({ itinerary }: ItinerarySummaryCardProps): ReactElement {
@@ -79,7 +89,7 @@ export function ItinerarySummaryCard({ itinerary }: ItinerarySummaryCardProps): 
             {dateLabel.length > 0 ? dateLabel : t('common:itinerary.missingDate')}
           </p>
           {itinerary.tags.length > 0 ? (
-            <div className="itinerary-tags" aria-label="Tags">
+            <div className="itinerary-tags" aria-label={t('common:itinerary.tagsAriaLabel')}>
               <svg className="itinerary-tags__icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
                 <path
                   d="M20 10L13 3H6L3 6V13L10 20L20 10Z"

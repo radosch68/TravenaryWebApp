@@ -7,6 +7,11 @@
   "pending": "Počkejte prosím...",
   "homePlaceholder": "Váš panel itinerářů je připraven. Začněte vytvořením první cesty.",
   "createItinerary": "Vytvořit itinerář",
+  "navigation": {
+    "breadcrumb": "Drobečková navigace",
+    "dashboard": "Dashboard",
+    "goToDashboard": "Přejít na dashboard"
+  },
   "itinerary": {
     "itineraries": "Itineráře: {{count}}",
     "loading": "Načítání itinerářů...",
@@ -36,6 +41,7 @@
     "detailLoadErrorTitle": "Itinerář nelze načíst",
     "detailLoadErrorMessage": "Zkuste to znovu nebo se vraťte na dashboard.",
     "listAriaLabel": "Seznam itinerářů",
+    "tagsAriaLabel": "Tagy",
     "pagination": {
       "ariaLabel": "Stránkování itinerářů",
       "previous": "Předchozí",

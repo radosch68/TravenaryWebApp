@@ -35,10 +35,20 @@ function computeDateSpan(days: ItineraryDetail['days'], locale: string): string 
 }
 
 function buildHeroSrc(url: string): string {
-  if (url.includes('images.unsplash.com')) {
-    return `${url}?w=1200&q=85&fit=crop`
+  if (!url.includes('images.unsplash.com')) {
+    return url
   }
-  return url
+
+  try {
+    const parsedUrl = new URL(url)
+    parsedUrl.searchParams.set('w', '1200')
+    parsedUrl.searchParams.set('q', '85')
+    parsedUrl.searchParams.set('fit', 'crop')
+    return parsedUrl.toString()
+  } catch {
+    const separator = url.includes('?') ? '&' : '?'
+    return `${url}${separator}w=1200&q=85&fit=crop`
+  }
 }
 
 export function ItineraryDetailPage(): ReactElement {
@@ -168,7 +178,7 @@ export function ItineraryDetailPage(): ReactElement {
         <h1>{itinerary.title}</h1>
         {itinerary.description ? <p>{itinerary.description}</p> : null}
         {itinerary.tags.length > 0 ? (
-          <div className="itinerary-tags itinerary-tags--detail" aria-label="Tags">
+          <div className="itinerary-tags itinerary-tags--detail" aria-label={t('common:itinerary.tagsAriaLabel')}>
             <svg className="itinerary-tags__icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
               <path
                 d="M20 10L13 3H6L3 6V13L10 20L20 10Z"

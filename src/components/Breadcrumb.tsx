@@ -1,5 +1,6 @@
 import type { ReactElement, ReactNode } from 'react'
 import { Link } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 
 export interface BreadcrumbItem {
   label?: ReactNode
@@ -31,12 +32,14 @@ function BreadcrumbIcon({ icon }: { icon: NonNullable<BreadcrumbItem['icon']> })
 }
 
 export function Breadcrumb({ items }: BreadcrumbProps): ReactElement | null {
+  const { t } = useTranslation(['common'])
+
   if (items.length === 0) {
     return null
   }
 
   return (
-    <nav className="breadcrumb" aria-label="Breadcrumb">
+    <nav className="breadcrumb" aria-label={t('common:navigation.breadcrumb')}>
       <ol className="breadcrumb__list">
         {items.map((item, index) => (
           <li key={index} className="breadcrumb__item">

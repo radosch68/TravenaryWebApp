@@ -7,6 +7,11 @@
   "pending": "Please wait...",
   "homePlaceholder": "Your itinerary dashboard is ready. Start by creating your first trip.",
   "createItinerary": "Create itinerary",
+  "navigation": {
+    "breadcrumb": "Breadcrumb",
+    "dashboard": "Dashboard",
+    "goToDashboard": "Go to dashboard"
+  },
   "itinerary": {
     "itineraries": "Itineraries: {{count}}",
     "loading": "Loading itineraries...",
@@ -34,6 +39,7 @@
     "detailLoadErrorTitle": "Unable to load itinerary",
     "detailLoadErrorMessage": "Try again or return to dashboard.",
     "listAriaLabel": "Itinerary list",
+    "tagsAriaLabel": "Tags",
     "pagination": {
       "ariaLabel": "Itinerary pagination",
       "previous": "Previous",

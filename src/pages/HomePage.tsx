@@ -67,7 +67,7 @@ export function HomePage(): ReactElement {
   return (
     <main className="app-shell">
       <Header />
-      <Breadcrumb items={[{ icon: 'home', ariaLabel: 'Dashboard' }]} />
+      <Breadcrumb items={[{ icon: 'home', ariaLabel: t('common:navigation.dashboard') }]} />
       <section className="home-panel">
         <h1>{profile?.displayName || profile?.email}</h1>
         <div className="dashboard-actions">

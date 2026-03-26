@@ -59,7 +59,7 @@ export function Header(): ReactElement {
   return (
     <header className="topbar">
       <div className="topbar__brand">
-        <Link to="/" aria-label="Go to dashboard">
+        <Link to="/" aria-label={t('common:navigation.goToDashboard')}>
           <BrandBanner />
         </Link>
       </div>
