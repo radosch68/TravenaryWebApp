@@ -8,20 +8,29 @@ import { ApiError } from '@/services/contracts'
 import { deleteItinerary, getItinerary } from '@/services/itinerary-service'
 import type { ItineraryDetail } from '@/services/contracts'
 
-function computeDateSpan(days: ItineraryDetail['days']): string | undefined {
+function formatLocalDate(isoDate: string, locale: string): string {
+  const [year, month, day] = isoDate.split('-').map(Number)
+  return new Intl.DateTimeFormat(locale, { dateStyle: 'medium' }).format(new Date(year, month - 1, day))
+}
+
+function computeDateSpan(days: ItineraryDetail['days'], locale: string): string | undefined {
   const dated = days.map((day) => day.date).filter((value): value is string => Boolean(value))
   if (dated.length === 0) {
     return undefined
   }
 
   const sorted = [...dated].sort((left, right) => left.localeCompare(right))
-  return `${sorted[0]} - ${sorted[sorted.length - 1]}`
+  const start = sorted[0]
+  const end = sorted[sorted.length - 1]
+  return start === end
+    ? formatLocalDate(start, locale)
+    : `${formatLocalDate(start, locale)} – ${formatLocalDate(end, locale)}`
 }
 
 export function ItineraryDetailPage(): ReactElement {
   const { itineraryId } = useParams<{ itineraryId: string }>()
   const navigate = useNavigate()
-  const { t } = useTranslation(['common'])
+  const { t, i18n } = useTranslation(['common'])
 
   const [itinerary, setItinerary] = useState<ItineraryDetail | null>(null)
   const [state, setState] = useState<'loading' | 'ready' | 'error' | 'not-found'>('loading')
@@ -60,8 +69,8 @@ export function ItineraryDetailPage(): ReactElement {
       return ''
     }
 
-    return computeDateSpan(itinerary.days) || t('common:itinerary.missingDate')
-  }, [itinerary, t])
+    return computeDateSpan(itinerary.days, i18n.language) || t('common:itinerary.missingDate')
+  }, [itinerary, t, i18n.language])
 
   const handleDelete = async (): Promise<void> => {
     if (!itineraryId) {
@@ -149,7 +158,7 @@ export function ItineraryDetailPage(): ReactElement {
               <strong>
                 {t('common:itinerary.dayNumber', { dayNumber: day.dayNumber })}
               </strong>
-              {day.date ? <span>{` · ${day.date}`}</span> : null}
+              {day.date ? <span>{` · ${formatLocalDate(day.date, i18n.language)}`}</span> : null}
               {day.summary ? <p>{day.summary}</p> : null}
             </li>
           ))}

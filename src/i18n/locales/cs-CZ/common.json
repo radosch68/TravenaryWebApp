@@ -6,5 +6,38 @@
   "loading": "Načítání...",
   "pending": "Počkejte prosím...",
   "homePlaceholder": "Váš panel itinerářů je připraven. Začněte vytvořením první cesty.",
-  "createItinerary": "Vytvořit itinerář"
+  "createItinerary": "Vytvořit itinerář",
+  "itinerary": {
+    "loading": "Načítání itinerářů...",
+    "creating": "Vytváření itineráře...",
+    "empty": "Zatím žádné itineráře. Vytvořte svůj první.",
+    "retry": "Zkusit znovu",
+    "loadError": "Itineráře se nepodařilo načíst.",
+    "createError": "Itinerář se nepodařilo vytvořit.",
+    "missingDate": "Data nenastavena",
+    "coverPresent": "Fotka obálky k dispozici",
+    "coverMissing": "Žádná fotka obálky",
+    "dayCount_one": "{{count}} den",
+    "dayCount_few": "{{count}} dny",
+    "dayCount_other": "{{count}} dní",
+    "activityCount_one": "{{count}} aktivita",
+    "activityCount_few": "{{count}} aktivity",
+    "activityCount_other": "{{count}} aktivit",
+    "dayNumber": "Den {{dayNumber}}",
+    "delete": "Smazat itinerář",
+    "deleting": "Mazání...",
+    "deleteConfirm": "Trvale smazat tento itinerář?",
+    "deleteError": "Smazání se nezdařilo. Vraťte se na dashboard a zkuste to znovu.",
+    "backToDashboard": "Zpět na dashboard",
+    "notFoundTitle": "Itinerář nenalezen",
+    "notFoundMessage": "Tento itinerář neexistuje nebo k němu nemáte přístup.",
+    "detailLoadErrorTitle": "Itinerář nelze načíst",
+    "detailLoadErrorMessage": "Zkuste to znovu nebo se vraťte na dashboard.",
+    "listAriaLabel": "Seznam itinerářů",
+    "visibility": {
+      "private": "Soukromý",
+      "shared": "Sdílený",
+      "public": "Veřejný"
+    }
+  }
 }

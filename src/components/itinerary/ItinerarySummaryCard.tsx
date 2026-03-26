@@ -8,21 +8,26 @@ interface ItinerarySummaryCardProps {
   itinerary: ItinerarySummary
 }
 
-function formatDateRange(startDate?: string, endDate?: string): string {
+function formatLocalDate(isoDate: string, locale: string): string {
+  const [year, month, day] = isoDate.split('-').map(Number)
+  return new Intl.DateTimeFormat(locale, { dateStyle: 'medium' }).format(new Date(year, month - 1, day))
+}
+
+function formatDateRange(startDate: string | undefined, endDate: string | undefined, locale: string): string {
   if (!startDate && !endDate) {
     return ''
   }
 
   if (startDate && endDate) {
-    return `${startDate} - ${endDate}`
+    return `${formatLocalDate(startDate, locale)} – ${formatLocalDate(endDate, locale)}`
   }
 
-  return startDate || endDate || ''
+  return formatLocalDate((startDate || endDate) as string, locale)
 }
 
 export function ItinerarySummaryCard({ itinerary }: ItinerarySummaryCardProps): ReactElement {
-  const { t } = useTranslation(['common'])
-  const dateLabel = formatDateRange(itinerary.startDate, itinerary.endDate)
+  const { t, i18n } = useTranslation(['common'])
+  const dateLabel = formatDateRange(itinerary.startDate, itinerary.endDate, i18n.language)
 
   return (
     <li className="itinerary-card">
