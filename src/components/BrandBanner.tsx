@@ -38,16 +38,12 @@ export function BrandBanner({ compact = false }: BrandBannerProps): ReactElement
             />
             {/* Departure marker */}
             <circle cx="38" cy="50" r="4" fill="rgba(15,127,105,0.40)" />
-            {/* Arrival marker */}
-            <circle cx="332" cy="44" r="4" fill="rgba(15,127,105,0.40)" />
-            {/* Airplane at ascending portion of arc */}
-            <g transform="translate(140, 25) rotate(-13)">
-              <ellipse cx="0" cy="0" rx="11" ry="3" fill="rgba(15,127,105,0.75)" />
-              <path d="M-2 0 L-10 10 L5 7 Z" fill="rgba(15,127,105,0.65)" />
-              <path d="M-2 0 L-10 -10 L5 -7 Z" fill="rgba(15,127,105,0.65)" />
-              <path d="M-9 0 L-13.5 5 L-9 2 Z" fill="rgba(15,127,105,0.65)" />
-              <path d="M-9 0 L-13.5 -5 L-9 -2 Z" fill="rgba(15,127,105,0.65)" />
-            </g>
+            {/* Arrival pin */}
+            <path
+              d="M 332 29 C 329 29 327 31 327 33 C 327 36 332 44 332 44 C 332 44 337 36 337 33 C 337 31 335 29 332 29 Z"
+              fill="rgba(15,127,105,0.65)"
+            />
+            <circle cx="332" cy="34" r="2" fill="rgba(255,255,255,0.90)" />
           </svg>
         </div>
       )}
