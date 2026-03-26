@@ -63,6 +63,8 @@ a {
   background: linear-gradient(120deg, rgba(13, 124, 102, 0.12), rgba(255, 255, 255, 0.95));
   box-shadow: 0 10px 22px rgba(58, 36, 9, 0.12);
   padding: 0.8rem 1.1rem;
+  position: relative;
+  overflow: hidden;
 }
 
 .brand-banner__text {
@@ -71,6 +73,22 @@ a {
   font-weight: 700;
   font-size: clamp(1.15rem, 2.2vw, 1.5rem);
   color: #0f5a4a;
+  position: relative;
+  z-index: 1;
+}
+
+.brand-banner__deco {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  mask-image: linear-gradient(to right, transparent 18%, rgba(0,0,0,0.6) 48%, rgba(0,0,0,1) 65%);
+  -webkit-mask-image: linear-gradient(to right, transparent 18%, rgba(0,0,0,0.6) 48%, rgba(0,0,0,1) 65%);
+}
+
+.brand-banner__deco svg {
+  width: 100%;
+  height: 100%;
 }
 
 .brand-banner--compact {
