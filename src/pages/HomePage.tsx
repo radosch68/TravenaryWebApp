@@ -9,23 +9,41 @@ import { createItineraryFromTemplate, listItineraries } from '@/services/itinera
 import type { ItinerarySummary } from '@/services/contracts'
 import { useProfileStore } from '@/store/profile-store'
 
+const ITINERARY_PAGE_SIZE = 4
+
 export function HomePage(): ReactElement {
   const { t } = useTranslation(['common'])
   const profile = useProfileStore((state) => state.profile)
   const [items, setItems] = useState<ItinerarySummary[]>([])
+  const [page, setPage] = useState(1)
+  const [total, setTotal] = useState(0)
   const [loadState, setLoadState] = useState<'idle' | 'loading' | 'ready' | 'error'>('idle')
   const [createState, setCreateState] = useState<'idle' | 'creating' | 'error'>('idle')
+  const totalPages = Math.max(1, Math.ceil(total / ITINERARY_PAGE_SIZE))
 
   const fetchItems = useCallback(async (): Promise<void> => {
     setLoadState('loading')
     try {
-      const response = await listItineraries({ sortBy: 'plannedStartDate', sortOrder: 'asc' })
+      const response = await listItineraries({
+        page,
+        limit: ITINERARY_PAGE_SIZE,
+        sortBy: 'plannedStartDate',
+        sortOrder: 'asc',
+      })
       setItems(response.items)
+      setTotal(response.total)
+
+      const computedTotalPages = Math.max(1, Math.ceil(response.total / response.limit))
+      if (response.page > computedTotalPages) {
+        setPage(computedTotalPages)
+        return
+      }
+
       setLoadState('ready')
     } catch {
       setLoadState('error')
     }
-  }, [])
+  }, [page])
 
   useEffect(() => {
     const handle = window.setTimeout(() => {
@@ -80,6 +98,31 @@ export function HomePage(): ReactElement {
         {loadState === 'ready' && items.length === 0 ? <p>{t('common:itinerary.empty')}</p> : null}
 
         {loadState === 'ready' && items.length > 0 ? <ItineraryList items={items} /> : null}
+
+        {loadState === 'ready' && total > ITINERARY_PAGE_SIZE ? (
+          <nav className="itinerary-pagination" aria-label={t('common:itinerary.pagination.ariaLabel')}>
+            <button
+              type="button"
+              onClick={() => setPage((previous) => Math.max(1, previous - 1))}
+              disabled={page <= 1}
+            >
+              {t('common:itinerary.pagination.previous')}
+            </button>
+            <p>
+              {t('common:itinerary.pagination.pageIndicator', {
+                page,
+                totalPages,
+              })}
+            </p>
+            <button
+              type="button"
+              onClick={() => setPage((previous) => Math.min(totalPages, previous + 1))}
+              disabled={page >= totalPages}
+            >
+              {t('common:itinerary.pagination.next')}
+            </button>
+          </nav>
+        ) : null}
       </section>
     </main>
   )

@@ -35,6 +35,12 @@
     "detailLoadErrorTitle": "Itinerář nelze načíst",
     "detailLoadErrorMessage": "Zkuste to znovu nebo se vraťte na dashboard.",
     "listAriaLabel": "Seznam itinerářů",
+    "pagination": {
+      "ariaLabel": "Stránkování itinerářů",
+      "previous": "Předchozí",
+      "next": "Další",
+      "pageIndicator": "Stránka {{page}} z {{totalPages}}"
+    },
     "visibility": {
       "private": "Soukromý",
       "shared": "Sdílený",

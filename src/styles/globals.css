@@ -500,6 +500,21 @@ button:disabled {
   gap: var(--space-2);
 }
 
+.itinerary-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+}
+
+.itinerary-pagination p {
+  margin: 0;
+  color: var(--text-muted);
+  min-width: 7.5rem;
+  text-align: center;
+}
+
 .itinerary-card {
   border: 1px solid var(--surface-border);
   border-radius: 12px;

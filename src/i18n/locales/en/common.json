@@ -33,6 +33,12 @@
     "detailLoadErrorTitle": "Unable to load itinerary",
     "detailLoadErrorMessage": "Try again or return to dashboard.",
     "listAriaLabel": "Itinerary list",
+    "pagination": {
+      "ariaLabel": "Itinerary pagination",
+      "previous": "Previous",
+      "next": "Next",
+      "pageIndicator": "Page {{page}} of {{totalPages}}"
+    },
     "visibility": {
       "private": "Private",
       "shared": "Shared",
