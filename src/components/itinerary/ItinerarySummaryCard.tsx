@@ -25,8 +25,9 @@ function formatDateRange(startDate: string | undefined, endDate: string | undefi
     const end = new Date(endYear, endMonth - 1, endDay)
 
     if (startYear === endYear) {
-      const formatMonthDay = new Intl.DateTimeFormat(locale, { month: 'short', day: 'numeric' })
-      return `${formatMonthDay.format(start)} – ${formatMonthDay.format(end)}`
+      const formatMonthDay = new Intl.DateTimeFormat(locale, { month: 'numeric', day: 'numeric' })
+      const formatMonthDayYear = new Intl.DateTimeFormat(locale, { month: 'numeric', day: 'numeric', year: 'numeric' })
+      return `${formatMonthDay.format(start)} – ${formatMonthDayYear.format(end)}`
     }
 
     return `${formatLocalDate(startDate, locale)} – ${formatLocalDate(endDate, locale)}`
