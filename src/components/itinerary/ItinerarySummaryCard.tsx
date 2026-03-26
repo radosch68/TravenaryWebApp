@@ -68,7 +68,11 @@ export function ItinerarySummaryCard({ itinerary }: ItinerarySummaryCardProps): 
             loading="lazy"
           />
         ) : (
-          <div className="itinerary-card__cover itinerary-card__cover--empty" aria-hidden="true">
+          <div
+            className="itinerary-card__cover itinerary-card__cover--empty"
+            role="img"
+            aria-label={t('common:itinerary.coverMissing')}
+          >
             <svg
               className="itinerary-card__placeholder-icon"
               viewBox="0 0 24 24"

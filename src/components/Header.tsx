@@ -9,7 +9,7 @@ import { useAuthStore } from '@/store/auth-store'
 
 export function Header(): ReactElement {
   const navigate = useNavigate()
-  const { t } = useTranslation(['auth', 'common'])
+  const { t } = useTranslation(['auth', 'common', 'profile'])
   const clearSession = useAuthStore((state) => state.clearSession)
   const [isBusy, setIsBusy] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
