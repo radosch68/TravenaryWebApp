@@ -1,0 +1,36 @@
+{
+  "generateWithAi": "Generovat s AI",
+  "createFromTemplate": "Vytvořit ze šablony",
+  "modal": {
+    "title": "Generovat itinerář s AI",
+    "promptLabel": "Popište svou cestu",
+    "promptPlaceholder": "Např. 5 dní v Praze, Staré město a hrady...",
+    "advancedOptions": "Pokročilé možnosti",
+    "modelLabel": "Model AI",
+    "modelGpt4o": "GPT-4o (Doporučeno)",
+    "modelGpt35": "GPT-3.5-turbo (Rychlý)",
+    "generateButton": "Generovat",
+    "cancelButton": "Zrušit",
+    "generating": "Generuji itineráře...",
+    "generatingHint": "Obvykle to trvá asi 15 sekund",
+    "retryButton": "Zkusit znovu",
+    "useTemplateButton": "Použít šablonu",
+    "errorTitle": "Generování se nezdařilo",
+    "validationError": "Zadejte prosím popis alespoň 20 znaků.",
+    "conflictError": "Generování již probíhá. Počkejte prosím.",
+    "networkError": "Chyba sítě. Zkontrolujte připojení a zkuste to znovu."
+  },
+  "carousel": {
+    "draftOf": "Návrh {{current}} z {{total}}",
+    "selectButton": "Vybrat",
+    "prevButton": "Předchozí",
+    "nextButton": "Další",
+    "saving": "Ukládám itinerář...",
+    "saved": "Itinerář vytvořen!",
+    "selectionError": "Uložení se nezdařilo. Zkuste to znovu.",
+    "retrySelect": "Zkusit znovu",
+    "activityHighlights": "Highlights aktivit",
+    "tags": "Tagy",
+    "dateRange": "{{startDate}} – {{endDate}}"
+  }
+}
