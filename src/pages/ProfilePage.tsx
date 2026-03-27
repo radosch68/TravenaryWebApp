@@ -14,6 +14,7 @@ import {
   passwordChangeSchema,
 } from '@/features/profile/schemas'
 import { Header } from '@/components/Header'
+import { Breadcrumb } from '@/components/Breadcrumb'
 import { signOut } from '@/services/auth-service'
 import {
   changePassword,
@@ -25,7 +26,7 @@ import { useProfileStore } from '@/store/profile-store'
 
 export function ProfilePage(): ReactElement {
   const navigate = useNavigate()
-  const { t, i18n } = useTranslation(['profile'])
+  const { t, i18n } = useTranslation(['profile', 'common'])
   const profile = useProfileStore((state) => state.profile)
   const setProfile = useProfileStore((state) => state.setProfile)
   const preferredLanguage = useProfileStore((state) => state.preferredLanguage)
@@ -153,6 +154,7 @@ export function ProfilePage(): ReactElement {
   return (
     <main className="app-shell">
       <Header />
+      <Breadcrumb items={[{ icon: 'home', to: '/', ariaLabel: t('common:navigation.dashboard') }, { label: profile?.displayName || profile?.email || t('profile:title') }]} />
       <section className="profile-grid">
         <article className="panel">
           <h1>{t('profile:title')}</h1>

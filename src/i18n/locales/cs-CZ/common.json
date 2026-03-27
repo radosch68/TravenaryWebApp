@@ -6,5 +6,53 @@
   "loading": "Načítání...",
   "pending": "Počkejte prosím...",
   "homePlaceholder": "Váš panel itinerářů je připraven. Začněte vytvořením první cesty.",
-  "createItinerary": "Vytvořit itinerář"
+  "createItinerary": "Vytvořit itinerář",
+  "navigation": {
+    "breadcrumb": "Drobečková navigace",
+    "dashboard": "Dashboard",
+    "goToDashboard": "Přejít na dashboard"
+  },
+  "itinerary": {
+    "itineraries": "Itineráře: {{count}}",
+    "loading": "Načítání itinerářů...",
+    "detailLoading": "Načítání itineráře...",
+    "creating": "Vytváření itineráře...",
+    "empty": "Zatím žádné itineráře. Vytvořte svůj první.",
+    "retry": "Zkusit znovu",
+    "loadError": "Itineráře se nepodařilo načíst.",
+    "createError": "Itinerář se nepodařilo vytvořit.",
+    "missingDate": "Data nenastavena",
+    "noDaySummary": "Pro tento den zatím není k dispozici žádné shrnutí.",
+    "coverPresent": "Fotka obálky k dispozici",
+    "coverMissing": "Žádná fotka obálky",
+    "dayCount_one": "{{count}} den",
+    "dayCount_few": "{{count}} dny",
+    "dayCount_other": "{{count}} dní",
+    "activityCount_one": "{{count}} aktivita",
+    "activityCount_few": "{{count}} aktivity",
+    "activityCount_other": "{{count}} aktivit",
+    "dayNumber": "Den {{dayNumber}}",
+    "delete": "Smazat itinerář",
+    "deleting": "Mazání...",
+    "deleteConfirm": "Trvale smazat tento itinerář?",
+    "deleteError": "Smazání se nezdařilo. Vraťte se na dashboard a zkuste to znovu.",
+    "backToDashboard": "Zpět na dashboard",
+    "notFoundTitle": "Itinerář nenalezen",
+    "notFoundMessage": "Tento itinerář neexistuje nebo k němu nemáte přístup.",
+    "detailLoadErrorTitle": "Itinerář nelze načíst",
+    "detailLoadErrorMessage": "Zkuste to znovu nebo se vraťte na dashboard.",
+    "listAriaLabel": "Seznam itinerářů",
+    "tagsAriaLabel": "Tagy",
+    "pagination": {
+      "ariaLabel": "Stránkování itinerářů",
+      "previous": "Předchozí",
+      "next": "Další",
+      "pageIndicator": "Stránka {{page}} z {{totalPages}}"
+    },
+    "visibility": {
+      "private": "Soukromý",
+      "shared": "Sdílený",
+      "public": "Veřejný"
+    }
+  }
 }

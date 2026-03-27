@@ -6,5 +6,51 @@
   "loading": "Loading...",
   "pending": "Please wait...",
   "homePlaceholder": "Your itinerary dashboard is ready. Start by creating your first trip.",
-  "createItinerary": "Create itinerary"
+  "createItinerary": "Create itinerary",
+  "navigation": {
+    "breadcrumb": "Breadcrumb",
+    "dashboard": "Dashboard",
+    "goToDashboard": "Go to dashboard"
+  },
+  "itinerary": {
+    "itineraries": "Itineraries: {{count}}",
+    "loading": "Loading itineraries...",
+    "detailLoading": "Loading itinerary...",
+    "creating": "Creating itinerary...",
+    "empty": "No itineraries yet. Create your first one.",
+    "retry": "Retry",
+    "loadError": "Could not load itineraries.",
+    "createError": "Could not create itinerary.",
+    "missingDate": "Dates not set",
+    "noDaySummary": "No summary for this day yet.",
+    "coverPresent": "Cover photo available",
+    "coverMissing": "No cover photo",
+    "dayCount_one": "{{count}} day",
+    "dayCount_other": "{{count}} days",
+    "activityCount_one": "{{count}} activity",
+    "activityCount_other": "{{count}} activities",
+    "dayNumber": "Day {{dayNumber}}",
+    "delete": "Delete itinerary",
+    "deleting": "Deleting...",
+    "deleteConfirm": "Delete this itinerary permanently?",
+    "deleteError": "Delete failed. You can go back to dashboard and retry.",
+    "backToDashboard": "Back to dashboard",
+    "notFoundTitle": "Itinerary not found",
+    "notFoundMessage": "This itinerary does not exist or you no longer have access.",
+    "detailLoadErrorTitle": "Unable to load itinerary",
+    "detailLoadErrorMessage": "Try again or return to dashboard.",
+    "listAriaLabel": "Itinerary list",
+    "tagsAriaLabel": "Tags",
+    "pagination": {
+      "ariaLabel": "Itinerary pagination",
+      "previous": "Previous",
+      "next": "Next",
+      "pageIndicator": "Page {{page}} of {{totalPages}}"
+    },
+    "visibility": {
+      "private": "Private",
+      "shared": "Shared",
+      "public": "Public"
+    }
+  }
 }
