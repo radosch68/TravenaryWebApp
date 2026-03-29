@@ -501,6 +501,24 @@ button:disabled {
   color: var(--text-main);
 }
 
+.dashboard-actions__ai-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  min-height: 40px;
+  padding: 0.65rem 1rem;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #0f7f69, #15967b);
+  color: white;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.dashboard-actions__ai-button:hover:not(:disabled) {
+  opacity: 0.92;
+}
+
 .dashboard-actions__add-button {
   width: 40px;
   height: 40px;
@@ -526,6 +544,197 @@ button:disabled {
 .dashboard-actions__add-button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+.generation-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-3);
+  background: rgba(47, 36, 22, 0.58);
+}
+
+.generation-modal {
+  width: min(100%, 720px);
+  max-height: min(90vh, 860px);
+  overflow: hidden;
+  border: 1px solid var(--surface-border);
+  border-radius: var(--radius);
+  background: rgba(255, 252, 246, 0.98);
+  box-shadow: var(--shadow);
+}
+
+.generation-modal__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding: var(--space-4) var(--space-4) var(--space-2);
+}
+
+.generation-modal__header h2 {
+  margin: 0;
+}
+
+.generation-modal__close {
+  min-width: 2.5rem;
+  min-height: 2.5rem;
+  padding: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text-muted);
+  border: 1px solid var(--surface-border);
+  font-size: 1.35rem;
+}
+
+.generation-modal__body {
+  display: grid;
+  gap: var(--space-3);
+  padding: 0 var(--space-4) var(--space-4);
+  overflow-y: auto;
+}
+
+.generation-modal__label {
+  display: block;
+  margin-bottom: 0.35rem;
+  font-weight: 600;
+}
+
+.generation-modal__textarea {
+  width: 100%;
+  min-height: 7.5rem;
+  resize: vertical;
+  border: 1px solid var(--surface-border);
+  border-radius: 12px;
+  padding: 0.85rem 0.95rem;
+  font: inherit;
+  background: rgba(255, 255, 255, 0.96);
+  color: var(--text-main);
+}
+
+.generation-modal__advanced-toggle {
+  align-self: flex-start;
+  padding: 0;
+  background: transparent;
+  color: var(--accent-strong);
+}
+
+.generation-modal__advanced {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.generation-modal__error,
+.generation-modal__error-state,
+.generation-modal__loading,
+.generation-modal__success {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.generation-modal__loading,
+.generation-modal__success,
+.generation-modal__error-state {
+  padding-top: var(--space-2);
+}
+
+.generation-modal__loading-text,
+.generation-modal__loading-hint,
+.generation-modal__success p {
+  margin: 0;
+}
+
+.generation-modal__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.draft-carousel {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.draft-carousel__counter {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+}
+
+.draft-carousel__card {
+  display: grid;
+  gap: var(--space-2);
+  border: 1px solid var(--surface-border);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.94);
+  padding: var(--space-4);
+}
+
+.draft-carousel__title,
+.draft-carousel__dates,
+.draft-carousel__description,
+.draft-carousel__section-label,
+.draft-carousel__error {
+  margin: 0;
+}
+
+.draft-carousel__dates,
+.draft-carousel__description,
+.draft-carousel__counter {
+  color: var(--text-muted);
+}
+
+.draft-carousel__activities ul {
+  margin: 0.4rem 0 0;
+  padding-left: 1.2rem;
+}
+
+.draft-carousel__tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.draft-carousel__tag {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--surface-border);
+  border-radius: 999px;
+  padding: 0.2rem 0.55rem;
+  background: rgba(13, 124, 102, 0.08);
+  font-size: 0.82rem;
+}
+
+.draft-carousel__select-button {
+  width: 100%;
+}
+
+.draft-carousel__nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.draft-carousel__dots {
+  display: inline-flex;
+  gap: 0.45rem;
+}
+
+.draft-carousel__dot {
+  width: 0.75rem;
+  height: 0.75rem;
+  padding: 0;
+  border-radius: 999px;
+  background: rgba(13, 124, 102, 0.22);
+}
+
+.draft-carousel__dot--active {
+  background: var(--accent);
 }
 
 .itinerary-list {

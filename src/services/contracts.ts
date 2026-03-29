@@ -45,6 +45,7 @@ export interface ApiRequestOptions {
   isRetrying?: boolean
   timeoutMs?: number
   skipAuthRefreshOn401?: boolean
+  signal?: AbortSignal
 }
 
 export interface WebReference {

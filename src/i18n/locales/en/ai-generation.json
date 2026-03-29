@@ -1,0 +1,42 @@
+{
+  "generateWithAi": "Generate with AI",
+  "createFromTemplate": "Create from template",
+  "modal": {
+    "title": "Generate Itinerary with AI",
+    "promptLabel": "Describe your trip",
+    "promptPlaceholder": "E.g. 5 days in Prague, exploring Old Town and castles...",
+    "advancedOptions": "Advanced Options",
+    "modelLabel": "AI Model",
+    "modelGpt4o": "GPT-4o (Recommended)",
+    "modelGpt35": "GPT-3.5-turbo (Fast)",
+    "generateButton": "Generate",
+    "cancelButton": "Cancel",
+    "generating": "Generating your itineraries...",
+    "generatingHint": "This usually takes around 15 seconds",
+    "retryButton": "Retry Generation",
+    "useTemplateButton": "Use Template Instead",
+    "errorTitle": "Generation Failed",
+    "validationError": "Please enter a prompt of at least 20 characters.",
+    "conflictError": "Generation already in progress. Please wait.",
+    "timeoutError": "Generation took too long. Please try again.",
+    "notFoundError": "Generation result was not found. Please start again.",
+    "networkError": "Network error. Please check your connection and retry."
+  },
+  "carousel": {
+    "draftOf": "Draft {{current}} of {{total}}",
+    "draftDotAriaLabel": "View draft {{current}} of {{total}}",
+    "navigationAriaLabel": "Draft navigation",
+    "selectButton": "Select This",
+    "prevButton": "Previous",
+    "nextButton": "Next",
+    "saving": "Saving itinerary...",
+    "saved": "Itinerary created!",
+    "selectionError": "Failed to save. Please try again.",
+    "retrySelect": "Retry",
+    "activityHighlights": "Activity highlights",
+    "moreActivities_one": "more activity",
+    "moreActivities_other": "more activities",
+    "tags": "Tags",
+    "dateRange": "{{startDate}} – {{endDate}}"
+  }
+}

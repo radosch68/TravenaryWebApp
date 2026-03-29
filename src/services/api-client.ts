@@ -146,10 +146,18 @@ export async function apiRequest<T>(
     isRetrying = false,
     timeoutMs = DEFAULT_TIMEOUT_MS,
     skipAuthRefreshOn401 = false,
+    signal,
   } = options
 
   const controller = new AbortController()
   const timeout = setTimeout(() => controller.abort(), timeoutMs)
+  const abortFromCaller = (): void => controller.abort()
+
+  if (signal?.aborted) {
+    controller.abort()
+  } else {
+    signal?.addEventListener('abort', abortFromCaller, { once: true })
+  }
 
   try {
     const headers: Record<string, string> = {
@@ -204,6 +212,10 @@ export async function apiRequest<T>(
       throw error
     }
 
+    if (signal?.aborted) {
+      throw new ApiError(499, { code: 'REQUEST_ABORTED', message: 'Request was aborted' })
+    }
+
     if (error instanceof Error && error.name === 'AbortError') {
       throw new ApiError(408, {
         code: 'NETWORK_TIMEOUT',
@@ -217,5 +229,6 @@ export async function apiRequest<T>(
     })
   } finally {
     clearTimeout(timeout)
+    signal?.removeEventListener('abort', abortFromCaller)
   }
 }

@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next'
 import { Header } from '@/components/Header'
 import { Breadcrumb } from '@/components/Breadcrumb'
 import { ItineraryList } from '@/components/itinerary/ItineraryList'
+import { GenerationModal } from '@/components/itinerary/GenerationModal'
 import { createItineraryFromTemplate, listItineraries } from '@/services/itinerary-service'
 import type { ItinerarySummary } from '@/services/contracts'
 import { useProfileStore } from '@/store/profile-store'
@@ -12,13 +13,14 @@ import { useProfileStore } from '@/store/profile-store'
 const ITINERARY_PAGE_SIZE = 4
 
 export function HomePage(): ReactElement {
-  const { t } = useTranslation(['common'])
+  const { t } = useTranslation(['common', 'ai-generation'])
   const profile = useProfileStore((state) => state.profile)
   const [items, setItems] = useState<ItinerarySummary[]>([])
   const [page, setPage] = useState(1)
   const [total, setTotal] = useState(0)
   const [loadState, setLoadState] = useState<'idle' | 'loading' | 'ready' | 'error'>('idle')
   const [createState, setCreateState] = useState<'idle' | 'creating' | 'error'>('idle')
+  const [isGenerationModalOpen, setIsGenerationModalOpen] = useState(false)
   const totalPages = Math.max(1, Math.ceil(total / ITINERARY_PAGE_SIZE))
 
   const fetchItems = useCallback(async (): Promise<void> => {
@@ -75,6 +77,14 @@ export function HomePage(): ReactElement {
           <h2 className="dashboard-actions__heading">
             {t('common:itinerary.itineraries', { count: total })}
           </h2>
+          <button
+            type="button"
+            onClick={() => setIsGenerationModalOpen(true)}
+            className="dashboard-actions__ai-button"
+            aria-label={t('ai-generation:generateWithAi')}
+          >
+            <span aria-hidden="true">✨</span> {t('ai-generation:generateWithAi')}
+          </button>
           <button
             type="button"
             onClick={() => void handleCreate()}
@@ -134,6 +144,19 @@ export function HomePage(): ReactElement {
           </nav>
         ) : null}
       </section>
+
+      {isGenerationModalOpen ? (
+        <GenerationModal
+          onClose={() => {
+            setIsGenerationModalOpen(false)
+            void fetchItems()
+          }}
+          onFallback={() => {
+            setIsGenerationModalOpen(false)
+            void handleCreate()
+          }}
+        />
+      ) : null}
     </main>
   )
 }
