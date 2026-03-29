@@ -53,11 +53,16 @@ export function DraftReviewCarousel({
               {t('ai-generation:carousel.activityHighlights')}
             </p>
             <ul>
-              {preview.map((activity) => (
-                <li key={activity}>{activity}</li>
+              {preview.map((activity, index) => (
+                <li key={`${activity}-${index}`}>{activity}</li>
               ))}
               {draft.activities.length > 4 ? (
-                <li>+{draft.activities.length - 4} more</li>
+                <li>
+                  +{draft.activities.length - 4}{' '}
+                  {t('ai-generation:carousel.moreActivities', {
+                    count: draft.activities.length - 4,
+                  })}
+                </li>
               ) : null}
             </ul>
           </div>
@@ -89,7 +94,7 @@ export function DraftReviewCarousel({
         </button>
       </div>
 
-      <nav className="draft-carousel__nav" aria-label="Draft navigation">
+      <nav className="draft-carousel__nav" aria-label={t('ai-generation:carousel.navigationAriaLabel')}>
         <button
           type="button"
           disabled={currentIndex <= 0 || isSaving}
@@ -106,7 +111,10 @@ export function DraftReviewCarousel({
               className={`draft-carousel__dot${currentIndex === index ? ' draft-carousel__dot--active' : ''}`}
               disabled={isSaving}
               onClick={() => setCurrentIndex(index)}
-              aria-label={`Draft ${index + 1}`}
+              aria-label={t('ai-generation:carousel.draftDotAriaLabel', {
+                current: index + 1,
+                total: drafts.length,
+              })}
             />
           ))}
         </div>

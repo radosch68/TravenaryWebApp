@@ -18,10 +18,14 @@
     "errorTitle": "Generování se nezdařilo",
     "validationError": "Zadejte prosím popis alespoň 20 znaků.",
     "conflictError": "Generování již probíhá. Počkejte prosím.",
+    "timeoutError": "Generování trvalo příliš dlouho. Zkuste to prosím znovu.",
+    "notFoundError": "Výsledek generování nebyl nalezen. Spusťte generování znovu.",
     "networkError": "Chyba sítě. Zkontrolujte připojení a zkuste to znovu."
   },
   "carousel": {
     "draftOf": "Návrh {{current}} z {{total}}",
+    "draftDotAriaLabel": "Zobrazit návrh {{current}} z {{total}}",
+    "navigationAriaLabel": "Navigace návrhů",
     "selectButton": "Vybrat",
     "prevButton": "Předchozí",
     "nextButton": "Další",
@@ -30,6 +34,9 @@
     "selectionError": "Uložení se nezdařilo. Zkuste to znovu.",
     "retrySelect": "Zkusit znovu",
     "activityHighlights": "Highlights aktivit",
+    "moreActivities_one": "další aktivita",
+    "moreActivities_few": "další aktivity",
+    "moreActivities_other": "dalších aktivit",
     "tags": "Tagy",
     "dateRange": "{{startDate}} – {{endDate}}"
   }

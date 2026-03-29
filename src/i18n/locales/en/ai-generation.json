@@ -18,10 +18,14 @@
     "errorTitle": "Generation Failed",
     "validationError": "Please enter a prompt of at least 20 characters.",
     "conflictError": "Generation already in progress. Please wait.",
+    "timeoutError": "Generation took too long. Please try again.",
+    "notFoundError": "Generation result was not found. Please start again.",
     "networkError": "Network error. Please check your connection and retry."
   },
   "carousel": {
     "draftOf": "Draft {{current}} of {{total}}",
+    "draftDotAriaLabel": "View draft {{current}} of {{total}}",
+    "navigationAriaLabel": "Draft navigation",
     "selectButton": "Select This",
     "prevButton": "Previous",
     "nextButton": "Next",
@@ -30,6 +34,8 @@
     "selectionError": "Failed to save. Please try again.",
     "retrySelect": "Retry",
     "activityHighlights": "Activity highlights",
+    "moreActivities_one": "more activity",
+    "moreActivities_other": "more activities",
     "tags": "Tags",
     "dateRange": "{{startDate}} – {{endDate}}"
   }

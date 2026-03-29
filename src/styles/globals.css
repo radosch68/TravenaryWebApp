@@ -501,6 +501,24 @@ button:disabled {
   color: var(--text-main);
 }
 
+.dashboard-actions__ai-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  min-height: 40px;
+  padding: 0.65rem 1rem;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #0f7f69, #15967b);
+  color: white;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.dashboard-actions__ai-button:hover:not(:disabled) {
+  opacity: 0.92;
+}
+
 .dashboard-actions__add-button {
   width: 40px;
   height: 40px;

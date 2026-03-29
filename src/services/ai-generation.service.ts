@@ -1,9 +1,10 @@
 import { apiRequest } from '@/services/api-client'
+import { ApiError } from '@/services/contracts'
 
 export interface DraftDay {
   date: string
   activities: string[]
-  notesForDay?: string
+  notesForDay?: string | null
 }
 
 export interface DraftItinerary {
@@ -13,10 +14,10 @@ export interface DraftItinerary {
   endDate: string
   activities: string[]
   tags: string[]
-  coverPhoto: { url: string; caption?: string } | null
-  description?: string
+  coverPhoto: { url: string; caption?: string | null } | null
+  description?: string | null
   language: string
-  days?: DraftDay[]
+  days?: DraftDay[] | null
 }
 
 export interface GenerationStatusResponse {
@@ -78,11 +79,10 @@ export async function pollUntilComplete(
     await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL_MS))
   }
 
-  return {
-    requestId: generationRequestId,
-    status: 'failed',
-    errorMessage: 'Generation took too long. Please try again.',
-  }
+  throw new ApiError(408, {
+    code: 'GENERATION_TIMEOUT',
+    message: 'Generation timed out',
+  })
 }
 
 export async function selectDraft(

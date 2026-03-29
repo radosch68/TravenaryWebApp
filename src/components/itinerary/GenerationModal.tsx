@@ -241,10 +241,7 @@ export function GenerationModal({ onClose, onFallback }: GenerationModalProps): 
                 <button
                   type="button"
                   className="generation-modal__cancel"
-                  onClick={() => {
-                    onClose()
-                    onFallback()
-                  }}
+                  onClick={onFallback}
                 >
                   {t('ai-generation:modal.useTemplateButton')}
                 </button>
@@ -264,6 +261,12 @@ function resolveErrorMessage(
   if (err instanceof ApiError) {
     if (err.status === 409) {
       return t('ai-generation:modal.conflictError')
+    }
+    if (err.code === 'GENERATION_TIMEOUT') {
+      return t('ai-generation:modal.timeoutError')
+    }
+    if (err.status === 404) {
+      return t('ai-generation:modal.notFoundError')
     }
     return err.message
   }
