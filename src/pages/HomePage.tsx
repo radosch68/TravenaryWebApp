@@ -1,6 +1,7 @@
 import type { ReactElement } from 'react'
 import { useCallback, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { useSearchParams } from 'react-router-dom'
 
 import { Header } from '@/components/Header'
 import { Breadcrumb } from '@/components/Breadcrumb'
@@ -10,18 +11,40 @@ import { createItineraryFromTemplate, listItineraries } from '@/services/itinera
 import type { ItinerarySummary } from '@/services/contracts'
 import { useProfileStore } from '@/store/profile-store'
 
-const ITINERARY_PAGE_SIZE = 4
+const ITINERARY_PAGE_SIZE = 12
 
 export function HomePage(): ReactElement {
   const { t } = useTranslation(['common', 'ai-generation'])
   const profile = useProfileStore((state) => state.profile)
+  const [searchParams, setSearchParams] = useSearchParams()
   const [items, setItems] = useState<ItinerarySummary[]>([])
-  const [page, setPage] = useState(1)
   const [total, setTotal] = useState(0)
   const [loadState, setLoadState] = useState<'idle' | 'loading' | 'ready' | 'error'>('idle')
-  const [createState, setCreateState] = useState<'idle' | 'creating' | 'error'>('idle')
   const [isGenerationModalOpen, setIsGenerationModalOpen] = useState(false)
+  const [createError, setCreateError] = useState(false)
+  const normalizedPage = Number.parseInt(searchParams.get('page') ?? '1', 10)
+  const page = Number.isFinite(normalizedPage) && normalizedPage >= 1 ? normalizedPage : 1
   const totalPages = Math.max(1, Math.ceil(total / ITINERARY_PAGE_SIZE))
+
+  const setPage = useCallback(
+    (nextPage: number): void => {
+      const nextSearchParams = new URLSearchParams(searchParams)
+      nextSearchParams.set('page', String(Math.max(1, nextPage)))
+      setSearchParams(nextSearchParams)
+    },
+    [searchParams, setSearchParams],
+  )
+
+  useEffect(() => {
+    const currentPage = searchParams.get('page')
+    if (currentPage === String(page)) {
+      return
+    }
+
+    const nextSearchParams = new URLSearchParams(searchParams)
+    nextSearchParams.set('page', String(page))
+    setSearchParams(nextSearchParams, { replace: true })
+  }, [page, searchParams, setSearchParams])
 
   const fetchItems = useCallback(async (): Promise<void> => {
     setLoadState('loading')
@@ -45,7 +68,7 @@ export function HomePage(): ReactElement {
     } catch {
       setLoadState('error')
     }
-  }, [page])
+  }, [page, setPage])
 
   useEffect(() => {
     const handle = window.setTimeout(() => {
@@ -56,93 +79,91 @@ export function HomePage(): ReactElement {
   }, [fetchItems])
 
   const handleCreate = async (): Promise<void> => {
-    setCreateState('creating')
+    setCreateError(false)
     try {
       await createItineraryFromTemplate()
+      await fetchItems()
     } catch {
-      setCreateState('error')
-      return
+      setCreateError(true)
     }
-    setCreateState('idle')
-    await fetchItems()
   }
 
   return (
     <main className="app-shell">
       <Header />
-      <Breadcrumb items={[{ icon: 'home', ariaLabel: t('common:navigation.dashboard') }]} />
-      <section className="home-panel">
-        <h1>{profile?.displayName || profile?.email}</h1>
-        <div className="dashboard-actions">
-          <h2 className="dashboard-actions__heading">
-            {t('common:itinerary.itineraries', { count: total })}
-          </h2>
-          <button
-            type="button"
-            onClick={() => setIsGenerationModalOpen(true)}
-            className="dashboard-actions__ai-button"
-            aria-label={t('ai-generation:generateWithAi')}
-          >
-            <span aria-hidden="true">✨</span> {t('ai-generation:generateWithAi')}
-          </button>
-          <button
-            type="button"
-            onClick={() => void handleCreate()}
-            disabled={createState === 'creating'}
-            className="dashboard-actions__add-button"
-            aria-label={t('common:createItinerary')}
-          >
-            {createState === 'creating' ? t('common:itinerary.creating') : '+'}
-          </button>
+      <Breadcrumb items={[{ icon: 'home', ariaLabel: t('common:navigation.dashboard'), to: '/?page=1' }]} />
+      <section className="home-panel home-panel--dashboard">
+        <div className="dashboard-content-padding">
+          <h1>{profile?.displayName || profile?.email}</h1>
+          <div className="dashboard-actions">
+            <h2 className="dashboard-actions__heading">
+              {t('common:itinerary.itineraries', { count: total })}
+            </h2>
+            <button
+              type="button"
+              onClick={() => setIsGenerationModalOpen(true)}
+              className="dashboard-actions__add-button"
+              aria-label={t('common:createItinerary')}
+            >
+              +
+            </button>
+          </div>
+
         </div>
-        {createState === 'error' ? (
-          <p className="error">
-            {t('common:itinerary.createError')}{' '}
-            <button type="button" onClick={() => void handleCreate()}>
-              {t('common:itinerary.retry')}
-            </button>
-          </p>
-        ) : null}
+        <div className="dashboard-list-shell">
+          {loadState === 'loading' || loadState === 'idle' ? (
+            <p className="dashboard-list-shell__state">{t('common:itinerary.loading')}</p>
+          ) : null}
 
-        {loadState === 'loading' || loadState === 'idle' ? <p>{t('common:itinerary.loading')}</p> : null}
-
-        {loadState === 'error' ? (
-          <p className="error">
-            {t('common:itinerary.loadError')}{' '}
-            <button type="button" onClick={() => void fetchItems()}>
-              {t('common:itinerary.retry')}
-            </button>
-          </p>
-        ) : null}
-
-        {loadState === 'ready' && items.length === 0 ? <p>{t('common:itinerary.empty')}</p> : null}
-
-        {loadState === 'ready' && items.length > 0 ? <ItineraryList items={items} /> : null}
-
-        {loadState === 'ready' && total > ITINERARY_PAGE_SIZE ? (
-          <nav className="itinerary-pagination" aria-label={t('common:itinerary.pagination.ariaLabel')}>
-            <button
-              type="button"
-              onClick={() => setPage((previous) => Math.max(1, previous - 1))}
-              disabled={page <= 1}
-            >
-              {t('common:itinerary.pagination.previous')}
-            </button>
-            <p>
-              {t('common:itinerary.pagination.pageIndicator', {
-                page,
-                totalPages,
-              })}
+          {loadState === 'error' ? (
+            <p className="dashboard-list-shell__state error">
+              {t('common:itinerary.loadError')}{' '}
+              <button type="button" onClick={() => void fetchItems()}>
+                {t('common:itinerary.retry')}
+              </button>
             </p>
-            <button
-              type="button"
-              onClick={() => setPage((previous) => Math.min(totalPages, previous + 1))}
-              disabled={page >= totalPages}
-            >
-              {t('common:itinerary.pagination.next')}
-            </button>
-          </nav>
-        ) : null}
+          ) : null}
+
+          {createError ? (
+            <p className="dashboard-list-shell__state error">
+              {t('common:itinerary.createError')}{' '}
+              <button type="button" onClick={() => void handleCreate()}>
+                {t('common:itinerary.retry')}
+              </button>
+            </p>
+          ) : null}
+
+          {loadState === 'ready' && items.length === 0 ? (
+            <p className="dashboard-list-shell__state">{t('common:itinerary.empty')}</p>
+          ) : null}
+
+          {loadState === 'ready' && items.length > 0 ? <ItineraryList items={items} /> : null}
+
+          {loadState === 'ready' && total > ITINERARY_PAGE_SIZE ? (
+            <nav className="itinerary-pagination" aria-label={t('common:itinerary.pagination.ariaLabel')}>
+              <button
+                type="button"
+                onClick={() => setPage(page - 1)}
+                disabled={page <= 1}
+              >
+                {t('common:itinerary.pagination.previous')}
+              </button>
+              <p>
+                {t('common:itinerary.pagination.pageIndicator', {
+                  page,
+                  totalPages,
+                })}
+              </p>
+              <button
+                type="button"
+                onClick={() => setPage(page + 1)}
+                disabled={page >= totalPages}
+              >
+                {t('common:itinerary.pagination.next')}
+              </button>
+            </nav>
+          ) : null}
+        </div>
       </section>
 
       {isGenerationModalOpen ? (

@@ -1,5 +1,5 @@
 import type { ReactElement } from 'react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { DraftItinerary } from '@/services/ai-generation.service'
 import { formatDateRange } from '@/utils/date-format'
@@ -22,6 +22,27 @@ export function DraftReviewCarousel({
   const { t, i18n } = useTranslation(['ai-generation'])
   const [currentIndex, setCurrentIndex] = useState(0)
 
+  useEffect(() => {
+    const handleArrowNavigation = (event: KeyboardEvent): void => {
+      if (isSaving) {
+        return
+      }
+
+      if (event.key === 'ArrowLeft') {
+        event.preventDefault()
+        setCurrentIndex((index) => Math.max(0, index - 1))
+      }
+
+      if (event.key === 'ArrowRight') {
+        event.preventDefault()
+        setCurrentIndex((index) => Math.min(drafts.length - 1, index + 1))
+      }
+    }
+
+    window.addEventListener('keydown', handleArrowNavigation)
+    return () => window.removeEventListener('keydown', handleArrowNavigation)
+  }, [drafts.length, isSaving])
+
   const draft = drafts[currentIndex]
   if (!draft) {
     return <p>{t('ai-generation:carousel.draftOf', { current: 1, total: drafts.length })}</p>
@@ -38,6 +59,21 @@ export function DraftReviewCarousel({
 
       <div className="draft-carousel__card">
         <h3 className="draft-carousel__title">{draft.title}</h3>
+
+        {draft.coverPhoto?.url ? (
+          <figure className="draft-carousel__media">
+            <img
+              className="draft-carousel__image"
+              src={draft.coverPhoto.url}
+              alt={draft.coverPhoto.caption ?? draft.title}
+              title={draft.coverPhoto.caption ?? draft.title}
+              loading="lazy"
+            />
+            {draft.coverPhoto.caption ? (
+              <figcaption className="draft-carousel__caption">{draft.coverPhoto.caption}</figcaption>
+            ) : null}
+          </figure>
+        ) : null}
 
         {dateLabel ? (
           <p className="draft-carousel__dates">{dateLabel}</p>

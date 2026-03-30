@@ -20,6 +20,7 @@ import {
   changePassword,
   deleteAccount,
   updateDisplayName,
+  updatePreferredLanguage,
 } from '@/services/profile-service'
 import { useAuthStore } from '@/store/auth-store'
 import { useProfileStore } from '@/store/profile-store'
@@ -29,8 +30,8 @@ export function ProfilePage(): ReactElement {
   const { t, i18n } = useTranslation(['profile', 'common'])
   const profile = useProfileStore((state) => state.profile)
   const setProfile = useProfileStore((state) => state.setProfile)
-  const preferredLanguage = useProfileStore((state) => state.preferredLanguage)
-  const setPreferredLanguage = useProfileStore((state) => state.setPreferredLanguage)
+  const activeLanguage = useProfileStore((state) => state.activeLanguage)
+  const applyAuthenticatedProfile = useProfileStore((state) => state.applyAuthenticatedProfile)
   const clearSession = useAuthStore((state) => state.clearSession)
 
   const [displayNameStatus, setDisplayNameStatus] = useState('')
@@ -41,7 +42,8 @@ export function ProfilePage(): ReactElement {
   const requiresDeletePassword = profile?.authProviders?.includes('password') ?? true
   const hasSocialProvider = profile?.authProviders?.some((provider) => provider !== 'password') ?? false
 
-  const activeLocale = preferredLanguage === 'cs-CZ' ? 'cs-CZ' : 'en'
+  const activeLocale = activeLanguage === 'cs-CZ' ? 'cs-CZ' : 'en'
+  const profilePreferredLanguage = profile?.preferredLanguage ?? activeLanguage
 
   const formatDateTime = (value?: string): string => {
     if (!value) {
@@ -147,8 +149,9 @@ export function ProfilePage(): ReactElement {
 
   const onLanguageChange = async (event: ChangeEvent<HTMLSelectElement>): Promise<void> => {
     const nextLanguage = event.target.value === 'cs-CZ' ? 'cs-CZ' : 'en'
-    setPreferredLanguage(nextLanguage)
-    await i18n.changeLanguage(nextLanguage)
+    const updatedProfile = await updatePreferredLanguage(nextLanguage)
+    applyAuthenticatedProfile(updatedProfile)
+    await i18n.changeLanguage(updatedProfile.preferredLanguage)
   }
 
   return (
@@ -183,11 +186,11 @@ export function ProfilePage(): ReactElement {
             <label htmlFor="language">{t('profile:fields.language')}</label>
             <select
               id="language"
-              value={preferredLanguage}
+              value={profilePreferredLanguage}
               onChange={(event) => void onLanguageChange(event)}
             >
-              <option value="en">{t('profile:languages.en')}</option>
-              <option value="cs-CZ">{t('profile:languages.cs')}</option>
+              <option value="en">{t('common:languageSelector.optionEnglish')}</option>
+              <option value="cs-CZ">{t('common:languageSelector.optionCzech')}</option>
             </select>
           </div>
         </article>

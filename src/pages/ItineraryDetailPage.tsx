@@ -162,7 +162,11 @@ export function ItineraryDetailPage(): ReactElement {
             <img
               src={buildHeroSrc(itinerary.coverPhoto.url)}
               alt={itinerary.coverPhoto.caption ?? itinerary.title}
+              title={itinerary.coverPhoto.caption ?? itinerary.title}
             />
+            {itinerary.coverPhoto.caption ? (
+              <p className="itinerary-detail-cover__caption">{itinerary.coverPhoto.caption}</p>
+            ) : null}
           </div>
         ) : null}
         <h1>{itinerary.title}</h1>

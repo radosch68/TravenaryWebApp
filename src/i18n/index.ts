@@ -12,10 +12,17 @@ import csErrors from '@/i18n/locales/cs-CZ/errors.json'
 import csProfile from '@/i18n/locales/cs-CZ/profile.json'
 import csAiGeneration from '@/i18n/locales/cs-CZ/ai-generation.json'
 
-const preferredLanguage = localStorage.getItem('preferredLanguage') || 'en'
+const LANGUAGE_KEY = 'preferredLanguage'
+
+function normalizePreferredLanguage(value: string | null): 'en' | 'cs-CZ' {
+  return value === 'cs-CZ' ? 'cs-CZ' : 'en'
+}
+
+const preferredLanguage = normalizePreferredLanguage(localStorage.getItem(LANGUAGE_KEY))
+localStorage.setItem(LANGUAGE_KEY, preferredLanguage)
 
 void i18n.use(initReactI18next).init({
-  lng: preferredLanguage === 'cs-CZ' ? 'cs-CZ' : 'en',
+  lng: preferredLanguage,
   fallbackLng: 'en',
   defaultNS: 'common',
   ns: ['auth', 'profile', 'common', 'errors', 'ai-generation'],

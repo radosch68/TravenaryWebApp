@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 
-import { BrandBanner } from '@/components/BrandBanner'
+import { BrandLanguageHeader } from '@/components/BrandLanguageHeader'
 import { signOut } from '@/services/auth-service'
 import { useAuthStore } from '@/store/auth-store'
 
@@ -58,11 +58,7 @@ export function Header(): ReactElement {
 
   return (
     <header className="topbar">
-      <div className="topbar__brand">
-        <Link to="/" aria-label={t('common:navigation.goToDashboard')}>
-          <BrandBanner />
-        </Link>
-      </div>
+      <BrandLanguageHeader brandLinkTo="/" variant="topbar" />
       <div className="topbar__menu" ref={menuRef}>
         <button
           type="button"

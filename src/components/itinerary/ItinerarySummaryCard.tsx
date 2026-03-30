@@ -38,6 +38,7 @@ export function ItinerarySummaryCard({ itinerary }: ItinerarySummaryCardProps): 
             className="itinerary-card__cover"
             src={buildThumbSrc(itinerary.coverPhoto.url)}
             alt={itinerary.coverPhoto.caption ?? itinerary.title}
+            title={itinerary.coverPhoto.caption ?? itinerary.title}
             loading="lazy"
           />
         ) : (

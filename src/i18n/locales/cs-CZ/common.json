@@ -12,6 +12,12 @@
     "dashboard": "Dashboard",
     "goToDashboard": "Přejít na dashboard"
   },
+  "languageSelector": {
+    "label": "Jazyk",
+    "ariaLabel": "Vyberte jazyk",
+    "optionEnglish": "English",
+    "optionCzech": "Čeština"
+  },
   "itinerary": {
     "itineraries": "Itineráře: {{count}}",
     "loading": "Načítání itinerářů...",

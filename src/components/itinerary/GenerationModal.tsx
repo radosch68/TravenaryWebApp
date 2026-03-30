@@ -1,5 +1,5 @@
 import type { ReactElement } from 'react'
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { DraftReviewCarousel } from '@/components/itinerary/DraftReviewCarousel'
 import type { DraftItinerary } from '@/services/ai-generation.service'
@@ -23,12 +23,26 @@ interface GenerationModalProps {
   onFallback: () => void
 }
 
+const DEV_PROMPT_PRESET_IDS = [
+  'springKyotoCulture',
+  'summerCroatiaSailing',
+  'autumnScotlandRoadtrip',
+  'winterDolomitesSki',
+  'verbosePeruAdventure',
+  'eastAfricaSafari',
+  'nepalHimalayaTrek',
+  'thailandCambodiaTemplesAndIslands',
+  'japanGoldenRouteMixedPace',
+  'australiaCoastAndNature',
+] as const
+
 export function GenerationModal({ onClose, onFallback }: GenerationModalProps): ReactElement {
   const { t } = useTranslation(['ai-generation', 'common'])
 
   const [step, setStep] = useState<ModalStep>('input')
   const [prompt, setPrompt] = useState('')
   const [selectedModel, setSelectedModel] = useState<'gpt-4o' | 'gpt-3.5-turbo'>('gpt-4o')
+  const [selectedPromptPreset, setSelectedPromptPreset] = useState('')
   const [showAdvanced, setShowAdvanced] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [generationRequestId, setGenerationRequestId] = useState<string | null>(null)
@@ -38,6 +52,12 @@ export function GenerationModal({ onClose, onFallback }: GenerationModalProps): 
   const abortControllerRef = useRef<AbortController | null>(null)
   const isMountedRef = useRef(true)
   const successTimeoutRef = useRef<number | null>(null)
+
+  const handleCancel = useCallback((): void => {
+    abortRef.current = true
+    abortControllerRef.current?.abort()
+    onClose()
+  }, [onClose])
 
   useEffect(() => {
     isMountedRef.current = true
@@ -60,9 +80,14 @@ export function GenerationModal({ onClose, onFallback }: GenerationModalProps): 
     }
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [])
+  }, [handleCancel])
 
   const handleGenerate = async (): Promise<void> => {
+    if (prompt.trim().length === 0) {
+      onFallback()
+      return
+    }
+
     if (prompt.trim().length < 20) {
       setErrorMessage(t('ai-generation:modal.validationError'))
       return
@@ -156,12 +181,6 @@ export function GenerationModal({ onClose, onFallback }: GenerationModalProps): 
     setStep('input')
   }
 
-  const handleCancel = (): void => {
-    abortRef.current = true
-    abortControllerRef.current?.abort()
-    onClose()
-  }
-
   return (
     <div
       className="generation-modal-overlay"
@@ -192,7 +211,10 @@ export function GenerationModal({ onClose, onFallback }: GenerationModalProps): 
                 id="generation-prompt"
                 className="generation-modal__textarea"
                 value={prompt}
-                onChange={(e) => setPrompt(e.target.value)}
+                onChange={(e) => {
+                  setPrompt(e.target.value)
+                  setSelectedPromptPreset('')
+                }}
                 placeholder={t('ai-generation:modal.promptPlaceholder')}
                 rows={4}
                 maxLength={5000}
@@ -224,6 +246,32 @@ export function GenerationModal({ onClose, onFallback }: GenerationModalProps): 
                     <option value="gpt-3.5-turbo">
                       {t('ai-generation:modal.modelGpt35')}
                     </option>
+                  </select>
+
+                  <label htmlFor="generation-prompt-preset" className="generation-modal__label">
+                    {t('ai-generation:modal.devPromptPresetLabel')}
+                  </label>
+                  <select
+                    id="generation-prompt-preset"
+                    value={selectedPromptPreset}
+                    onChange={(e) => {
+                      const presetId = e.target.value
+                      setSelectedPromptPreset(presetId)
+
+                      if (!presetId) {
+                        return
+                      }
+
+                      setPrompt(t(`ai-generation:modal.devPromptPresets.${presetId}.prompt`))
+                      setErrorMessage(null)
+                    }}
+                  >
+                    <option value="">{t('ai-generation:modal.devPromptPresetPlaceholder')}</option>
+                    {DEV_PROMPT_PRESET_IDS.map((presetId) => (
+                      <option key={presetId} value={presetId}>
+                        {t(`ai-generation:modal.devPromptPresets.${presetId}.label`)}
+                      </option>
+                    ))}
                   </select>
                 </div>
               ) : null}

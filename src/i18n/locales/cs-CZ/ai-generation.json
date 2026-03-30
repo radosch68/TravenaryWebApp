@@ -2,11 +2,13 @@
   "generateWithAi": "Generovat s AI",
   "createFromTemplate": "Vytvořit ze šablony",
   "modal": {
-    "title": "Generovat itinerář s AI",
+    "title": "Generovat itinerář",
     "promptLabel": "Popište svou cestu",
     "promptPlaceholder": "Např. 5 dní v Praze, Staré město a hrady...",
     "advancedOptions": "Pokročilé možnosti",
     "modelLabel": "Model AI",
+    "devPromptPresetLabel": "Vývojové šablony promptů",
+    "devPromptPresetPlaceholder": "Vyberte ukázkový prompt...",
     "modelGpt4o": "GPT-4o (Doporučeno)",
     "modelGpt35": "GPT-3.5-turbo (Rychlý)",
     "generateButton": "Generovat",
@@ -20,7 +22,49 @@
     "conflictError": "Generování již probíhá. Počkejte prosím.",
     "timeoutError": "Generování trvalo příliš dlouho. Zkuste to prosím znovu.",
     "notFoundError": "Výsledek generování nebyl nalezen. Spusťte generování znovu.",
-    "networkError": "Chyba sítě. Zkontrolujte připojení a zkuste to znovu."
+    "networkError": "Chyba sítě. Zkontrolujte připojení a zkuste to znovu.",
+    "devPromptPresets": {
+      "springKyotoCulture": {
+        "label": "Jaro v Kjótu (kultura)",
+        "prompt": "4 dny v Kjótu v dubnu. Zaměřte se na chrámy, tradiční čtvrti a sezónní jídlo. Tempo nechte pohodové, každý den jedna večerní procházka."
+      },
+      "summerCroatiaSailing": {
+        "label": "Léto v Chorvatsku (plavba)",
+        "prompt": "7denní letní cesta po Chorvatsku na konci července, základna ve Splitu a výlety lodí po ostrovech. Priorita: koupání, pobřežní scenérie, mořské plody a jeden živější večer."
+      },
+      "autumnScotlandRoadtrip": {
+        "label": "Podzimní roadtrip Skotskem",
+        "prompt": "6 dní ve Skotsku v říjnu jako roadtrip z Edinburghu přes Highlands. Zahrňte hrady, kratší túry, ochutnávku whisky a útulné místní podniky."
+      },
+      "winterDolomitesSki": {
+        "label": "Zima v Dolomitech (lyže + wellness)",
+        "prompt": "5 dní v italských Dolomitech v lednu. Kombinace lyžování pro začátečníky, horských výhledů, wellness a dvou zapamatovatelných večeří."
+      },
+      "verbosePeruAdventure": {
+        "label": "Dobrodružné Peru (detailní)",
+        "prompt": "Plánuji 12denní cestu do Peru na začátku září a chci detailní itinerář, který vyváží kulturu, přírodu a mírné dobrodružství. Prosím zahrnout Limu, Cusco, Sacred Valley a Machu Picchu, ale také doporučit jedno méně turistické místo se silným lokálním charakterem. Potřebuji praktické tempo: ne extrémně brzké vstávání každý den, vestavěná okna na odpočinek a realistické časy přesunů. Přidejte tipy na gastronomii, trhy, fotografická místa a kratší túry (nic extrémního). Mám rád muzea a historii, ale chci i autentické zážitky na ulici, jako jsou procházky po čtvrtích, místní kavárny a večerní vyhlídky. Dny prosím uspořádejte přehledně a s logickou návazností tak, aby aklimatizace ve vyšší nadmořské výšce byla bezpečná."
+      },
+      "eastAfricaSafari": {
+        "label": "Východní Afrika (safari v suché sezóně)",
+        "prompt": "10denní cesta do východní Afriky v srpnu se zaměřením na safari a wildlife fotografii, hlavní body v Keni a Tanzanii, ranní game drive, jedna kulturní návštěva vesnice a realistické časy přesunů."
+      },
+      "nepalHimalayaTrek": {
+        "label": "Nepál (Himálaj + kultura)",
+        "prompt": "9 dní v Nepálu v listopadu. Zahrňte památky v Káthmándú, středně náročný horský trek s krásnými výhledy (nic extrémního), lokální gastronomii a jeden odpočinkový den."
+      },
+      "thailandCambodiaTemplesAndIslands": {
+        "label": "Thajsko + Kambodža (chrámy + ostrovy)",
+        "prompt": "Dvoutýdenní itinerář v únoru přes Thajsko a Kambodžu: Bangkok, chrámy v Siem Reapu a poté ostrovy na jihu Thajska. Kombinace historie, street foodu, pláží a dvou klidnějších dnů proti únavě."
+      },
+      "japanGoldenRouteMixedPace": {
+        "label": "Japonsko (zlatá trasa, mix tempa)",
+        "prompt": "11 dní v Japonsku během sakur se zastávkami Tokio, Kjóto a Ósaka plus jedno menší město. Chci mix ikonických míst, lokálních čtvrtí, moderního designu a výjimečných gastronomických zážitků."
+      },
+      "australiaCoastAndNature": {
+        "label": "Austrálie (pobřeží + příroda)",
+        "prompt": "14denní plán Austrálie v prosinci: Sydney, Great Ocean Road a pobřeží Queenslandu. Priorita: pobřežní scenérie, fauna, lehčí túry a pár kvalitních městských dnů na muzea a restaurace."
+      }
+    }
   },
   "carousel": {
     "draftOf": "Návrh {{current}} z {{total}}",

@@ -5,7 +5,7 @@ import { useForm } from 'react-hook-form'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 
-import { BrandBanner } from '@/components/BrandBanner'
+import { BrandLanguageHeader } from '@/components/BrandLanguageHeader'
 import { acquireAppleIdToken } from '@/features/auth/apple-auth'
 import { GithubSignInButton } from '@/features/auth/GithubSignInButton'
 import { GoogleSignInButton } from '@/features/auth/GoogleSignInButton'
@@ -181,7 +181,7 @@ export function SignInPage(): ReactElement {
 
   return (
     <main className="auth-shell">
-      <BrandBanner />
+      <BrandLanguageHeader />
       <section className="auth-card">
         <h1>{t('auth:signIn.title')}</h1>
         <p>{t('auth:signIn.subtitle')}</p>

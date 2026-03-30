@@ -1,5 +1,5 @@
 import { apiRequest } from '@/services/api-client'
-import type { UserProfile } from '@/services/contracts'
+import type { SupportedLanguage, UserProfile } from '@/services/contracts'
 
 export async function getMe(): Promise<UserProfile> {
   return apiRequest<UserProfile>('/users/me', {
@@ -23,6 +23,14 @@ export async function changePassword(
     method: 'PATCH',
     protected: true,
     body: { currentPassword, newPassword },
+  })
+}
+
+export async function updatePreferredLanguage(preferredLanguage: SupportedLanguage): Promise<UserProfile> {
+  return apiRequest<UserProfile>('/users/me', {
+    method: 'PATCH',
+    protected: true,
+    body: { preferredLanguage },
   })
 }
 

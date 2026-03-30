@@ -1,10 +1,11 @@
 import { create } from 'zustand'
 
+import i18n from '@/i18n'
 import {
   configureApiClientAuthHandlers,
   refreshSessionTokens,
 } from '@/services/api-client'
-import type { AuthTokens } from '@/services/contracts'
+import type { AuthTokens, UserProfile } from '@/services/contracts'
 import { getMe } from '../services/profile-service'
 import { tokenService } from '@/services/token-service'
 import { useProfileStore } from '@/store/profile-store'
@@ -44,6 +45,11 @@ function applyTokens(tokens: AuthTokens): Omit<AuthState, 'setIdentityCollision'
   }
 }
 
+async function applyAuthenticatedProfile(profile: UserProfile): Promise<void> {
+  useProfileStore.getState().applyAuthenticatedProfile(profile)
+  await i18n.changeLanguage(profile.preferredLanguage)
+}
+
 export const useAuthStore = create<AuthState>((set, get) => ({
   accessToken: null,
   refreshToken: null,
@@ -73,7 +79,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   bootstrapAuthenticatedSession: async (tokens) => {
     get().setSessionFromTokens(tokens)
     const profile = await getMe()
-    useProfileStore.getState().setProfile(profile)
+    await applyAuthenticatedProfile(profile)
   },
 
   restoreSessionFromStorage: async () => {
@@ -87,7 +93,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     try {
       await refreshSessionTokens()
       const profile = await getMe()
-      useProfileStore.getState().setProfile(profile)
+      await applyAuthenticatedProfile(profile)
     } catch {
       get().clearSession()
     } finally {

@@ -9,6 +9,8 @@ export interface ErrorResponse {
   details?: ErrorDetail[]
 }
 
+export type SupportedLanguage = 'en' | 'cs-CZ'
+
 export interface AuthTokens {
   accessToken: string
   refreshToken: string
@@ -19,6 +21,7 @@ export interface UserProfile {
   id: string
   email: string
   displayName?: string
+  preferredLanguage: SupportedLanguage
   authProviders: Array<'password' | 'google' | 'apple' | 'github'>
   createdAt: string
   updatedAt: string

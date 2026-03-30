@@ -2,11 +2,13 @@
   "generateWithAi": "Generate with AI",
   "createFromTemplate": "Create from template",
   "modal": {
-    "title": "Generate Itinerary with AI",
+    "title": "Generate Itinerary",
     "promptLabel": "Describe your trip",
     "promptPlaceholder": "E.g. 5 days in Prague, exploring Old Town and castles...",
     "advancedOptions": "Advanced Options",
     "modelLabel": "AI Model",
+    "devPromptPresetLabel": "Dev Prompt Presets",
+    "devPromptPresetPlaceholder": "Select an example prompt...",
     "modelGpt4o": "GPT-4o (Recommended)",
     "modelGpt35": "GPT-3.5-turbo (Fast)",
     "generateButton": "Generate",
@@ -20,7 +22,49 @@
     "conflictError": "Generation already in progress. Please wait.",
     "timeoutError": "Generation took too long. Please try again.",
     "notFoundError": "Generation result was not found. Please start again.",
-    "networkError": "Network error. Please check your connection and retry."
+    "networkError": "Network error. Please check your connection and retry.",
+    "devPromptPresets": {
+      "springKyotoCulture": {
+        "label": "Spring in Kyoto (culture)",
+        "prompt": "4 days in Kyoto in April. Focus on temples, traditional neighborhoods, and seasonal food. Keep pacing relaxed with one evening walk each day."
+      },
+      "summerCroatiaSailing": {
+        "label": "Summer Croatia (sailing)",
+        "prompt": "7-day summer trip in Croatia around late July, based in Split with island hopping by boat. Prioritize swimming spots, scenic coastlines, seafood, and one lively nightlife evening."
+      },
+      "autumnScotlandRoadtrip": {
+        "label": "Autumn Scotland road trip",
+        "prompt": "6 days in Scotland in October as a road trip from Edinburgh through the Highlands. Include castles, short hikes, whisky tasting, and cozy local pubs."
+      },
+      "winterDolomitesSki": {
+        "label": "Winter Dolomites (ski + wellness)",
+        "prompt": "5 days in the Italian Dolomites in January. Mix beginner-friendly skiing, mountain views, spa/wellness time, and two memorable dinner places."
+      },
+      "verbosePeruAdventure": {
+        "label": "Peru adventure (verbose)",
+        "prompt": "I am planning a 12-day trip to Peru in early September and want a detailed itinerary that balances cultural depth, nature, and moderate adventure. Please include Lima, Cusco, Sacred Valley, and Machu Picchu, but also suggest one less touristy destination with strong local character. I would like practical pacing: no ultra-early starts every day, built-in rest windows, and realistic transfer times. Include highlights for food experiences, markets, photography spots, and short hikes (nothing extreme). I enjoy museums and history, but I also want street-level experiences such as neighborhood walks, local cafés, and evening viewpoints. Please organize days clearly and keep a thoughtful flow so acclimatization in altitude is handled safely."
+      },
+      "eastAfricaSafari": {
+        "label": "East Africa safari (dry season)",
+        "prompt": "10-day East Africa trip in August focused on safari and wildlife photography, with Kenya + Tanzania highlights, sunrise game drives, one cultural village visit, and realistic transfer timing."
+      },
+      "nepalHimalayaTrek": {
+        "label": "Nepal Himalaya trek + culture",
+        "prompt": "9 days in Nepal in November. Include Kathmandu heritage sites, a moderate mountain trek with great views (not extreme), local food experiences, and one rest day for recovery."
+      },
+      "thailandCambodiaTemplesAndIslands": {
+        "label": "Thailand + Cambodia (temples + islands)",
+        "prompt": "Two-week itinerary in February across Thailand and Cambodia: Bangkok, Siem Reap temples, then island time in southern Thailand. Blend history, street food, beaches, and two quieter days to avoid burnout."
+      },
+      "japanGoldenRouteMixedPace": {
+        "label": "Japan golden route (mixed pace)",
+        "prompt": "11 days in Japan during cherry blossom season with Tokyo, Kyoto, and Osaka, plus one smaller town stop. I want a mix of iconic sights, local neighborhoods, modern design spots, and memorable dining experiences."
+      },
+      "australiaCoastAndNature": {
+        "label": "Australia coast + nature",
+        "prompt": "14-day Australia plan in December: Sydney, Great Ocean Road, and Queensland coast. Prioritize coastal scenery, wildlife, easy hikes, and a couple of high-quality urban days for museums and restaurants."
+      }
+    }
   },
   "carousel": {
     "draftOf": "Draft {{current}} of {{total}}",

@@ -1,31 +1,43 @@
 import { create } from 'zustand'
 
-import type { UserProfile } from '@/services/contracts'
+import type { SupportedLanguage, UserProfile } from '@/services/contracts'
 
 interface ProfileState {
   profile: UserProfile | null
-  preferredLanguage: 'en' | 'cs-CZ'
+  activeLanguage: SupportedLanguage
   setProfile: (profile: UserProfile | null) => void
-  setPreferredLanguage: (value: 'en' | 'cs-CZ') => void
+  applyAuthenticatedProfile: (profile: UserProfile) => void
+  setActiveLanguage: (value: SupportedLanguage, options?: { persist?: boolean }) => void
   clearProfile: () => void
 }
 
 const LANGUAGE_KEY = 'preferredLanguage'
 
-function getInitialLanguage(): 'en' | 'cs-CZ' {
-  const savedLanguage = localStorage.getItem(LANGUAGE_KEY)
-  return savedLanguage === 'cs-CZ' ? 'cs-CZ' : 'en'
+function normalizeSupportedLanguage(value: string | null | undefined): SupportedLanguage {
+  return value === 'cs-CZ' ? 'cs-CZ' : 'en'
+}
+
+function getInitialLanguage(): SupportedLanguage {
+  return normalizeSupportedLanguage(localStorage.getItem(LANGUAGE_KEY))
 }
 
 export const useProfileStore = create<ProfileState>((set) => ({
   profile: null,
-  preferredLanguage: getInitialLanguage(),
+  activeLanguage: getInitialLanguage(),
   setProfile: (profile) => {
     set({ profile })
   },
-  setPreferredLanguage: (preferredLanguage) => {
-    localStorage.setItem(LANGUAGE_KEY, preferredLanguage)
-    set({ preferredLanguage })
+  applyAuthenticatedProfile: (profile) => {
+    const nextLanguage = normalizeSupportedLanguage(profile.preferredLanguage)
+    localStorage.setItem(LANGUAGE_KEY, nextLanguage)
+    set({ profile, activeLanguage: nextLanguage })
+  },
+  setActiveLanguage: (activeLanguage, options) => {
+    const normalizedLanguage = normalizeSupportedLanguage(activeLanguage)
+    if (options?.persist !== false) {
+      localStorage.setItem(LANGUAGE_KEY, normalizedLanguage)
+    }
+    set({ activeLanguage: normalizedLanguage })
   },
   clearProfile: () => {
     set({ profile: null })
