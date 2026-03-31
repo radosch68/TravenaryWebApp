@@ -70,6 +70,7 @@
     "draftOf": "Draft {{current}} of {{total}}",
     "draftDotAriaLabel": "View draft {{current}} of {{total}}",
     "navigationAriaLabel": "Draft navigation",
+    "photoOptionsAriaLabel": "Cover photo options",
     "selectButton": "Select This",
     "prevButton": "Previous",
     "nextButton": "Next",

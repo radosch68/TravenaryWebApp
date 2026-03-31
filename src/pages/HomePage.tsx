@@ -5,6 +5,7 @@ import { useSearchParams } from 'react-router-dom'
 
 import { Header } from '@/components/Header'
 import { Breadcrumb } from '@/components/Breadcrumb'
+import { DashboardPaginationBar } from '@/components/DashboardPaginationBar'
 import { ItineraryList } from '@/components/itinerary/ItineraryList'
 import { GenerationModal } from '@/components/itinerary/GenerationModal'
 import { createItineraryFromTemplate, listItineraries } from '@/services/itinerary-service'
@@ -25,6 +26,7 @@ export function HomePage(): ReactElement {
   const normalizedPage = Number.parseInt(searchParams.get('page') ?? '1', 10)
   const page = Number.isFinite(normalizedPage) && normalizedPage >= 1 ? normalizedPage : 1
   const totalPages = Math.max(1, Math.ceil(total / ITINERARY_PAGE_SIZE))
+  const showCornerPagination = loadState === 'ready' && totalPages > 1
 
   const setPage = useCallback(
     (nextPage: number): void => {
@@ -111,6 +113,7 @@ export function HomePage(): ReactElement {
 
         </div>
         <div className="dashboard-list-shell">
+
           {loadState === 'loading' || loadState === 'idle' ? (
             <p className="dashboard-list-shell__state">{t('common:itinerary.loading')}</p>
           ) : null}
@@ -137,31 +140,26 @@ export function HomePage(): ReactElement {
             <p className="dashboard-list-shell__state">{t('common:itinerary.empty')}</p>
           ) : null}
 
+          {showCornerPagination ? (
+            <DashboardPaginationBar
+              page={page}
+              totalPages={totalPages}
+              onSetPage={setPage}
+              disabled={false}
+              position="top"
+            />
+          ) : null}
+
           {loadState === 'ready' && items.length > 0 ? <ItineraryList items={items} /> : null}
 
-          {loadState === 'ready' && total > ITINERARY_PAGE_SIZE ? (
-            <nav className="itinerary-pagination" aria-label={t('common:itinerary.pagination.ariaLabel')}>
-              <button
-                type="button"
-                onClick={() => setPage(page - 1)}
-                disabled={page <= 1}
-              >
-                {t('common:itinerary.pagination.previous')}
-              </button>
-              <p>
-                {t('common:itinerary.pagination.pageIndicator', {
-                  page,
-                  totalPages,
-                })}
-              </p>
-              <button
-                type="button"
-                onClick={() => setPage(page + 1)}
-                disabled={page >= totalPages}
-              >
-                {t('common:itinerary.pagination.next')}
-              </button>
-            </nav>
+          {showCornerPagination ? (
+            <DashboardPaginationBar
+              page={page}
+              totalPages={totalPages}
+              onSetPage={setPage}
+              disabled={false}
+              position="bottom"
+            />
           ) : null}
         </div>
       </section>

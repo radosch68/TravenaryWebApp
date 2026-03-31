@@ -1,6 +1,7 @@
 import type { ReactElement } from 'react'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { DashboardPaginationBar } from '@/components/DashboardPaginationBar'
 import { DraftReviewCarousel } from '@/components/itinerary/DraftReviewCarousel'
 import type { DraftItinerary } from '@/services/ai-generation.service'
 import {
@@ -47,6 +48,7 @@ export function GenerationModal({ onClose, onFallback }: GenerationModalProps): 
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [generationRequestId, setGenerationRequestId] = useState<string | null>(null)
   const [drafts, setDrafts] = useState<DraftItinerary[]>([])
+  const [draftIndex, setDraftIndex] = useState(0)
   const [saveError, setSaveError] = useState<string | null>(null)
   const abortRef = useRef<boolean>(false)
   const abortControllerRef = useRef<AbortController | null>(null)
@@ -125,6 +127,7 @@ export function GenerationModal({ onClose, onFallback }: GenerationModalProps): 
 
       if (result.status === 'completed' && result.drafts && result.drafts.length > 0) {
         setDrafts(result.drafts)
+        setDraftIndex(0)
         setStep('review')
       } else {
         setErrorMessage(
@@ -153,12 +156,13 @@ export function GenerationModal({ onClose, onFallback }: GenerationModalProps): 
   const handleSelectDraft = async (
     draftId: string,
     reqId: string,
+    selectedPhotoUrl?: string,
   ): Promise<void> => {
     setStep('saving')
     setSaveError(null)
 
     try {
-      await selectDraft(draftId, reqId)
+      await selectDraft(draftId, reqId, selectedPhotoUrl)
       if (!isMountedRef.current) {
         return
       }
@@ -311,13 +315,37 @@ export function GenerationModal({ onClose, onFallback }: GenerationModalProps): 
           )}
 
           {(step === 'review' || step === 'saving') && drafts.length > 0 && generationRequestId ? (
-            <DraftReviewCarousel
-              drafts={drafts}
-              generationRequestId={generationRequestId}
-              onSelectDraft={(draftId, reqId) => void handleSelectDraft(draftId, reqId)}
-              isSaving={step === 'saving'}
-              saveError={saveError}
-            />
+            <>
+              <DashboardPaginationBar
+                page={draftIndex + 1}
+                totalPages={drafts.length}
+                onSetPage={(p) => setDraftIndex(p - 1)}
+                disabled={step === 'saving'}
+                position="top"
+                labelKey="ai-generation:carousel.draftOf"
+                ariaLabelKey="ai-generation:carousel.navigationAriaLabel"
+              />
+              <DraftReviewCarousel
+                drafts={drafts}
+                generationRequestId={generationRequestId}
+                onSelectDraft={(draftId, reqId, selectedPhotoUrl) =>
+                  void handleSelectDraft(draftId, reqId, selectedPhotoUrl)
+                }
+                isSaving={step === 'saving'}
+                saveError={saveError}
+                currentIndex={draftIndex}
+                onIndexChange={setDraftIndex}
+              />
+              <DashboardPaginationBar
+                page={draftIndex + 1}
+                totalPages={drafts.length}
+                onSetPage={(p) => setDraftIndex(p - 1)}
+                disabled={step === 'saving'}
+                position="bottom"
+                labelKey="ai-generation:carousel.draftOf"
+                ariaLabelKey="ai-generation:carousel.navigationAriaLabel"
+              />
+            </>
           ) : null}
 
           {step === 'success' && (
@@ -348,6 +376,12 @@ export function GenerationModal({ onClose, onFallback }: GenerationModalProps): 
             </div>
           )}
         </div>
+
+        {step === 'loading' && (
+          <div className="generation-modal__progress">
+            <div className="generation-modal__progress-bar" />
+          </div>
+        )}
       </div>
     </div>
   )

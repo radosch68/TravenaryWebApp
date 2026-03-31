@@ -10,6 +10,7 @@
     "language": "Language",
     "email": "Email",
     "displayName": "Display name",
+    "avatarLabel": "Profile photo",
     "providers": "Linked providers",
     "createdAt": "Created",
     "updatedAt": "Last updated",

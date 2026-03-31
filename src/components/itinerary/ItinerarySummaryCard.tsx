@@ -4,26 +4,10 @@ import { useTranslation } from 'react-i18next'
 
 import type { ItinerarySummary } from '@/services/contracts'
 import { formatDateRange } from '@/utils/date-format'
+import { unsplashUrl } from '@/utils/unsplash-url'
 
 interface ItinerarySummaryCardProps {
   itinerary: ItinerarySummary
-}
-
-function buildThumbSrc(url: string): string {
-  if (!url.includes('images.unsplash.com')) {
-    return url
-  }
-
-  try {
-    const parsedUrl = new URL(url)
-    parsedUrl.searchParams.set('w', '240')
-    parsedUrl.searchParams.set('q', '80')
-    parsedUrl.searchParams.set('fit', 'crop')
-    return parsedUrl.toString()
-  } catch {
-    const separator = url.includes('?') ? '&' : '?'
-    return `${url}${separator}w=240&q=80&fit=crop`
-  }
 }
 
 export function ItinerarySummaryCard({ itinerary }: ItinerarySummaryCardProps): ReactElement {
@@ -36,7 +20,7 @@ export function ItinerarySummaryCard({ itinerary }: ItinerarySummaryCardProps): 
         {itinerary.coverPhoto?.url ? (
           <img
             className="itinerary-card__cover"
-            src={buildThumbSrc(itinerary.coverPhoto.url)}
+            src={unsplashUrl(itinerary.coverPhoto.url, 240)}
             alt={itinerary.coverPhoto.caption ?? itinerary.title}
             title={itinerary.coverPhoto.caption ?? itinerary.title}
             loading="lazy"

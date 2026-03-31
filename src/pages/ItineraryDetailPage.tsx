@@ -9,6 +9,7 @@ import { ApiError } from '@/services/contracts'
 import { deleteItinerary, getItinerary } from '@/services/itinerary-service'
 import type { ItineraryDetail } from '@/services/contracts'
 import { formatLocalDate, formatWeekday } from '@/utils/date-format'
+import { unsplashUrl } from '@/utils/unsplash-url'
 
 function computeDateSpan(days: ItineraryDetail['days'], locale: string): string | undefined {
   const dated = days.map((day) => day.date).filter((value): value is string => Boolean(value))
@@ -22,23 +23,6 @@ function computeDateSpan(days: ItineraryDetail['days'], locale: string): string 
   return start === end
     ? formatLocalDate(start, locale)
     : `${formatLocalDate(start, locale)} – ${formatLocalDate(end, locale)}`
-}
-
-function buildHeroSrc(url: string): string {
-  if (!url.includes('images.unsplash.com')) {
-    return url
-  }
-
-  try {
-    const parsedUrl = new URL(url)
-    parsedUrl.searchParams.set('w', '1200')
-    parsedUrl.searchParams.set('q', '85')
-    parsedUrl.searchParams.set('fit', 'crop')
-    return parsedUrl.toString()
-  } catch {
-    const separator = url.includes('?') ? '&' : '?'
-    return `${url}${separator}w=1200&q=85&fit=crop`
-  }
 }
 
 export function ItineraryDetailPage(): ReactElement {
@@ -160,7 +144,7 @@ export function ItineraryDetailPage(): ReactElement {
         {itinerary.coverPhoto?.url ? (
           <div className="itinerary-detail-cover">
             <img
-              src={buildHeroSrc(itinerary.coverPhoto.url)}
+              src={unsplashUrl(itinerary.coverPhoto.url, 1200, 85)}
               alt={itinerary.coverPhoto.caption ?? itinerary.title}
               title={itinerary.coverPhoto.caption ?? itinerary.title}
             />
@@ -199,8 +183,11 @@ export function ItineraryDetailPage(): ReactElement {
         </div>
 
         <ul className="itinerary-day-list">
-          {itinerary.days.map((day) => (
-            <li key={day.dayNumber}>
+          {itinerary.days.map((day, index) => (
+            <li
+              key={day.dayNumber}
+              className={`itinerary-day-list__item itinerary-day-list__item--${index % 2 === 0 ? 'odd' : 'even'}`}
+            >
               <Link to={`/itineraries/${itinerary.id}/days/${day.dayNumber}`} className="itinerary-day-link" style={{ display: 'block', color: 'inherit' }}>
                 <div className="itinerary-day-header">
                   <span className="itinerary-day-header__weekday">

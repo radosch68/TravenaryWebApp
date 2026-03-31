@@ -3,6 +3,8 @@
   "cancel": "Cancel",
   "save": "Save",
   "back": "Back",
+  "avatarAlt": "Profile photo",
+  "avatarAriaLabel": "Open profile menu",
   "loading": "Loading...",
   "pending": "Please wait...",
   "homePlaceholder": "Your itinerary dashboard is ready. Start by creating your first trip.",
@@ -51,7 +53,8 @@
       "ariaLabel": "Itinerary pagination",
       "previous": "Previous",
       "next": "Next",
-      "pageIndicator": "Page {{page}} of {{totalPages}}"
+      "pageIndicator": "Page {{page}} of {{totalPages}}",
+      "pageIndicatorCompact": "{{page}} of {{totalPages}}"
     },
     "visibility": {
       "private": "Private",

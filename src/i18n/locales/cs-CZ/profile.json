@@ -10,6 +10,7 @@
     "language": "Jazyk",
     "email": "E-mail",
     "displayName": "Zobrazované jméno",
+    "avatarLabel": "Profilová fotka",
     "providers": "Propojení poskytovatelé",
     "createdAt": "Vytvořeno",
     "updatedAt": "Naposledy aktualizováno",

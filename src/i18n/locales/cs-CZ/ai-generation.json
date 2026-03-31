@@ -70,6 +70,7 @@
     "draftOf": "Návrh {{current}} z {{total}}",
     "draftDotAriaLabel": "Zobrazit návrh {{current}} z {{total}}",
     "navigationAriaLabel": "Navigace návrhů",
+    "photoOptionsAriaLabel": "Možnosti titulní fotografie",
     "selectButton": "Vybrat",
     "prevButton": "Předchozí",
     "nextButton": "Další",

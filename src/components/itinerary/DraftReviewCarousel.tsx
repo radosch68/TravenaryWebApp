@@ -3,13 +3,16 @@ import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { DraftItinerary } from '@/services/ai-generation.service'
 import { formatDateRange } from '@/utils/date-format'
+import { unsplashUrl } from '@/utils/unsplash-url'
 
 interface DraftReviewCarouselProps {
   drafts: DraftItinerary[]
   generationRequestId: string
-  onSelectDraft: (draftId: string, generationRequestId: string) => void
+  onSelectDraft: (draftId: string, generationRequestId: string, selectedPhotoUrl?: string) => void
   isSaving: boolean
   saveError: string | null
+  currentIndex: number
+  onIndexChange: (index: number) => void
 }
 
 export function DraftReviewCarousel({
@@ -18,9 +21,11 @@ export function DraftReviewCarousel({
   onSelectDraft,
   isSaving,
   saveError,
+  currentIndex,
+  onIndexChange,
 }: DraftReviewCarouselProps): ReactElement {
   const { t, i18n } = useTranslation(['ai-generation'])
-  const [currentIndex, setCurrentIndex] = useState(0)
+  const [selectedPhotoIndexes, setSelectedPhotoIndexes] = useState<Record<string, number>>({})
 
   useEffect(() => {
     const handleArrowNavigation = (event: KeyboardEvent): void => {
@@ -30,18 +35,18 @@ export function DraftReviewCarousel({
 
       if (event.key === 'ArrowLeft') {
         event.preventDefault()
-        setCurrentIndex((index) => Math.max(0, index - 1))
+        onIndexChange(Math.max(0, currentIndex - 1))
       }
 
       if (event.key === 'ArrowRight') {
         event.preventDefault()
-        setCurrentIndex((index) => Math.min(drafts.length - 1, index + 1))
+        onIndexChange(Math.min(drafts.length - 1, currentIndex + 1))
       }
     }
 
     window.addEventListener('keydown', handleArrowNavigation)
     return () => window.removeEventListener('keydown', handleArrowNavigation)
-  }, [drafts.length, isSaving])
+  }, [drafts.length, isSaving, currentIndex, onIndexChange])
 
   const draft = drafts[currentIndex]
   if (!draft) {
@@ -50,27 +55,52 @@ export function DraftReviewCarousel({
 
   const dateLabel = formatDateRange(draft.startDate, draft.endDate, i18n.language)
   const preview = draft.activities.slice(0, 4)
+  const legacyCoverPhoto = (draft as DraftItinerary & { coverPhoto?: { url: string; caption?: string | null } | null }).coverPhoto
+  const photoOptions = draft.coverPhotoOptions ?? []
+  const photoSelectionKey = `${generationRequestId}:${draft._id}`
+  const selectedPhotoIndex = selectedPhotoIndexes[photoSelectionKey] ?? 0
+  const selectedPhoto = photoOptions[selectedPhotoIndex] ?? photoOptions[0] ?? legacyCoverPhoto ?? null
 
   return (
     <div className="draft-carousel">
-      <div className="draft-carousel__counter">
-        {t('ai-generation:carousel.draftOf', { current: currentIndex + 1, total: drafts.length })}
-      </div>
-
       <div className="draft-carousel__card">
         <h3 className="draft-carousel__title">{draft.title}</h3>
 
-        {draft.coverPhoto?.url ? (
+        {selectedPhoto?.url ? (
           <figure className="draft-carousel__media">
-            <img
-              className="draft-carousel__image"
-              src={draft.coverPhoto.url}
-              alt={draft.coverPhoto.caption ?? draft.title}
-              title={draft.coverPhoto.caption ?? draft.title}
-              loading="lazy"
-            />
-            {draft.coverPhoto.caption ? (
-              <figcaption className="draft-carousel__caption">{draft.coverPhoto.caption}</figcaption>
+            <div className="draft-carousel__media-layout">
+              {photoOptions.length > 0 ? (
+                <div className="draft-photo-strip" role="group" aria-label={t('ai-generation:carousel.photoOptionsAriaLabel')}>
+                  {photoOptions.map((photo, index) => (
+                    <button
+                      key={`${photo.url}-${index}`}
+                      type="button"
+                      className={`draft-photo-thumb${selectedPhotoIndex === index ? ' draft-photo-thumb--selected' : ''}`}
+                      onClick={() =>
+                        setSelectedPhotoIndexes((prev) => ({
+                          ...prev,
+                          [photoSelectionKey]: index,
+                        }))
+                      }
+                      disabled={isSaving}
+                      aria-label={photo.caption ?? draft.title}
+                    >
+                      <img src={unsplashUrl(photo.url, 120)} alt="" aria-hidden="true" loading="lazy" />
+                    </button>
+                  ))}
+                </div>
+              ) : null}
+
+              <img
+                className="draft-carousel__image"
+                src={unsplashUrl(selectedPhoto.url, 600)}
+                alt={selectedPhoto.caption ?? draft.title}
+                title={selectedPhoto.caption ?? draft.title}
+                loading="lazy"
+              />
+            </div>
+            {selectedPhoto.caption ? (
+              <figcaption className="draft-carousel__caption">{selectedPhoto.caption}</figcaption>
             ) : null}
           </figure>
         ) : null}
@@ -92,15 +122,22 @@ export function DraftReviewCarousel({
               {preview.map((activity, index) => (
                 <li key={`${activity}-${index}`}>{activity}</li>
               ))}
-              {draft.activities.length > 4 ? (
-                <li>
+            </ul>
+            {draft.activities.length > 4 ? (
+              <details className="draft-carousel__more-activities">
+                <summary>
                   +{draft.activities.length - 4}{' '}
                   {t('ai-generation:carousel.moreActivities', {
                     count: draft.activities.length - 4,
                   })}
-                </li>
-              ) : null}
-            </ul>
+                </summary>
+                <ul>
+                  {draft.activities.slice(4).map((activity, index) => (
+                    <li key={`${activity}-${index}`}>{activity}</li>
+                  ))}
+                </ul>
+              </details>
+            ) : null}
           </div>
         ) : null}
 
@@ -122,47 +159,13 @@ export function DraftReviewCarousel({
           type="button"
           className="draft-carousel__select-button"
           disabled={isSaving}
-          onClick={() => onSelectDraft(draft._id, generationRequestId)}
+          onClick={() => onSelectDraft(draft._id, generationRequestId, selectedPhoto?.url)}
         >
           {isSaving
             ? t('ai-generation:carousel.saving')
             : t('ai-generation:carousel.selectButton')}
         </button>
       </div>
-
-      <nav className="draft-carousel__nav" aria-label={t('ai-generation:carousel.navigationAriaLabel')}>
-        <button
-          type="button"
-          disabled={currentIndex <= 0 || isSaving}
-          onClick={() => setCurrentIndex((i) => Math.max(0, i - 1))}
-        >
-          {t('ai-generation:carousel.prevButton')}
-        </button>
-
-        <div className="draft-carousel__dots">
-          {drafts.map((_, index) => (
-            <button
-              key={index}
-              type="button"
-              className={`draft-carousel__dot${currentIndex === index ? ' draft-carousel__dot--active' : ''}`}
-              disabled={isSaving}
-              onClick={() => setCurrentIndex(index)}
-              aria-label={t('ai-generation:carousel.draftDotAriaLabel', {
-                current: index + 1,
-                total: drafts.length,
-              })}
-            />
-          ))}
-        </div>
-
-        <button
-          type="button"
-          disabled={currentIndex >= drafts.length - 1 || isSaving}
-          onClick={() => setCurrentIndex((i) => Math.min(drafts.length - 1, i + 1))}
-        >
-          {t('ai-generation:carousel.nextButton')}
-        </button>
-      </nav>
     </div>
   )
 }

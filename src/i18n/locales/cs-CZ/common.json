@@ -3,6 +3,8 @@
   "cancel": "Zrušit",
   "save": "Uložit",
   "back": "Zpět",
+  "avatarAlt": "Profilová fotka",
+  "avatarAriaLabel": "Otevřít menu profilu",
   "loading": "Načítání...",
   "pending": "Počkejte prosím...",
   "homePlaceholder": "Váš panel itinerářů je připraven. Začněte vytvořením první cesty.",
@@ -53,7 +55,8 @@
       "ariaLabel": "Stránkování itinerářů",
       "previous": "Předchozí",
       "next": "Další",
-      "pageIndicator": "Stránka {{page}} z {{totalPages}}"
+      "pageIndicator": "Stránka {{page}} z {{totalPages}}",
+      "pageIndicatorCompact": "{{page}} z {{totalPages}}"
     },
     "visibility": {
       "private": "Soukromý",

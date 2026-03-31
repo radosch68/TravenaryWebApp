@@ -21,6 +21,7 @@ export interface UserProfile {
   id: string
   email: string
   displayName?: string
+  avatarUrl?: string
   preferredLanguage: SupportedLanguage
   authProviders: Array<'password' | 'google' | 'apple' | 'github'>
   createdAt: string

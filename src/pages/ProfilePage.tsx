@@ -160,7 +160,20 @@ export function ProfilePage(): ReactElement {
       <Breadcrumb items={[{ icon: 'home', to: '/', ariaLabel: t('common:navigation.dashboard') }, { label: profile?.displayName || profile?.email || t('profile:title') }]} />
       <section className="profile-grid">
         <article className="panel">
-          <h1>{t('profile:title')}</h1>
+          <div className="profile-panel__header">
+            <h1>{t('profile:title')}</h1>
+            {profile?.avatarUrl ? (
+              <img
+                className="profile-panel__avatar"
+                src={profile.avatarUrl}
+                alt={t('common:avatarAlt')}
+                title={t('profile:fields.avatarLabel')}
+                onError={(e) => {
+                  e.currentTarget.style.display = 'none'
+                }}
+              />
+            ) : null}
+          </div>
           <p>
             <strong>{t('profile:fields.email')}:</strong>{' '}
             {profile?.email || t('profile:fields.notAvailable')}

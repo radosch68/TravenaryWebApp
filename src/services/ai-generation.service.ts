@@ -7,6 +7,11 @@ export interface DraftDay {
   notesForDay?: string | null
 }
 
+export interface CoverPhotoOption {
+  url: string
+  caption?: string | null
+}
+
 export interface DraftItinerary {
   _id: string
   title: string
@@ -14,7 +19,8 @@ export interface DraftItinerary {
   endDate: string
   activities: string[]
   tags: string[]
-  coverPhoto: { url: string; caption?: string | null } | null
+  destinationKeywords?: string
+  coverPhotoOptions?: CoverPhotoOption[]
   description?: string | null
   language: string
   days?: DraftDay[] | null
@@ -119,11 +125,16 @@ export async function pollUntilComplete(
 export async function selectDraft(
   draftId: string,
   generationRequestId: string,
+  selectedPhotoUrl?: string,
   signal?: AbortSignal,
 ): Promise<SelectDraftResponse> {
   return apiRequest<SelectDraftResponse>('/ai-generation/draft/select', {
     method: 'POST',
-    body: { draftId, generationRequestId },
+    body: {
+      draftId,
+      generationRequestId,
+      ...(selectedPhotoUrl ? { selectedPhotoUrl } : {}),
+    },
     protected: true,
     signal,
   })
