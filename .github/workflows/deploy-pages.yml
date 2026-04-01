@@ -36,7 +36,9 @@ jobs:
         env:
           NODE_ENV: production
           VITE_BASE_PATH: /TravenaryWebApp/
-          VITE_API_BASE_URL: https://travenary-backend.onrender.com
+          VITE_API_BASE_URL: https://travenary-backend-production.up.railway.app
+          VITE_API_BASE_URL_RENDER: https://travenary-backend.onrender.com
+          VITE_API_BASE_URL_RAILWAY: https://travenary-backend-production.up.railway.app
           VITE_ENABLE_SOCIAL_AUTH: "true"
           VITE_GOOGLE_OAUTH_CLIENT_ID: 233974104181-2k8kk0i15pqeeqddbpoavq1a5g8biv9b.apps.googleusercontent.com
           VITE_GITHUB_OAUTH_CLIENT_ID: Ov23lipCpFKASk8Eq4MC
