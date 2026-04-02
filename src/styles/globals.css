@@ -1204,6 +1204,9 @@ button:disabled {
 }
 
 .itinerary-day-header__weekday {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
   text-align: left;
   color: var(--text-muted);
   font-weight: 400;
@@ -1238,17 +1241,16 @@ button:disabled {
   margin-top: 0;
 }
 
-/* Day drag — weekday span is the drag handle */
+/* Day drag — grip icon only is the drag handle */
 .itinerary-day-header__weekday--drag {
   display: inline-flex;
   align-items: center;
-  gap: 0.35rem;
-  width: fit-content;
+  justify-content: center;
   user-select: none;
   touch-action: none;
   background-color: rgba(0, 0, 0, 0.07);
   border-radius: 4px;
-  padding: 2px 8px;
+  padding: 2px 6px;
 }
 
 @media (min-width: 768px) {

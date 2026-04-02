@@ -558,15 +558,16 @@ function SortableDayRow({ day, index, itineraryId, dragHappenedRef, suppressRowN
         }}
       >
         <div className="itinerary-day-header">
-          <span
-            className="itinerary-day-header__weekday itinerary-day-header__weekday--drag"
-            style={{ cursor: isDragging ? 'grabbing' : 'grab' }}
-            {...listeners}
-            {...attributes}
-          >
-            <GripIcon />
-            {day.date ? formatWeekday(day.date, i18n.language) : '—'}
-            <GripIcon />
+          <span className="itinerary-day-header__weekday">
+            <span
+              className="itinerary-day-header__weekday--drag"
+              style={{ cursor: isDragging ? 'grabbing' : 'grab' }}
+              {...listeners}
+              {...attributes}
+            >
+              <GripIcon />
+            </span>
+            <span>{day.date ? formatWeekday(day.date, i18n.language) : '—'}</span>
           </span>
           <span
             className="itinerary-day-header__date"
@@ -793,13 +794,26 @@ function PencilIcon(): ReactElement {
 
 function GripIcon(): ReactElement {
   return (
-    <svg width="10" height="14" viewBox="0 0 10 14" fill="currentColor" aria-hidden="true" style={{ opacity: 0.35, flexShrink: 0 }}>
-      <circle cx="2.5" cy="2.5" r="1.5" />
-      <circle cx="7.5" cy="2.5" r="1.5" />
-      <circle cx="2.5" cy="7" r="1.5" />
-      <circle cx="7.5" cy="7" r="1.5" />
-      <circle cx="2.5" cy="11.5" r="1.5" />
-      <circle cx="7.5" cy="11.5" r="1.5" />
+    <svg
+      width="24"
+      height="18"
+      viewBox="0 0 24 18"
+      fill="none"
+      aria-hidden="true"
+      style={{ flexShrink: 0 }}
+    >
+      <path d="M9 3L12 1l3 2" stroke="currentColor" strokeOpacity="0.9" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+      <circle cx="4" cy="7" r="1" fill="currentColor" fillOpacity="0.55" />
+      <circle cx="8" cy="7" r="1" fill="currentColor" fillOpacity="0.55" />
+      <circle cx="12" cy="7" r="1" fill="currentColor" fillOpacity="0.55" />
+      <circle cx="16" cy="7" r="1" fill="currentColor" fillOpacity="0.55" />
+      <circle cx="20" cy="7" r="1" fill="currentColor" fillOpacity="0.55" />
+      <circle cx="4" cy="11" r="1" fill="currentColor" fillOpacity="0.55" />
+      <circle cx="8" cy="11" r="1" fill="currentColor" fillOpacity="0.55" />
+      <circle cx="12" cy="11" r="1" fill="currentColor" fillOpacity="0.55" />
+      <circle cx="16" cy="11" r="1" fill="currentColor" fillOpacity="0.55" />
+      <circle cx="20" cy="11" r="1" fill="currentColor" fillOpacity="0.55" />
+      <path d="M9 15l3 2 3-2" stroke="currentColor" strokeOpacity="0.9" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   )
 }
