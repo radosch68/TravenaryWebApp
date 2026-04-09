@@ -174,7 +174,6 @@ export function ItineraryDetailPage(): ReactElement {
       <Header />
       <Breadcrumb items={[{ icon: 'home', to: '/', ariaLabel: t('common:itinerary.backToDashboard') }, { label: itinerary.title }]} />
       <section className="panel itinerary-detail-panel">
-
         {/* Tags — above cover photo, with edit pencil */}
         <EditableField
           value={itinerary.tags.join(', ')}
@@ -186,36 +185,41 @@ export function ItineraryDetailPage(): ReactElement {
             await patchItinerary({ tags })
           }}
           renderDisplay={(_val, onEdit) => (
-            <div className="editable-display itinerary-detail-tags-row">
-              {itinerary.tags.length > 0 ? (
-                <div className="itinerary-tags itinerary-tags--detail" aria-label={t('common:itinerary.tagsAriaLabel')}>
-                  <svg className="itinerary-tags__icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-                    <path
-                      d="M20 10L13 3H6L3 6V13L10 20L20 10Z"
-                      stroke="currentColor"
-                      strokeWidth="1.7"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                    <circle cx="7.8" cy="7.8" r="1.6" fill="currentColor" />
-                  </svg>
-                  <div className="itinerary-tags__list">
-                    {itinerary.tags.map((tag) => (
-                      <span key={tag} className="itinerary-tag-chip">{tag}</span>
-                    ))}
+            <div className="editable-display itinerary-detail-tags-block">
+              <div className="itinerary-detail-panel__top-actions">
+                <ShareButton
+                  itineraryId={itinerary.id}
+                  hasShareLink={itinerary.hasShareLink}
+                  onShareChange={(has) => setItinerary((prev) => prev ? { ...prev, hasShareLink: has } : prev)}
+                />
+                <PanelCloseButton ariaLabel={t('common:itinerary.backToDashboard')} />
+              </div>
+              <div className="itinerary-detail-tags-row">
+                {itinerary.tags.length > 0 ? (
+                  <div className="itinerary-tags itinerary-tags--detail" aria-label={t('common:itinerary.tagsAriaLabel')}>
+                    <svg className="itinerary-tags__icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                      <path
+                        d="M20 10L13 3H6L3 6V13L10 20L20 10Z"
+                        stroke="currentColor"
+                        strokeWidth="1.7"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                      <circle cx="7.8" cy="7.8" r="1.6" fill="currentColor" />
+                    </svg>
+                    <div className="itinerary-tags__list">
+                      {itinerary.tags.map((tag) => (
+                        <span key={tag} className="itinerary-tag-chip">{tag}</span>
+                      ))}
+                    </div>
                   </div>
-                </div>
-              ) : (
-                <p className="text-muted">{t('common:itinerary.edit.tags')}</p>
-              )}
-              <button type="button" className="edit-pencil" onClick={onEdit} aria-label={t('common:itinerary.edit.tags')}>
-                <PencilIcon />
-              </button>
-              <ShareButton
-                itineraryId={itinerary.id}
-                hasShareLink={itinerary.hasShareLink}
-                onShareChange={(has) => setItinerary((prev) => prev ? { ...prev, hasShareLink: has } : prev)}
-              />
+                ) : (
+                  <p className="text-muted">{t('common:itinerary.edit.tags')}</p>
+                )}
+                <button type="button" className="edit-pencil" onClick={onEdit} aria-label={t('common:itinerary.edit.tags')}>
+                  <PencilIcon />
+                </button>
+              </div>
             </div>
           )}
           renderEditor={(val, onChange, onSave, onCancel, saving) => (
@@ -481,10 +485,35 @@ export function ItineraryDetailPage(): ReactElement {
               {t('common:itinerary.delete')}
             </button>
           )}
-          <Link to="/">{t('common:itinerary.backToDashboard')}</Link>
+        </div>
+
+        <div className="itinerary-detail-panel__bottom-actions">
+          <PanelCloseButton ariaLabel={t('common:itinerary.backToDashboard')} />
         </div>
       </section>
     </main>
+  )
+}
+
+function PanelCloseButton({ ariaLabel }: { ariaLabel: string }): ReactElement {
+  return (
+    <Link
+      to="/"
+      className="panel-close-button"
+      aria-label={ariaLabel}
+      title={ariaLabel}
+    >
+      <CloseIcon />
+    </Link>
+  )
+}
+
+function CloseIcon(): ReactElement {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <path d="M6 6L18 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      <path d="M18 6L6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+    </svg>
   )
 }
 
@@ -524,7 +553,6 @@ function CoverPhotoSection({ coverPhoto, title, onSave }: CoverPhotoSectionProps
   const [caption, setCaption] = useState(coverPhoto.caption ?? '')
   const [saving, setSaving] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
-
   useEffect(() => {
     if (!editing) {
       setUrl(coverPhoto.url)

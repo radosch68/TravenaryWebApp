@@ -4,6 +4,38 @@ import { useTranslation } from 'react-i18next'
 
 import { createShareLink, revokeShareLink } from '@/services/itinerary-service'
 
+async function copyTextToClipboard(text: string): Promise<boolean> {
+  if (navigator.clipboard?.writeText) {
+    try {
+      await navigator.clipboard.writeText(text)
+      return true
+    } catch {
+      // Fall through to the legacy selection-based copy path.
+    }
+  }
+
+  const textArea = document.createElement('textarea')
+  textArea.value = text
+  textArea.setAttribute('readonly', '')
+  textArea.style.position = 'fixed'
+  textArea.style.opacity = '0'
+  textArea.style.pointerEvents = 'none'
+  textArea.style.left = '-9999px'
+  textArea.style.top = '0'
+  document.body.appendChild(textArea)
+  textArea.focus()
+  textArea.select()
+  textArea.setSelectionRange(0, text.length)
+
+  try {
+    return document.execCommand('copy')
+  } catch {
+    return false
+  } finally {
+    document.body.removeChild(textArea)
+  }
+}
+
 interface ShareButtonProps {
   itineraryId: string
   hasShareLink: boolean
@@ -77,8 +109,11 @@ export function ShareButton({
 
   const handleCopy = useCallback(async () => {
     if (!shareUrl) return
-    try {
-      await navigator.clipboard.writeText(shareUrl)
+    setError(undefined)
+
+    const copiedSuccessfully = await copyTextToClipboard(shareUrl)
+
+    if (copiedSuccessfully) {
       setCopied(true)
       if (copiedResetTimeoutRef.current !== null) {
         window.clearTimeout(copiedResetTimeoutRef.current)
@@ -87,10 +122,11 @@ export function ShareButton({
         setCopied(false)
         copiedResetTimeoutRef.current = null
       }, 2000)
-    } catch {
-      /* clipboard API may fail in some contexts */
+      return
     }
-  }, [shareUrl])
+
+    setError(t('common:itinerary.share.copyError'))
+  }, [shareUrl, t])
 
   const handleRevoke = useCallback(async () => {
     setBusy(true)

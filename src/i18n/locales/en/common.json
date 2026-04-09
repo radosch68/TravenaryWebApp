@@ -95,6 +95,7 @@
       "revokeLink": "Revoke link",
       "copyLink": "Copy link",
       "linkCopied": "Link copied!",
+      "copyError": "Could not copy the link.",
       "linkActive": "Share link is active",
       "linkInactive": "No share link",
       "shareError": "Could not create share link.",

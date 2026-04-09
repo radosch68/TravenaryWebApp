@@ -91,7 +91,7 @@ export function HomePage(): ReactElement {
   }
 
   return (
-    <main className="app-shell">
+    <main className="app-shell home-page-shell">
       <Header />
       <Breadcrumb items={[{ icon: 'home', ariaLabel: t('common:navigation.dashboard'), to: '/?page=1' }]} />
       <section className="home-panel home-panel--dashboard">

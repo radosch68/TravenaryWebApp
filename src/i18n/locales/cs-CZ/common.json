@@ -98,6 +98,7 @@
       "revokeLink": "Zrušit odkaz",
       "copyLink": "Kopírovat odkaz",
       "linkCopied": "Odkaz zkopírován!",
+      "copyError": "Odkaz se nepodařilo zkopírovat.",
       "linkActive": "Odkaz ke sdílení je aktivní",
       "linkInactive": "Žádný odkaz ke sdílení",
       "shareError": "Odkaz ke sdílení se nepodařilo vytvořit.",

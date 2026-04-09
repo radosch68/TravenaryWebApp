@@ -47,9 +47,12 @@ export function ItinerarySummaryCard({ itinerary }: ItinerarySummaryCardProps): 
           <div className="itinerary-card__headline">
             <h3>{itinerary.title}</h3>
           </div>
-          <p className="itinerary-card__dates">
-            {dateLabel.length > 0 ? dateLabel : t('common:itinerary.missingDate')}
-          </p>
+          <div className="itinerary-card__dates-row">
+            <p className="itinerary-card__dates">
+              {dateLabel.length > 0 ? dateLabel : t('common:itinerary.missingDate')}
+            </p>
+            <span className="itinerary-card__duration">{t('common:itinerary.dayCount', { count: itinerary.dayCount })}</span>
+          </div>
           {itinerary.tags.length > 0 ? (
             <div className="itinerary-tags" aria-label={t('common:itinerary.tagsAriaLabel')}>
               <svg className="itinerary-tags__icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
@@ -62,7 +65,7 @@ export function ItinerarySummaryCard({ itinerary }: ItinerarySummaryCardProps): 
                 />
                 <circle cx="7.8" cy="7.8" r="1.6" fill="currentColor" />
               </svg>
-              <div className="itinerary-tags__list">
+              <div className="itinerary-tags__list itinerary-tags__list--summary">
                 {itinerary.tags.map((tag) => (
                   <span key={tag} className="itinerary-tag-chip">
                     {tag}
@@ -71,10 +74,6 @@ export function ItinerarySummaryCard({ itinerary }: ItinerarySummaryCardProps): 
               </div>
             </div>
           ) : null}
-          <div className="itinerary-card__meta">
-            <span>{t('common:itinerary.dayCount', { count: itinerary.dayCount })}</span>
-            <span>{t('common:itinerary.activityCount', { count: itinerary.activityCount })}</span>
-          </div>
         </div>
       </Link>
     </li>
