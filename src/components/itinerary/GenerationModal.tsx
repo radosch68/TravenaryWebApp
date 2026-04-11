@@ -4,15 +4,18 @@ import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 import { DashboardPaginationBar } from '@/components/DashboardPaginationBar'
 import { DraftReviewCarousel } from '@/components/itinerary/DraftReviewCarousel'
-import type { DraftItinerary, ModelInfo } from '@/services/ai-generation.service'
+import type { DraftItinerary, ModelInfo, OutputDepth } from '@/services/ai-generation.service'
 import {
   startGeneration,
-  pollUntilComplete,
+  pollForDrafts,
   selectDraft,
   fetchAvailableModels,
   getTimeoutForModel,
+  POLL_INTERVAL_MS,
 } from '@/services/ai-generation.service'
 import { ApiError } from '@/services/contracts'
+
+const DEPTH_VALUES: OutputDepth[] = ['fast', 'balanced', 'detailed']
 
 type ModalStep =
   | 'input'
@@ -48,6 +51,8 @@ export function GenerationModal({ onClose, onFallback }: GenerationModalProps): 
   const [availableModels, setAvailableModels] = useState<ModelInfo[]>([])
   const [selectedModel, setSelectedModel] = useState('')
   const [selectedPromptPreset, setSelectedPromptPreset] = useState('')
+  const [selectedDraftCount, setSelectedDraftCount] = useState<number>(2)
+  const [selectedOutputDepth, setSelectedOutputDepth] = useState<OutputDepth>('balanced')
   const [showAdvanced, setShowAdvanced] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [generationRequestId, setGenerationRequestId] = useState<string | null>(null)
@@ -56,15 +61,116 @@ export function GenerationModal({ onClose, onFallback }: GenerationModalProps): 
   const [aiModel, setAiModel] = useState<string | undefined>()
   const [aiResponseTimeMs, setAiResponseTimeMs] = useState<number | undefined>()
   const [saveError, setSaveError] = useState<string | null>(null)
+  const [isSavingAll, setIsSavingAll] = useState(false)
+  const [countdown, setCountdown] = useState(0)
+  const [pollCycleKey, setPollCycleKey] = useState(0)
+  const [isPolling, setIsPolling] = useState(false)
   const abortRef = useRef<boolean>(false)
   const abortControllerRef = useRef<AbortController | null>(null)
+  const pollTimerRef = useRef<number | null>(null)
+  const countdownTimerRef = useRef<number | null>(null)
+  const deadlineRef = useRef<number>(0)
   const isMountedRef = useRef(true)
+
+  const clearTimers = useCallback((): void => {
+    if (pollTimerRef.current != null) { window.clearTimeout(pollTimerRef.current); pollTimerRef.current = null }
+    if (countdownTimerRef.current != null) { window.clearInterval(countdownTimerRef.current); countdownTimerRef.current = null }
+  }, [])
 
   const handleCancel = useCallback((): void => {
     abortRef.current = true
     abortControllerRef.current?.abort()
+    clearTimers()
     onClose()
-  }, [onClose])
+  }, [onClose, clearTimers])
+
+  const handlePollResult = useCallback((result: Awaited<ReturnType<typeof pollForDrafts>>): void => {
+    if (!isMountedRef.current || abortRef.current) return
+
+    if (result.status === 'completed' && result.drafts && result.drafts.length > 0) {
+      clearTimers()
+      setIsPolling(false)
+      setDrafts(result.drafts)
+      setDraftIndex(0)
+      setAiModel(result.aiModel)
+      setAiResponseTimeMs(result.aiResponseTimeMs)
+      setStep('review')
+    } else if (result.status === 'completed') {
+      clearTimers()
+      setIsPolling(false)
+      setErrorMessage(t('ai-generation:modal.errorTitle'))
+      setStep('error')
+    } else if (result.status === 'failed') {
+      clearTimers()
+      setIsPolling(false)
+      setErrorMessage(result.errorMessage ?? t('ai-generation:modal.errorTitle'))
+      setStep('error')
+    }
+    // status === 'pending' → auto-poll timer will fire next
+  }, [clearTimers, t])
+
+  const schedulePollCycle = useCallback((reqId: string, signal: AbortSignal): void => {
+    if (abortRef.current || signal.aborted) return
+
+    // Check deadline
+    if (Date.now() >= deadlineRef.current) {
+      clearTimers()
+      setErrorMessage(t('ai-generation:modal.timeoutError'))
+      setStep('error')
+      return
+    }
+
+    setCountdown(POLL_INTERVAL_MS / 1000)
+    setIsPolling(false)
+    setPollCycleKey(prev => prev + 1)
+
+    // Countdown ticker (updates every second)
+    countdownTimerRef.current = window.setInterval(() => {
+      setCountdown(prev => {
+        if (prev <= 1) {
+          if (countdownTimerRef.current !== null) {
+            window.clearInterval(countdownTimerRef.current)
+            countdownTimerRef.current = null
+          }
+          return 0
+        }
+        return prev - 1
+      })
+    }, 1000)
+
+    // Auto-poll after POLL_INTERVAL_MS
+    pollTimerRef.current = window.setTimeout(() => {
+      void executePoll(reqId, signal)
+    }, POLL_INTERVAL_MS)
+  }, [clearTimers, t])
+
+  const executePoll = useCallback(async (reqId: string, signal: AbortSignal): Promise<void> => {
+    if (abortRef.current || signal.aborted || !isMountedRef.current) return
+
+    clearTimers()
+    setIsPolling(true)
+
+    try {
+      const result = await pollForDrafts(reqId, signal)
+      if (!isMountedRef.current || abortRef.current) return
+      handlePollResult(result)
+      if (result.status === 'pending') {
+        schedulePollCycle(reqId, signal)
+      }
+    } catch (err: unknown) {
+      if (!isMountedRef.current || abortRef.current) return
+      if (err instanceof ApiError && err.code === 'REQUEST_ABORTED') return
+      clearTimers()
+      setIsPolling(false)
+      setErrorMessage(resolveErrorMessage(err, t))
+      setStep('error')
+    }
+  }, [clearTimers, handlePollResult, schedulePollCycle, t])
+
+  const handleCheckNow = useCallback((): void => {
+    if (!generationRequestId || !abortControllerRef.current) return
+    void executePoll(generationRequestId, abortControllerRef.current.signal)
+  }, [generationRequestId, executePoll])
 
   useEffect(() => {
     isMountedRef.current = true
@@ -81,8 +187,9 @@ export function GenerationModal({ onClose, onFallback }: GenerationModalProps): 
       isMountedRef.current = false
       abortRef.current = true
       abortControllerRef.current?.abort()
+      clearTimers()
     }
-  }, [])
+  }, [clearTimers])
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent): void => {
@@ -107,16 +214,29 @@ export function GenerationModal({ onClose, onFallback }: GenerationModalProps): 
 
     setErrorMessage(null)
     setStep('loading')
+    setCountdown(0)
+    setPollCycleKey(0)
+    setIsPolling(false)
+    setGenerationRequestId(null)
+    setDrafts([])
+    setDraftIndex(0)
+    setAiModel(undefined)
+    setAiResponseTimeMs(undefined)
+    setSaveError(null)
     abortRef.current = false
     abortControllerRef.current?.abort()
+    clearTimers()
     const abortController = new AbortController()
     abortControllerRef.current = abortController
+    deadlineRef.current = Date.now() + getTimeoutForModel(selectedModel)
 
     try {
       const { generationRequestId: reqId } = await startGeneration(
         prompt,
         selectedModel,
         abortController.signal,
+        selectedDraftCount,
+        selectedOutputDepth,
       )
 
       if (!isMountedRef.current || abortController.signal.aborted) {
@@ -125,28 +245,10 @@ export function GenerationModal({ onClose, onFallback }: GenerationModalProps): 
 
       setGenerationRequestId(reqId)
 
-      const result = await pollUntilComplete(reqId, () => {
-        if (abortRef.current) {
-          throw new ApiError(499, { code: 'REQUEST_ABORTED', message: 'Request was aborted' })
-        }
-      }, abortController.signal, getTimeoutForModel(selectedModel))
-
-      if (!isMountedRef.current || abortController.signal.aborted) {
-        return
-      }
-
-      if (result.status === 'completed' && result.drafts && result.drafts.length > 0) {
-        setDrafts(result.drafts)
-        setDraftIndex(0)
-        setAiModel(result.aiModel)
-        setAiResponseTimeMs(result.aiResponseTimeMs)
-        setStep('review')
-      } else {
-        setErrorMessage(
-          result.errorMessage ?? t('ai-generation:modal.errorTitle'),
-        )
-        setStep('error')
-      }
+      // First poll after 1 second, then every POLL_INTERVAL_MS
+      pollTimerRef.current = window.setTimeout(() => {
+        void executePoll(reqId, abortController.signal)
+      }, 1000)
     } catch (err: unknown) {
       if (err instanceof ApiError && err.code === 'REQUEST_ABORTED') {
         if (isMountedRef.current) {
@@ -189,7 +291,34 @@ export function GenerationModal({ onClose, onFallback }: GenerationModalProps): 
     }
   }
 
+  const handleSaveAll = async (
+    selections: Array<{ draftId: string; generationRequestId: string; selectedPhotoUrl?: string }>,
+  ): Promise<void> => {
+    setStep('saving')
+    setIsSavingAll(true)
+    setSaveError(null)
+
+    try {
+      for (const sel of selections) {
+        await selectDraft(sel.draftId, sel.generationRequestId, sel.selectedPhotoUrl)
+        if (!isMountedRef.current) return
+      }
+      onClose()
+    } catch (err: unknown) {
+      if (!isMountedRef.current) return
+      const message = resolveErrorMessage(err, t)
+      setSaveError(message)
+      setIsSavingAll(false)
+      setStep('review')
+    }
+  }
+
   const handleRetry = (): void => {
+    clearTimers()
+    setCountdown(0)
+    setPollCycleKey(0)
+    setIsPolling(false)
+    setGenerationRequestId(null)
     setErrorMessage(null)
     setStep('input')
   }
@@ -233,6 +362,52 @@ export function GenerationModal({ onClose, onFallback }: GenerationModalProps): 
                 maxLength={5000}
               />
 
+              <div className="generation-modal__controls-row">
+                <div className="generation-modal__control-group generation-modal__control-group--drafts">
+                  <label className="generation-modal__label">
+                    {t('ai-generation:modal.draftCountLabel')}
+                  </label>
+                  <div className="generation-modal__drafts-segmented" role="radiogroup" aria-label={t('ai-generation:modal.draftCountLabel')}>
+                    {[1, 2, 3].map((n) => (
+                      <button
+                        key={n}
+                        type="button"
+                        role="radio"
+                        aria-checked={n === selectedDraftCount}
+                        className={`generation-modal__depth-seg${n === selectedDraftCount ? ' generation-modal__depth-seg--active' : ''}`}
+                        onClick={() => setSelectedDraftCount(n)}
+                      >
+                        {n}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="generation-modal__control-group generation-modal__control-group--depth">
+                  <label className="generation-modal__label">
+                    {t('ai-generation:modal.outputDepthLabel')}
+                  </label>
+                  <div className="generation-modal__depth-segmented" role="radiogroup" aria-label={t('ai-generation:modal.outputDepthLabel')}>
+                    {DEPTH_VALUES.map((d) => (
+                      <button
+                        key={d}
+                        type="button"
+                        role="radio"
+                        aria-checked={d === selectedOutputDepth}
+                        className={`generation-modal__depth-seg${d === selectedOutputDepth ? ' generation-modal__depth-seg--active' : ''}`}
+                        onClick={() => setSelectedOutputDepth(d)}
+                      >
+                        {t(`ai-generation:modal.outputDepth${d.charAt(0).toUpperCase() + d.slice(1)}`)}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              <p className="generation-modal__controls-hint">
+                {t('ai-generation:modal.controlsHint')}
+              </p>
+
               <button
                 type="button"
                 className="generation-modal__advanced-toggle"
@@ -243,46 +418,50 @@ export function GenerationModal({ onClose, onFallback }: GenerationModalProps): 
 
               {showAdvanced ? (
                 <div className="generation-modal__advanced">
-                  <label htmlFor="generation-model" className="generation-modal__label">
-                    {t('ai-generation:modal.modelLabel')}
-                  </label>
-                  <select
-                    id="generation-model"
-                    value={selectedModel}
-                    onChange={(e) => setSelectedModel(e.target.value)}
-                  >
-                    {availableModels.map((model) => (
-                      <option key={model.id} value={model.id}>
-                        {model.label}
-                      </option>
-                    ))}
-                  </select>
+                  <div className="generation-modal__advanced-row">
+                    <label htmlFor="generation-model" className="generation-modal__label">
+                      {t('ai-generation:modal.modelLabel')}
+                    </label>
+                    <select
+                      id="generation-model"
+                      value={selectedModel}
+                      onChange={(e) => setSelectedModel(e.target.value)}
+                    >
+                      {availableModels.map((model) => (
+                        <option key={model.id} value={model.id}>
+                          {model.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
 
-                  <label htmlFor="generation-prompt-preset" className="generation-modal__label">
-                    {t('ai-generation:modal.devPromptPresetLabel')}
-                  </label>
-                  <select
-                    id="generation-prompt-preset"
-                    value={selectedPromptPreset}
-                    onChange={(e) => {
-                      const presetId = e.target.value
-                      setSelectedPromptPreset(presetId)
+                  <div className="generation-modal__advanced-row">
+                    <label htmlFor="generation-prompt-preset" className="generation-modal__label">
+                      {t('ai-generation:modal.devPromptPresetLabel')}
+                    </label>
+                    <select
+                      id="generation-prompt-preset"
+                      value={selectedPromptPreset}
+                      onChange={(e) => {
+                        const presetId = e.target.value
+                        setSelectedPromptPreset(presetId)
 
-                      if (!presetId) {
-                        return
-                      }
+                        if (!presetId) {
+                          return
+                        }
 
-                      setPrompt(t(`ai-generation:modal.devPromptPresets.${presetId}.prompt`))
-                      setErrorMessage(null)
-                    }}
-                  >
-                    <option value="">{t('ai-generation:modal.devPromptPresetPlaceholder')}</option>
-                    {DEV_PROMPT_PRESET_IDS.map((presetId) => (
-                      <option key={presetId} value={presetId}>
-                        {t(`ai-generation:modal.devPromptPresets.${presetId}.label`)}
-                      </option>
-                    ))}
-                  </select>
+                        setPrompt(t(`ai-generation:modal.devPromptPresets.${presetId}.prompt`))
+                        setErrorMessage(null)
+                      }}
+                    >
+                      <option value="">{t('ai-generation:modal.devPromptPresetPlaceholder')}</option>
+                      {DEV_PROMPT_PRESET_IDS.map((presetId) => (
+                        <option key={presetId} value={presetId}>
+                          {t(`ai-generation:modal.devPromptPresets.${presetId}.label`)}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
               ) : null}
 
@@ -320,6 +499,21 @@ export function GenerationModal({ onClose, onFallback }: GenerationModalProps): 
                   defaultValue: t('ai-generation:modal.generatingHint'),
                 })}
               </p>
+              <button
+                type="button"
+                className="generation-modal__check-now"
+                onClick={handleCheckNow}
+                disabled={isPolling}
+              >
+                {isPolling
+                  ? t('ai-generation:modal.checking')
+                  : countdown > 0
+                    ? t('ai-generation:modal.checkNow', { seconds: countdown })
+                    : t('ai-generation:modal.checkNowNoTimer')}
+              </button>
+              <p className="generation-modal__check-hint">
+                {t('ai-generation:modal.checkNowHint')}
+              </p>
             </div>
           )}
 
@@ -340,7 +534,9 @@ export function GenerationModal({ onClose, onFallback }: GenerationModalProps): 
                 onSelectDraft={(draftId, reqId, selectedPhotoUrl) =>
                   void handleSelectDraft(draftId, reqId, selectedPhotoUrl)
                 }
+                onSaveAll={(selections) => void handleSaveAll(selections)}
                 isSaving={step === 'saving'}
+                isSavingAll={isSavingAll}
                 saveError={saveError}
                 currentIndex={draftIndex}
                 onIndexChange={setDraftIndex}
@@ -382,9 +578,12 @@ export function GenerationModal({ onClose, onFallback }: GenerationModalProps): 
           )}
         </div>
 
-        {step === 'loading' && (
+        {step === 'loading' && pollCycleKey > 0 && (
           <div className="generation-modal__progress">
-            <div className="generation-modal__progress-bar" />
+            <div
+              key={pollCycleKey}
+              className={`generation-modal__progress-bar ${pollCycleKey % 2 === 0 ? 'generation-modal__progress-bar--fill' : 'generation-modal__progress-bar--drain'}`}
+            />
           </div>
         )}
       </div>

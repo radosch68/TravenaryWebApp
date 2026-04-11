@@ -188,6 +188,9 @@ function PlanningActivityRow({ activity, onToggleAnchored, disabled }: PlanningA
           {formatLocalTimeRange(activity.time, activity.timeEnd, i18n.language)}
         </span>
       ) : null}
+      {activity.text ? (
+        <span className="planning-activity__desc">{activity.text}</span>
+      ) : null}
     </li>
   )
 }

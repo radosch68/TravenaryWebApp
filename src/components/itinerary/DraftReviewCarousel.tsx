@@ -1,7 +1,7 @@
 import type { ReactElement } from 'react'
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import type { DraftItinerary, DraftDay } from '@/services/ai-generation.service'
+import type { DraftItinerary, DraftBlockActivity, DraftActivityObject } from '@/services/ai-generation.service'
 import { formatDateRange } from '@/utils/date-format'
 import { unsplashUrl } from '@/utils/unsplash-url'
 
@@ -9,7 +9,9 @@ interface DraftReviewCarouselProps {
   drafts: DraftItinerary[]
   generationRequestId: string
   onSelectDraft: (draftId: string, generationRequestId: string, selectedPhotoUrl?: string) => void
+  onSaveAll?: (selections: Array<{ draftId: string; generationRequestId: string; selectedPhotoUrl?: string }>) => void
   isSaving: boolean
+  isSavingAll: boolean
   saveError: string | null
   currentIndex: number
   onIndexChange: (index: number) => void
@@ -21,7 +23,9 @@ export function DraftReviewCarousel({
   drafts,
   generationRequestId,
   onSelectDraft,
+  onSaveAll,
   isSaving,
+  isSavingAll,
   saveError,
   currentIndex,
   onIndexChange,
@@ -58,8 +62,9 @@ export function DraftReviewCarousel({
   }
 
   const dateLabel = formatDateRange(draft.startDate, draft.endDate, i18n.language)
-  const preview = draft.activities.slice(0, 4)
-  const hasBlocks = draft.days?.some((day: DraftDay) => day.blocks && day.blocks.length > 0) ?? false
+  const activityLabels = draft.activities
+  const preview = activityLabels.slice(0, 4)
+  const hasDayPlan = draft.days != null && draft.days.length > 0
   const legacyCoverPhoto = (draft as DraftItinerary & { coverPhoto?: { url: string; caption?: string | null } | null }).coverPhoto
   const photoOptions = draft.coverPhotoOptions ?? []
   const photoSelectionKey = `${generationRequestId}:${draft._id}`
@@ -124,21 +129,21 @@ export function DraftReviewCarousel({
               {t('ai-generation:carousel.activityHighlights')}
             </p>
             <ul>
-              {preview.map((activity, index) => (
-                <li key={`${activity}-${index}`}>{activity}</li>
+              {preview.map((label, index) => (
+                <li key={`${label}-${index}`}>{label}</li>
               ))}
             </ul>
-            {draft.activities.length > 4 ? (
+            {activityLabels.length > 4 ? (
               <details className="draft-carousel__more-activities">
                 <summary>
-                  +{draft.activities.length - 4}{' '}
+                  +{activityLabels.length - 4}{' '}
                   {t('ai-generation:carousel.moreActivities', {
-                    count: draft.activities.length - 4,
+                    count: activityLabels.length - 4,
                   })}
                 </summary>
                 <ul>
-                  {draft.activities.slice(4).map((activity, index) => (
-                    <li key={`${activity}-${index}`}>{activity}</li>
+                  {activityLabels.slice(4).map((label, index) => (
+                    <li key={`${label}-${index}`}>{label}</li>
                   ))}
                 </ul>
               </details>
@@ -146,7 +151,7 @@ export function DraftReviewCarousel({
           </div>
         ) : null}
 
-        {hasBlocks && draft.days ? (
+        {hasDayPlan && draft.days ? (
           <div className="draft-carousel__day-plan">
             <p className="draft-carousel__section-label">
               {t('ai-generation:carousel.dayPlan')}
@@ -160,22 +165,20 @@ export function DraftReviewCarousel({
                   <div className="draft-carousel__blocks">
                     {day.blocks.map((block, blockIndex) => (
                       <div key={`${block.label}-${blockIndex}`} className="draft-carousel__block">
-                        <span className="draft-carousel__block-label">{block.label}</span>
+                        {block.label ? (
+                          <span className="draft-carousel__block-label">{block.label}</span>
+                        ) : null}
                         <ul>
                           {block.activities.map((activity, actIndex) => (
-                            <li key={`${activity}-${actIndex}`}>{activity}</li>
+                            <li key={`act-${actIndex}`}>
+                              <ActivityItem activity={activity} />
+                            </li>
                           ))}
                         </ul>
                       </div>
                     ))}
                   </div>
-                ) : (
-                  <ul>
-                    {day.activities.map((activity, actIndex) => (
-                      <li key={`${activity}-${actIndex}`}>{activity}</li>
-                    ))}
-                  </ul>
-                )}
+                ) : null}
               </details>
             ))}
           </div>
@@ -207,15 +210,80 @@ export function DraftReviewCarousel({
         <button
           type="button"
           className="draft-carousel__select-button"
-          disabled={isSaving}
+          disabled={isSaving || isSavingAll}
           onClick={() => onSelectDraft(draft._id, generationRequestId, selectedPhoto?.url)}
         >
-          {isSaving
+          {isSaving && !isSavingAll
             ? t('ai-generation:carousel.saving')
             : t('ai-generation:carousel.selectButton')}
         </button>
+
+        {onSaveAll && drafts.length > 1 ? (
+          <button
+            type="button"
+            className="draft-carousel__save-all-button"
+            disabled={isSaving || isSavingAll}
+            onClick={() => {
+              const selections = drafts.map((d) => {
+                const key = `${generationRequestId}:${d._id}`
+                const idx = selectedPhotoIndexes[key] ?? 0
+                const legacyPhoto = (d as DraftItinerary & { coverPhoto?: { url: string; caption?: string | null } | null }).coverPhoto
+                const options = d.coverPhotoOptions ?? []
+                const photo = options[idx] ?? options[0] ?? legacyPhoto ?? null
+                return { draftId: d._id, generationRequestId, selectedPhotoUrl: photo?.url }
+              })
+              onSaveAll(selections)
+            }}
+          >
+            {isSavingAll
+              ? t('ai-generation:carousel.savingAll')
+              : t('ai-generation:carousel.saveAllButton', { count: drafts.length })}
+          </button>
+        ) : null}
       </div>
     </div>
+  )
+}
+
+function hasNonEmptyString(value: unknown): value is string {
+  return typeof value === 'string' && value.trim().length > 0
+}
+
+function isActivityObject(activity: DraftBlockActivity): activity is DraftActivityObject {
+  if (typeof activity !== 'object' || activity === null) {
+    return false
+  }
+
+  const candidate = activity as Partial<DraftActivityObject> & { time?: unknown; timeEnd?: unknown }
+
+  return (
+    hasNonEmptyString(candidate.title) &&
+    hasNonEmptyString(candidate.type) &&
+    (candidate.time === undefined || typeof candidate.time === 'string') &&
+    (candidate.timeEnd === undefined || typeof candidate.timeEnd === 'string')
+  )
+}
+
+function ActivityItem({ activity }: { activity: DraftBlockActivity }): ReactElement {
+  if (!isActivityObject(activity)) {
+    return <>{activity}</>
+  }
+
+  const timeLabel = activity.time
+    ? activity.timeEnd
+      ? `${activity.time}–${activity.timeEnd}`
+      : activity.time
+    : null
+
+  return (
+    <span className="draft-activity-item">
+      <span className="draft-activity-item__type">{activity.type}</span>
+      {timeLabel ? <span className="draft-activity-item__time">{timeLabel}</span> : null}
+      <span className="draft-activity-item__title">{activity.title}</span>
+      {activity.description ? (
+        <span className="draft-activity-item__desc">{activity.description}</span>
+      ) : null}
+    </span>
   )
 }
 

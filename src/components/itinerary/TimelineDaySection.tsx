@@ -52,6 +52,9 @@ function TimelineActivityRow({ activity, t }: { activity: ItineraryActivity; t: 
         {ACTIVITY_TYPE_ICON[activity.type] ?? <Star size={16} />}
       </span>
       <span className="timeline-activity__title">{activity.title}</span>
+      {activity.text ? (
+        <span className="timeline-activity__desc">{activity.text}</span>
+      ) : null}
       {getEffectiveAnchored(activity) ? (
         <span className="timeline-activity__anchored-marker">
           {t('common:itinerary.presentation.anchoredMarker')}
