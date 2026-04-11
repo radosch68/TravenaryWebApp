@@ -38,9 +38,15 @@ function normalizeTimeValue(value: string): string | undefined {
 interface ActivityFormPanelProps {
   activity?: ItineraryActivity
   mode: 'create' | 'edit'
-  onSave: (activity: ItineraryActivity) => void
+  onSave: (payload: ActivityFormSavePayload) => void
   onCancel: () => void
   disabled?: boolean
+}
+
+export interface ActivityFormSavePayload {
+  activity: ItineraryActivity
+  createOwnBlock: boolean
+  dividerTitle: string
 }
 
 export function ActivityFormPanel({
@@ -65,6 +71,8 @@ export function ActivityFormPanel({
   const [bookingRef, setBookingRef] = useState(activity?.bookingRef ?? '')
   const [serviceCode, setServiceCode] = useState(activity?.serviceCode ?? '')
   const [airport, setAirport] = useState(activity?.airport ?? '')
+  const [createOwnBlock, setCreateOwnBlock] = useState(false)
+  const [dividerTitle, setDividerTitle] = useState('')
   const timeInputRef = useRef<HTMLInputElement | null>(null)
   const timeEndInputRef = useRef<HTMLInputElement | null>(null)
 
@@ -101,7 +109,11 @@ export function ActivityFormPanel({
     if (activity?.pairedActivityId) result.pairedActivityId = activity.pairedActivityId
     if (activity?.activityGroupId) result.activityGroupId = activity.activityGroupId
 
-    onSave(result)
+    onSave({
+      activity: result,
+      createOwnBlock: isCreate ? createOwnBlock : false,
+      dividerTitle: isCreate ? dividerTitle.trim() : '',
+    })
   }
 
   const handleEscape = useCallback((e: KeyboardEvent): void => {
@@ -143,6 +155,31 @@ export function ActivityFormPanel({
               <option key={t} value={t}>{t}</option>
             ))}
           </select>
+        </div>
+      )}
+
+      {isCreate && (
+        <div className="activity-form-panel__block-option">
+          <label className="activity-form-panel__checkbox" htmlFor="activity-create-own-block">
+            <input
+              id="activity-create-own-block"
+              type="checkbox"
+              checked={createOwnBlock}
+              onChange={(e) => setCreateOwnBlock(e.target.checked)}
+              disabled={disabled}
+            />
+            <span>{t('common:itinerary.dayEditor.createOwnBlock')}</span>
+          </label>
+          <input
+            id="activity-divider-title"
+            className="activity-form-panel__block-option-input"
+            type="text"
+            value={dividerTitle}
+            onChange={(e) => setDividerTitle(e.target.value)}
+            placeholder={t('common:itinerary.dayEditor.blockTitlePlaceholder')}
+            aria-label={t('common:itinerary.dayEditor.blockTitle')}
+            disabled={disabled || !createOwnBlock}
+          />
         </div>
       )}
 

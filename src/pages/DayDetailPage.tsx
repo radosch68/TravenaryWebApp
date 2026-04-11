@@ -17,6 +17,7 @@ import { Breadcrumb } from '@/components/Breadcrumb'
 import { EditableField } from '@/components/EditableField'
 import { DayEditorShell } from '@/components/itinerary/DayEditorShell'
 import { ActivityFormPanel } from '@/components/itinerary/ActivityFormPanel'
+import type { ActivityFormSavePayload } from '@/components/itinerary/ActivityFormPanel'
 import { ApiError } from '@/services/contracts'
 import { getItinerary, updateItinerary } from '@/services/itinerary-service'
 import type { ItineraryDetail, ItineraryActivity, ItineraryActivityInput, ItineraryDay, UpdateItineraryRequest } from '@/services/contracts'
@@ -47,6 +48,7 @@ export function DayDetailPage(): ReactElement {
   const sections = useDayEditStore((state) => state.sections)
   const reorderInBlock = useDayEditStore((state) => state.reorderInBlock)
   const addActivity = useDayEditStore((state) => state.addActivity)
+  const addActivityAsNewBlock = useDayEditStore((state) => state.addActivityAsNewBlock)
   const removeActivity = useDayEditStore((state) => state.removeActivity)
   const updateActivityInStore = useDayEditStore((state) => state.editActivity)
   const editDividerLabel = useDayEditStore((state) => state.editDividerLabel)
@@ -215,9 +217,13 @@ export function DayDetailPage(): ReactElement {
     void persistDay()
   }, [sections, reorderInBlock, moveBetweenBlocks, persistDay])
 
-  const handleFormSave = useCallback((activity: ItineraryActivity): void => {
+  const handleFormSave = useCallback(({ activity, createOwnBlock, dividerTitle }: ActivityFormSavePayload): void => {
     if (formMode === 'create' && addToBlockKey) {
-      addActivity(addToBlockKey, activity)
+      if (createOwnBlock) {
+        addActivityAsNewBlock(addToBlockKey, activity, dividerTitle)
+      } else {
+        addActivity(addToBlockKey, activity)
+      }
     } else if (formMode === 'edit') {
       updateActivityInStore(activity)
     }
@@ -225,7 +231,7 @@ export function DayDetailPage(): ReactElement {
     setEditingActivityId(null)
     setAddToBlockKey(null)
     void persistDay()
-  }, [formMode, addToBlockKey, addActivity, updateActivityInStore, persistDay])
+  }, [formMode, addToBlockKey, addActivity, addActivityAsNewBlock, updateActivityInStore, persistDay])
 
   const handleFormCancel = useCallback((): void => {
     setFormMode(null)

@@ -46,6 +46,37 @@ export function insertActivityInBlock(
   })
 }
 
+/** Insert a new activity into its own flexible block immediately after the given block */
+export function insertActivityAsNewBlock(
+  sections: PlanningSection[],
+  blockKey: string,
+  activity: ItineraryActivity,
+  dividerLabel?: string,
+): PlanningSection[] {
+  const nextSections: PlanningSection[] = []
+  let inserted = false
+  const normalizedLabel = dividerLabel?.trim()
+
+  for (const section of sections) {
+    nextSections.push(section)
+
+    if (inserted || sectionKey(section) !== blockKey) {
+      continue
+    }
+
+    nextSections.push({
+      type: 'flexible',
+      blockIndex: -1,
+      dividerId: crypto.randomUUID(),
+      ...(normalizedLabel ? { dividerLabel: normalizedLabel } : {}),
+      activities: [activity],
+    })
+    inserted = true
+  }
+
+  return inserted ? cleanupEmptyBlocks(nextSections) : sections
+}
+
 /** Delete an activity by ID from any section, with auto-cleanup of empty blocks */
 export function deleteActivity(
   sections: PlanningSection[],

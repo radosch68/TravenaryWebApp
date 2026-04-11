@@ -2532,6 +2532,35 @@ button:disabled {
   flex: 1;
 }
 
+.activity-form-panel__block-option {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: var(--space-2);
+  align-items: center;
+}
+
+.activity-form-panel__checkbox {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.activity-form-panel__checkbox input {
+  margin: 0;
+  inline-size: 1rem;
+  block-size: 1rem;
+  accent-color: var(--accent);
+}
+
+.activity-form-panel__block-option-input:disabled {
+  background: rgba(127, 85, 29, 0.06);
+  color: var(--text-muted);
+  cursor: not-allowed;
+}
+
 .activity-form-panel__actions {
   display: flex;
   gap: var(--space-2);
@@ -2546,6 +2575,10 @@ button:disabled {
 /* ---- Responsive planning/timeline ---- */
 
 @media (max-width: 500px) {
+  .activity-form-panel__block-option {
+    grid-template-columns: 1fr;
+  }
+
   .itinerary-detail-panel__top-actions {
     gap: 0.05rem;
   }

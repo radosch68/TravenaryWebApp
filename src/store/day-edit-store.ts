@@ -5,6 +5,7 @@ import { groupActivitiesForPlanning, flattenSectionsToActivities } from '@/utils
 import {
   reorderActivityInBlock,
   insertActivityInBlock,
+  insertActivityAsNewBlock,
   deleteActivity,
   updateActivity,
   moveActivityBetweenBlocks,
@@ -22,6 +23,7 @@ interface DayEditState {
   // Mutations
   reorderInBlock: (blockKey: string, oldIndex: number, newIndex: number) => void
   addActivity: (blockKey: string, activity: ItineraryActivity, position?: number) => void
+  addActivityAsNewBlock: (blockKey: string, activity: ItineraryActivity, dividerLabel?: string) => void
   removeActivity: (activityId: string) => void
   editActivity: (updatedActivity: ItineraryActivity) => void
   editDividerLabel: (blockKey: string, newLabel: string) => void
@@ -62,6 +64,12 @@ export const useDayEditStore = create<DayEditState>((set, get) => ({
   addActivity: (blockKey, activity, position) => {
     set((state) => ({
       sections: insertActivityInBlock(state.sections, blockKey, activity, position),
+    }))
+  },
+
+  addActivityAsNewBlock: (blockKey, activity, dividerLabel) => {
+    set((state) => ({
+      sections: insertActivityAsNewBlock(state.sections, blockKey, activity, dividerLabel),
     }))
   },
 
