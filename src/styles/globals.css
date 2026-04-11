@@ -1978,7 +1978,7 @@ button:disabled {
 }
 
 .planning-section__divider-text {
-  white-space: nowrap;
+  overflow-wrap: anywhere;
 }
 
 .planning-section__divider-line {
@@ -2267,7 +2267,7 @@ button:disabled {
 }
 
 .day-block-editor__label-text {
-  white-space: nowrap;
+  overflow-wrap: anywhere;
 }
 
 .day-block-editor__label-input {
