@@ -174,6 +174,7 @@ export function ActivityFormPanel({
                   role="radio"
                   aria-checked={isSelected}
                   aria-label={t(`common:itinerary.dayEditor.activityTypeOptions.${ACTIVITY_TYPE_LABEL_KEY[activityType]}`)}
+                  autoFocus={activityType === type}
                 >
                   {isSelected ? (
                     <span
@@ -207,6 +208,9 @@ export function ActivityFormPanel({
               onChange={(e) => setCreateOwnBlock(e.target.checked)}
               disabled={disabled}
             />
+            <span className="activity-form-panel__checkbox-indicator" aria-hidden="true">
+              <span className="activity-form-panel__checkbox-indicator-mark">✓</span>
+            </span>
             <span>{t('common:itinerary.dayEditor.createOwnBlock')}</span>
           </label>
           <input
@@ -230,7 +234,7 @@ export function ActivityFormPanel({
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           disabled={disabled}
-          autoFocus
+          autoFocus={!isCreate}
         />
       </div>
 
