@@ -17,6 +17,7 @@
     "notAvailable": "Není k dispozici",
     "currentPassword": "Současné heslo",
     "newPassword": "Nové heslo",
+    "confirmNewPassword": "Potvrzení nového hesla",
     "password": "Heslo"
   },
   "providers": {
@@ -32,6 +33,7 @@
   "actions": {
     "saveDisplayName": "Uložit jméno",
     "savePassword": "Změnit heslo",
+    "setPassword": "Nastavit heslo",
     "startDelete": "Smazat účet",
     "confirmDelete": "Potvrdit smazání",
     "cancelDelete": "Zrušit"
@@ -39,7 +41,10 @@
   "messages": {
     "saved": "Profil byl aktualizován.",
     "passwordSaved": "Heslo bylo úspěšně změněno.",
+    "passwordSet": "Heslo bylo úspěšně nastaveno.",
     "passwordError": "Současné heslo je nesprávné.",
+    "passwordSetError": "Heslo se nepodařilo uložit. Zkuste to znovu.",
+    "passwordOptionalForSocial": "Pro sociální přihlášení heslo nepotřebujete. Nastavte si ho jen pokud chcete později používat přihlášení e-mailem a heslem.",
     "displayNameSaveError": "Zobrazované jméno se nepodařilo uložit. Zkuste to znovu.",
     "deleteError": "Účet se nepodařilo smazat. Zkontrolujte heslo a zkuste to znovu.",
     "deletePasswordRequired": "Smazání účtu potvrďte heslem.",
@@ -47,12 +52,14 @@
     "deleteNoPassword": "Tento účet používá pouze sociální přihlášení. Potvrzení místním heslem není potřeba.",
     "displayNameRequired": "Zobrazované jméno je povinné.",
     "displayNameMax": "Zobrazované jméno může mít maximálně 80 znaků.",
-    "passwordRequired": "Heslo je povinné."
+    "passwordRequired": "Heslo je povinné.",
+    "passwordMismatch": "Hesla se neshodují."
   },
   "validation": {
     "displayNameRequired": "Zobrazované jméno je povinné.",
     "displayNameMax": "Zobrazované jméno může mít maximálně 80 znaků.",
     "passwordMin": "Heslo musí mít alespoň 8 znaků.",
-    "passwordRequired": "Heslo je povinné."
+    "passwordRequired": "Heslo je povinné.",
+    "passwordMismatch": "Hesla se neshodují."
   }
 }

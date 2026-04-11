@@ -17,6 +17,7 @@
     "notAvailable": "Not available",
     "currentPassword": "Current password",
     "newPassword": "New password",
+    "confirmNewPassword": "Confirm new password",
     "password": "Password"
   },
   "providers": {
@@ -32,6 +33,7 @@
   "actions": {
     "saveDisplayName": "Save display name",
     "savePassword": "Change password",
+    "setPassword": "Set password",
     "startDelete": "Delete account",
     "confirmDelete": "Confirm deletion",
     "cancelDelete": "Cancel"
@@ -39,7 +41,10 @@
   "messages": {
     "saved": "Profile updated.",
     "passwordSaved": "Password changed successfully.",
+    "passwordSet": "Password set successfully.",
     "passwordError": "Current password is incorrect.",
+    "passwordSetError": "Unable to save password. Please try again.",
+    "passwordOptionalForSocial": "You do not need a password for social sign-in. Set one only if you want to use email/password login later.",
     "displayNameSaveError": "Unable to save display name. Please try again.",
     "deleteError": "Unable to delete account. Check password and try again.",
     "deletePasswordRequired": "Confirm account deletion with your password.",
@@ -47,12 +52,14 @@
     "deleteNoPassword": "This account uses social sign-in only. No local password confirmation is required.",
     "displayNameRequired": "Display name is required.",
     "displayNameMax": "Display name must be at most 80 characters.",
-    "passwordRequired": "Password is required."
+    "passwordRequired": "Password is required.",
+    "passwordMismatch": "Passwords do not match."
   },
   "validation": {
     "displayNameRequired": "Display name is required.",
     "displayNameMax": "Display name must be at most 80 characters.",
     "passwordMin": "Password must be at least 8 characters.",
-    "passwordRequired": "Password is required."
+    "passwordRequired": "Password is required.",
+    "passwordMismatch": "Passwords do not match."
   }
 }

@@ -16,6 +16,7 @@ import {
 import { Header } from '@/components/Header'
 import { Breadcrumb } from '@/components/Breadcrumb'
 import { signOut } from '@/services/auth-service'
+import { ApiError } from '@/services/contracts'
 import {
   changePassword,
   deleteAccount,
@@ -41,9 +42,15 @@ export function ProfilePage(): ReactElement {
   const hasPasswordProvider = profile?.authProviders?.includes('password') ?? true
   const requiresDeletePassword = profile?.authProviders?.includes('password') ?? true
   const hasSocialProvider = profile?.authProviders?.some((provider) => provider !== 'password') ?? false
+  const canSetInitialPassword = !hasPasswordProvider && hasSocialProvider
 
   const activeLocale = activeLanguage === 'cs-CZ' ? 'cs-CZ' : 'en'
   const profilePreferredLanguage = profile?.preferredLanguage ?? activeLanguage
+
+  const resolveProfileMessage = (message: string): string => {
+    const translated = t(message, { ns: 'profile' })
+    return translated === message ? t(`profile:${message}`) : translated
+  }
 
   const formatDateTime = (value?: string): string => {
     if (!value) {
@@ -86,6 +93,7 @@ export function ProfilePage(): ReactElement {
     defaultValues: {
       currentPassword: '',
       newPassword: '',
+      confirmNewPassword: '',
     },
   })
 
@@ -109,19 +117,38 @@ export function ProfilePage(): ReactElement {
 
   const submitPassword = passwordForm.handleSubmit(async (values) => {
     setPasswordStatus('')
+
+    if (hasPasswordProvider && !values.currentPassword) {
+      passwordForm.setError('currentPassword', {
+        type: 'required',
+        message: 'validation.passwordRequired',
+      })
+      return
+    }
+
+    const settingInitialPassword = !hasPasswordProvider
+
     try {
       const updatedProfile = await changePassword(
         values.currentPassword,
         values.newPassword,
       )
       setProfile(updatedProfile)
-      setPasswordStatus(t('profile:messages.passwordSaved'))
+      setPasswordStatus(t(settingInitialPassword ? 'profile:messages.passwordSet' : 'profile:messages.passwordSaved'))
       passwordForm.reset()
       window.setTimeout(() => setPasswordStatus(''), 4000)
-    } catch {
-      passwordForm.setError('currentPassword', {
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 401) {
+        passwordForm.setError('currentPassword', {
+          type: 'server',
+          message: 'messages.passwordError',
+        })
+        return
+      }
+
+      passwordForm.setError('newPassword', {
         type: 'server',
-        message: 'messages.passwordError',
+        message: 'messages.passwordSetError',
       })
     }
   })
@@ -225,41 +252,58 @@ export function ProfilePage(): ReactElement {
           </form>
         </article>
 
-        {hasPasswordProvider ? (
-          <article className="panel">
-            <h2>{t('profile:sections.password')}</h2>
-            <form className="form" onSubmit={(event) => void submitPassword(event)}>
-              <label htmlFor="currentPassword">{t('profile:fields.currentPassword')}</label>
-              <input
-                id="currentPassword"
-                type="password"
-                disabled={passwordForm.formState.isSubmitting}
-                {...passwordForm.register('currentPassword')}
-              />
-              {passwordForm.formState.errors.currentPassword?.message ? (
-                <p className="error">
-                  {t(`profile:${String(passwordForm.formState.errors.currentPassword.message)}`)}
-                </p>
-              ) : null}
-              <label htmlFor="newPassword">{t('profile:fields.newPassword')}</label>
-              <input
-                id="newPassword"
-                type="password"
-                disabled={passwordForm.formState.isSubmitting}
-                {...passwordForm.register('newPassword')}
-              />
-              {passwordForm.formState.errors.newPassword?.message ? (
-                <p className="error">
-                  {t(`profile:${String(passwordForm.formState.errors.newPassword.message)}`)}
-                </p>
-              ) : null}
-              <button type="submit" disabled={passwordForm.formState.isSubmitting}>
-                {t('profile:actions.savePassword')}
-              </button>
-              {passwordStatus && <p>{passwordStatus}</p>}
-            </form>
-          </article>
-        ) : null}
+        <article className="panel">
+          <h2>{t('profile:sections.password')}</h2>
+          <form className="form" onSubmit={(event) => void submitPassword(event)}>
+            {canSetInitialPassword ? (
+              <p className="text-muted">{t('profile:messages.passwordOptionalForSocial')}</p>
+            ) : null}
+            {hasPasswordProvider ? (
+              <>
+                <label htmlFor="currentPassword">{t('profile:fields.currentPassword')}</label>
+                <input
+                  id="currentPassword"
+                  type="password"
+                  disabled={passwordForm.formState.isSubmitting}
+                  {...passwordForm.register('currentPassword')}
+                />
+                {passwordForm.formState.errors.currentPassword?.message ? (
+                  <p className="error">
+                    {resolveProfileMessage(String(passwordForm.formState.errors.currentPassword.message))}
+                  </p>
+                ) : null}
+              </>
+            ) : null}
+            <label htmlFor="newPassword">{t('profile:fields.newPassword')}</label>
+            <input
+              id="newPassword"
+              type="password"
+              disabled={passwordForm.formState.isSubmitting}
+              {...passwordForm.register('newPassword')}
+            />
+            {passwordForm.formState.errors.newPassword?.message ? (
+              <p className="error">
+                {resolveProfileMessage(String(passwordForm.formState.errors.newPassword.message))}
+              </p>
+            ) : null}
+            <label htmlFor="confirmNewPassword">{t('profile:fields.confirmNewPassword')}</label>
+            <input
+              id="confirmNewPassword"
+              type="password"
+              disabled={passwordForm.formState.isSubmitting}
+              {...passwordForm.register('confirmNewPassword')}
+            />
+            {passwordForm.formState.errors.confirmNewPassword?.message ? (
+              <p className="error">
+                {resolveProfileMessage(String(passwordForm.formState.errors.confirmNewPassword.message))}
+              </p>
+            ) : null}
+            <button type="submit" disabled={passwordForm.formState.isSubmitting}>
+              {t(hasPasswordProvider ? 'profile:actions.savePassword' : 'profile:actions.setPassword')}
+            </button>
+            {passwordStatus && <p>{passwordStatus}</p>}
+          </form>
+        </article>
 
         <article className="panel panel--delete-action">
           {!showDeleteForm ? (

@@ -16,13 +16,13 @@ export async function updateDisplayName(displayName: string): Promise<UserProfil
 }
 
 export async function changePassword(
-  currentPassword: string,
+  currentPassword: string | undefined,
   newPassword: string,
 ): Promise<UserProfile> {
   return apiRequest<UserProfile>('/users/me', {
     method: 'PATCH',
     protected: true,
-    body: { currentPassword, newPassword },
+    body: currentPassword ? { currentPassword, newPassword } : { newPassword },
   })
 }
 
