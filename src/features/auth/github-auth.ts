@@ -1,3 +1,5 @@
+import { generateClientId } from '@/utils/client-id'
+
 const GITHUB_POPUP_TIMEOUT_MS = 120_000
 const GITHUB_POPUP_POLL_MS = 300
 
@@ -14,7 +16,7 @@ export async function acquireGithubAuthCode(): Promise<string> {
     throw new Error('provider_unavailable')
   }
 
-  const state = crypto.randomUUID()
+  const state = generateClientId()
   const callbackUrl = new URL(`${import.meta.env.BASE_URL}oauth/github/callback`, window.location.origin)
 
   const authorizeUrl = new URL('https://github.com/login/oauth/authorize')

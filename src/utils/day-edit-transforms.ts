@@ -1,4 +1,5 @@
 import type { ItineraryActivity } from '@/services/contracts'
+import { generateClientId } from '@/utils/client-id'
 import {
   flattenSectionsToActivities,
   groupActivitiesForPlanning,
@@ -67,7 +68,7 @@ export function insertActivityAsNewBlock(
     nextSections.push({
       type: 'flexible',
       blockIndex: -1,
-      dividerId: crypto.randomUUID(),
+      dividerId: generateClientId(),
       ...(normalizedLabel ? { dividerLabel: normalizedLabel } : {}),
       activities: [activity],
     })
@@ -160,7 +161,7 @@ export function breakBlock(
       result.push({
         type: 'flexible',
         blockIndex: flexCounter++,
-        ...(index > 0 ? { dividerId: crypto.randomUUID() } : {}),
+        ...(index > 0 ? { dividerId: generateClientId() } : {}),
         activities: [activity],
       })
     }

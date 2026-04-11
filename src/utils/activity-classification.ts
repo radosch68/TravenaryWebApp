@@ -1,4 +1,5 @@
 import type { ActivityType, ItineraryActivity } from '@/services/contracts'
+import { generateClientId } from '@/utils/client-id'
 
 const ANCHORED_BY_DEFAULT: ReadonlySet<ActivityType> = new Set([
   'flight',
@@ -131,7 +132,7 @@ export function flattenSectionsToActivities(sections: PlanningSection[]): Itiner
     } else {
       if (section.dividerId !== undefined || section.dividerLabel !== undefined) {
         result.push({
-          id: section.dividerId ?? crypto.randomUUID(),
+          id: section.dividerId ?? generateClientId(),
           type: 'divider',
           title: section.dividerLabel ?? '',
           isAnchored: false,
@@ -139,7 +140,7 @@ export function flattenSectionsToActivities(sections: PlanningSection[]): Itiner
       } else if (prevWasFlexible) {
         // Insert empty divider to preserve block boundary
         result.push({
-          id: crypto.randomUUID(),
+          id: generateClientId(),
           type: 'divider',
           title: '',
           isAnchored: false,

@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import type { ActivityType, ItineraryActivity } from '@/services/contracts'
+import { generateClientId } from '@/utils/client-id'
 import { formatLocalTime, getLocalizedTimeInputPlaceholder } from '@/utils/date-format'
 import { ACTIVITY_TYPE_COLOR, ACTIVITY_TYPE_ICON } from './activity-presentation'
 
@@ -101,7 +102,7 @@ export function ActivityFormPanel({
     const liveTimeEnd = normalizeTimeValue(timeEndInputRef.current?.value ?? timeEnd)
 
     const result: ItineraryActivity = {
-      id: activity?.id ?? crypto.randomUUID(),
+      id: activity?.id ?? generateClientId(),
       type: isCreate ? type : activity!.type,
       title: title.trim(),
       isAnchored: activity?.isAnchored ?? false,
