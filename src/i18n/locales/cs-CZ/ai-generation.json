@@ -3,6 +3,7 @@
   "createFromTemplate": "Vytvořit ze šablony",
   "modal": {
     "title": "Generovat itinerář",
+    "resetButton": "Výchozí hodnoty",
     "promptLabel": "Popište svou cestu",
     "promptPlaceholder": "Např. 5 dní v Praze, Staré město a hrady...",
     "advancedOptions": "Pokročilé možnosti",

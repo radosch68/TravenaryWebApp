@@ -3,6 +3,7 @@
   "createFromTemplate": "Create from template",
   "modal": {
     "title": "Generate Itinerary",
+    "resetButton": "Default values",
     "promptLabel": "Describe your trip",
     "promptPlaceholder": "E.g. 5 days in Prague, exploring Old Town and castles...",
     "advancedOptions": "Advanced Options",

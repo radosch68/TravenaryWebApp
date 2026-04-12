@@ -761,7 +761,7 @@ button:disabled {
 
 .generation-modal__header {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   gap: var(--space-2);
   padding: var(--space-4) var(--space-4) var(--space-2);
@@ -780,6 +780,17 @@ button:disabled {
   color: var(--text-muted);
   border: 1px solid var(--surface-border);
   font-size: 1.35rem;
+}
+
+.generation-modal__prompt-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.generation-modal__reset {
+  padding: 0.75rem 1rem;
 }
 
 .generation-modal__body {

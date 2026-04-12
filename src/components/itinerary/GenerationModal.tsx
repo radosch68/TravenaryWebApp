@@ -55,6 +55,59 @@ const DEV_PROMPT_PRESET_IDS = [
   'australiaCoastAndNature',
 ] as const
 
+const SETTINGS_KEY = 'travenary_generation_settings'
+
+interface SavedSettings {
+  prompt: string
+  selectedModel: string
+  selectedDraftCount: number
+  selectedOutputDepth: OutputDepth
+  languageMode: LanguageMode
+  languageCode: CuratedLanguageCode
+  languageOther: string
+  timing: TimingValue | ''
+  timingOther: string
+  travelerProfile: TravelerProfileValue | ''
+  travelerProfileOther: string
+  budgetProfile: BudgetProfileValue | ''
+  budgetProfileOther: string
+}
+
+const DEFAULT_SETTINGS: Omit<SavedSettings, 'selectedModel'> = {
+  prompt: '',
+  selectedDraftCount: 2,
+  selectedOutputDepth: 'balanced',
+  languageMode: 'auto',
+  languageCode: 'en',
+  languageOther: '',
+  timing: '',
+  timingOther: '',
+  travelerProfile: '',
+  travelerProfileOther: '',
+  budgetProfile: '',
+  budgetProfileOther: '',
+}
+
+function loadSavedSettings(): SavedSettings | null {
+  try {
+    const raw = localStorage.getItem(SETTINGS_KEY)
+    if (!raw) return null
+    return JSON.parse(raw) as SavedSettings
+  } catch {
+    return null
+  }
+}
+
+function saveSettings(settings: SavedSettings): void {
+  try {
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings))
+  } catch { /* quota exceeded — ignore */ }
+}
+
+function clearSavedSettings(): void {
+  localStorage.removeItem(SETTINGS_KEY)
+}
+
 export function GenerationModal({ onClose, onFallback }: GenerationModalProps): ReactElement {
   const { t } = useTranslation(['ai-generation', 'common'])
   const navigate = useNavigate()
@@ -197,10 +250,31 @@ export function GenerationModal({ onClose, onFallback }: GenerationModalProps): 
   useEffect(() => {
     isMountedRef.current = true
 
+    const saved = loadSavedSettings()
+    if (saved) {
+      setPrompt(saved.prompt)
+      setSelectedDraftCount(saved.selectedDraftCount)
+      setSelectedOutputDepth(saved.selectedOutputDepth)
+      setLanguageMode(saved.languageMode)
+      setLanguageCode(saved.languageCode)
+      setLanguageOther(saved.languageOther)
+      setTiming(saved.timing)
+      setTimingOther(saved.timingOther)
+      setTravelerProfile(saved.travelerProfile)
+      setTravelerProfileOther(saved.travelerProfileOther)
+      setBudgetProfile(saved.budgetProfile)
+      setBudgetProfileOther(saved.budgetProfileOther)
+      if (saved.languageMode !== 'auto' || saved.timing || saved.travelerProfile || saved.budgetProfile) {
+        setShowAdvanced(true)
+      }
+    }
+
     fetchAvailableModels().then((models) => {
       if (isMountedRef.current && models.length > 0) {
         setAvailableModels(models)
-        const defaultModel = models.find((m) => m.id === 'gpt-4o') ?? models[0]
+        const savedModel = saved?.selectedModel
+        const matchedModel = savedModel ? models.find((m) => m.id === savedModel) : undefined
+        const defaultModel = matchedModel ?? models.find((m) => m.id === 'gpt-4o') ?? models[0]
         setSelectedModel(defaultModel.id)
       }
     }).catch(() => { /* fallback: dropdown stays empty, generation uses server default */ })
@@ -235,6 +309,21 @@ export function GenerationModal({ onClose, onFallback }: GenerationModalProps): 
     }
 
     setErrorMessage(null)
+    saveSettings({
+      prompt: prompt.trim(),
+      selectedModel,
+      selectedDraftCount,
+      selectedOutputDepth,
+      languageMode,
+      languageCode,
+      languageOther,
+      timing,
+      timingOther,
+      travelerProfile,
+      travelerProfileOther,
+      budgetProfile,
+      budgetProfileOther,
+    })
     setStep('loading')
     setCountdown(0)
     setPollCycleKey(0)
@@ -358,6 +447,27 @@ export function GenerationModal({ onClose, onFallback }: GenerationModalProps): 
     setStep('input')
   }
 
+  const handleReset = (): void => {
+    clearSavedSettings()
+    setPrompt(DEFAULT_SETTINGS.prompt)
+    setSelectedDraftCount(DEFAULT_SETTINGS.selectedDraftCount)
+    setSelectedOutputDepth(DEFAULT_SETTINGS.selectedOutputDepth)
+    setLanguageMode(DEFAULT_SETTINGS.languageMode)
+    setLanguageCode(DEFAULT_SETTINGS.languageCode)
+    setLanguageOther(DEFAULT_SETTINGS.languageOther)
+    setTiming(DEFAULT_SETTINGS.timing)
+    setTimingOther(DEFAULT_SETTINGS.timingOther)
+    setTravelerProfile(DEFAULT_SETTINGS.travelerProfile)
+    setTravelerProfileOther(DEFAULT_SETTINGS.travelerProfileOther)
+    setBudgetProfile(DEFAULT_SETTINGS.budgetProfile)
+    setBudgetProfileOther(DEFAULT_SETTINGS.budgetProfileOther)
+    setSelectedPromptPreset('')
+    setShowAdvanced(false)
+    setErrorMessage(null)
+    const defaultModel = availableModels.find((m) => m.id === 'gpt-4o') ?? availableModels[0]
+    if (defaultModel) setSelectedModel(defaultModel.id)
+  }
+
   return (
     <div
       className="generation-modal-overlay"
@@ -381,9 +491,18 @@ export function GenerationModal({ onClose, onFallback }: GenerationModalProps): 
         <div className="generation-modal__body">
           {(step === 'input' || (step === 'error' && !generationRequestId)) && (
             <>
-              <label htmlFor="generation-prompt" className="generation-modal__label">
-                {t('ai-generation:modal.promptLabel')}
-              </label>
+              <div className="generation-modal__prompt-header">
+                <label htmlFor="generation-prompt" className="generation-modal__label">
+                  {t('ai-generation:modal.promptLabel')}
+                </label>
+                <button
+                  type="button"
+                  className="generation-modal__reset"
+                  onClick={handleReset}
+                >
+                  {t('ai-generation:modal.resetButton')}
+                </button>
+              </div>
               <textarea
                 id="generation-prompt"
                 className="generation-modal__textarea"
