@@ -52,7 +52,7 @@ export function ActivityEditorRow({
     transform: transform ? `translate3d(${transform.x}px, ${transform.y}px, 0)` : undefined,
     opacity: isDragging ? 0.4 : 1,
     background: typeColor.bg,
-    border: `2px solid ${typeColor.icon}50`,
+    border: `2px solid ${typeColor.icon}26`,
   }
 
   return (

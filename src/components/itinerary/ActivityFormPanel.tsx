@@ -172,7 +172,7 @@ export function ActivityFormPanel({
                   className={`activity-form-panel__type-option${isSelected ? ' activity-form-panel__type-option--selected' : ''}`}
                   style={{
                     background: typeColor.bg,
-                    border: `2px solid ${typeColor.icon}50`,
+                                  border: `2px solid ${typeColor.icon}26`,
                     color: typeColor.icon,
                   }}
                   onClick={() => setType(activityType)}

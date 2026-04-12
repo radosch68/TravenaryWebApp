@@ -171,7 +171,7 @@ function PlanningActivityRow({ activity, onToggleAnchored, disabled }: PlanningA
       className="planning-activity"
       style={{
         background: typeColor.bg,
-        border: `2px solid ${typeColor.icon}50`,
+        border: `2px solid ${typeColor.icon}26`,
       }}
     >
       <AnchoredStatusToggle
