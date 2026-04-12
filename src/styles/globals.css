@@ -827,7 +827,12 @@ button:disabled {
 .generation-modal__control-group {
   display: flex;
   flex-direction: column;
+  align-items: flex-start;
   gap: 0.3rem;
+}
+
+.generation-modal__control-group .generation-modal__label {
+  margin-bottom: 0;
 }
 
 .generation-modal__control-group--drafts {
@@ -842,6 +847,7 @@ button:disabled {
 .generation-modal__drafts-segmented,
 .generation-modal__depth-segmented {
   display: flex;
+  align-self: stretch;
   border: 1px solid var(--surface-border);
   border-radius: var(--radius);
   overflow: hidden;
@@ -873,10 +879,31 @@ button:disabled {
   padding: 0.3rem 0.85rem;
 }
 
+.generation-modal__depth-label-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+  align-self: stretch;
+}
+
+.generation-modal__depth-scope-hint {
+  font-size: 0.68rem;
+  color: var(--text-muted);
+  margin: 0;
+}
+
 .generation-modal__controls-hint {
   font-size: 0.72rem;
   color: var(--text-muted);
-  margin: 0;
+  margin: -0.25rem 0 0;
+}
+
+.generation-modal__options-group {
+  display: grid;
+  gap: 0.5rem;
+  border-top: 1px solid var(--surface-border);
+  padding-top: 0.5rem;
 }
 
 .generation-modal__advanced {
@@ -914,20 +941,28 @@ button:disabled {
 .generation-modal__summary-row {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.375rem;
-  padding: 0.5rem 0;
+  gap: 0.25rem 0.375rem;
+  padding: 0.25rem 0 0;
 }
 
 .generation-modal__summary-chip {
   display: inline-flex;
   align-items: center;
-  gap: 0.25rem;
-  background: var(--surface-secondary);
-  border-radius: var(--radius);
-  padding: 0.2rem 0.5rem;
-  font-size: var(--text-xs);
-  color: var(--text-primary);
+  gap: 0.2rem;
+  font-size: 0.68rem;
+  color: var(--text-muted);
   white-space: nowrap;
+}
+
+.generation-modal__summary-chip + .generation-modal__summary-chip::before {
+  content: '·';
+  margin-right: 0.15rem;
+  color: var(--text-muted);
+}
+
+.generation-modal__summary-chip strong {
+  font-weight: 600;
+  color: var(--text-primary);
 }
 
 .generation-modal__error,

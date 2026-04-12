@@ -419,9 +419,14 @@ export function GenerationModal({ onClose, onFallback }: GenerationModalProps): 
                 </div>
 
                 <div className="generation-modal__control-group generation-modal__control-group--depth">
-                  <label className="generation-modal__label">
-                    {t('ai-generation:modal.outputDepthLabel')}
-                  </label>
+                  <div className="generation-modal__depth-label-row">
+                    <label className="generation-modal__label">
+                      {t('ai-generation:modal.outputDepthLabel')}
+                    </label>
+                    <span className="generation-modal__depth-scope-hint">
+                      {t(`ai-generation:modal.outputScopeInline${selectedOutputDepth.charAt(0).toUpperCase() + selectedOutputDepth.slice(1)}`)}
+                    </span>
+                  </div>
                   <div className="generation-modal__depth-segmented" role="radiogroup" aria-label={t('ai-generation:modal.outputDepthLabel')}>
                     {DEPTH_VALUES.map((d) => (
                       <button
@@ -443,6 +448,7 @@ export function GenerationModal({ onClose, onFallback }: GenerationModalProps): 
                 {t('ai-generation:modal.controlsHint')}
               </p>
 
+              <div className="generation-modal__options-group">
               <button
                 type="button"
                 className="generation-modal__advanced-toggle"
@@ -640,10 +646,6 @@ export function GenerationModal({ onClose, onFallback }: GenerationModalProps): 
                   <strong>{t('ai-generation:modal.summaryModel')}:</strong>{' '}
                   {availableModels.find((m) => m.id === selectedModel)?.label ?? selectedModel}
                 </span>
-                <span className="generation-modal__summary-chip">
-                  <strong>{t('ai-generation:modal.summaryOutputScope')}:</strong>{' '}
-                  {t(`ai-generation:modal.outputScope${selectedOutputDepth.charAt(0).toUpperCase() + selectedOutputDepth.slice(1)}`)}
-                </span>
                 {timing && timing !== 'other' && (
                   <span className="generation-modal__summary-chip">
                     <strong>{t('ai-generation:modal.summaryTiming')}:</strong>{' '}
@@ -677,6 +679,7 @@ export function GenerationModal({ onClose, onFallback }: GenerationModalProps): 
                     <strong>{t('ai-generation:modal.summaryBudget')}:</strong> {budgetProfileOther.trim()}
                   </span>
                 )}
+              </div>
               </div>
 
               <div className="generation-modal__actions">
