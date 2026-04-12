@@ -126,6 +126,9 @@ function buildContextPayload(opts: GenerationContextOptions): Record<string, unk
       payload.languageOther = opts.languageOther.trim()
     }
   }
+  if (opts.departureFrom?.trim()) {
+    payload.departureFrom = opts.departureFrom.trim()
+  }
   if (opts.timing) {
     payload.timing = opts.timing
     if ((opts.timing === 'other' || opts.timing === 'customDates') && opts.timingOther?.trim()) {

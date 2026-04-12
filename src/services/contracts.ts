@@ -166,6 +166,7 @@ export interface GenerationContextOptions {
   languageMode?: LanguageMode
   languageCode?: CuratedLanguageCode
   languageOther?: string
+  departureFrom?: string
   timing?: TimingValue
   timingOther?: string
   travelerProfile?: TravelerProfileValue

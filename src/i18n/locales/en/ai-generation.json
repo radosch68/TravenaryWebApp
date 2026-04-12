@@ -30,6 +30,12 @@
       "pt-BR": "Portuguese (BR)"
     },
     "languageOtherLabel": "Other...",
+    "departureLabel": "Departing from",
+    "departurePlaceholder": "E.g. Budapest, London, New York...",
+    "locateMe": "Use my location",
+    "locationDenied": "Location access was denied by the browser",
+    "locationFailed": "Could not determine your location",
+    "summaryDeparture": "From",
     "timingLabel": "Trip timing",
     "timingNone": "Not specified",
     "timingValues": {

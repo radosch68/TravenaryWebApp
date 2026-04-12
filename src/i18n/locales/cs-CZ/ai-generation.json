@@ -30,6 +30,12 @@
       "pt-BR": "Portugalština (BR)"
     },
     "languageOtherLabel": "Jiný...",
+    "departureLabel": "Odjezd z",
+    "departurePlaceholder": "Např. Budapešť, Londýn, Praha...",
+    "locateMe": "Použít moji polohu",
+    "locationDenied": "Přístup k poloze byl zamítnut prohlížečem",
+    "locationFailed": "Nepodařilo se zjistit vaši polohu",
+    "summaryDeparture": "Z",
     "timingLabel": "Termín cesty",
     "timingNone": "Neuvedeno",
     "timingValues": {

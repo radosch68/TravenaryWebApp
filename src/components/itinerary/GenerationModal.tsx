@@ -2,6 +2,7 @@ import type { ReactElement } from 'react'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
+import { ArrowCounterClockwise, X } from '@phosphor-icons/react'
 import { DashboardPaginationBar } from '@/components/DashboardPaginationBar'
 import { DraftReviewCarousel } from '@/components/itinerary/DraftReviewCarousel'
 import type { DraftItinerary, ModelInfo, OutputDepth } from '@/services/ai-generation.service'
@@ -65,6 +66,7 @@ interface SavedSettings {
   languageMode: LanguageMode
   languageCode: CuratedLanguageCode
   languageOther: string
+  departureFrom: string
   timing: TimingValue | ''
   timingOther: string
   timingDateFrom: string
@@ -82,6 +84,7 @@ const DEFAULT_SETTINGS: Omit<SavedSettings, 'selectedModel'> = {
   languageMode: 'auto',
   languageCode: 'en',
   languageOther: '',
+  departureFrom: '',
   timing: '',
   timingOther: '',
   timingDateFrom: '',
@@ -127,6 +130,8 @@ export function GenerationModal({ onClose, onFallback }: GenerationModalProps): 
   const [languageMode, setLanguageMode] = useState<LanguageMode>('auto')
   const [languageCode, setLanguageCode] = useState<CuratedLanguageCode>('en')
   const [languageOther, setLanguageOther] = useState('')
+  const [departureFrom, setDepartureFrom] = useState('')
+  const [locating, setLocating] = useState(false)
   const [timing, setTiming] = useState<TimingValue | ''>('')
   const [timingOther, setTimingOther] = useState('')
   const [timingDateFrom, setTimingDateFrom] = useState('')
@@ -264,6 +269,7 @@ export function GenerationModal({ onClose, onFallback }: GenerationModalProps): 
       setLanguageMode(saved.languageMode)
       setLanguageCode(saved.languageCode)
       setLanguageOther(saved.languageOther)
+      if (saved.departureFrom) setDepartureFrom(saved.departureFrom)
       setTiming(saved.timing)
       setTimingOther(saved.timingOther)
       if (saved.timingDateFrom) setTimingDateFrom(saved.timingDateFrom)
@@ -272,9 +278,6 @@ export function GenerationModal({ onClose, onFallback }: GenerationModalProps): 
       setTravelerProfileOther(saved.travelerProfileOther)
       setBudgetProfile(saved.budgetProfile)
       setBudgetProfileOther(saved.budgetProfileOther)
-      if (saved.languageMode !== 'auto' || saved.timing || saved.travelerProfile || saved.budgetProfile) {
-        setShowAdvanced(true)
-      }
     }
 
     fetchAvailableModels().then((models) => {
@@ -325,6 +328,7 @@ export function GenerationModal({ onClose, onFallback }: GenerationModalProps): 
       languageMode,
       languageCode,
       languageOther,
+      departureFrom,
       timing,
       timingOther,
       timingDateFrom,
@@ -356,6 +360,7 @@ export function GenerationModal({ onClose, onFallback }: GenerationModalProps): 
         languageMode,
         ...(languageMode === 'curated' ? { languageCode } : undefined),
         ...(languageMode === 'other' && languageOther.trim() ? { languageOther: languageOther.trim() } : undefined),
+        ...(departureFrom.trim() ? { departureFrom: departureFrom.trim() } : undefined),
         ...(timing ? { timing } : undefined),
         ...(timing === 'other' && timingOther.trim() ? { timingOther: timingOther.trim() } : undefined),
         ...(timing === 'customDates' && timingDateFrom ? { timingOther: timingDateTo ? `${timingDateFrom} to ${timingDateTo}` : timingDateFrom } : undefined),
@@ -458,6 +463,44 @@ export function GenerationModal({ onClose, onFallback }: GenerationModalProps): 
     setStep('input')
   }
 
+  const handleLocateMe = (): void => {
+    if (!navigator.geolocation) return
+    setLocating(true)
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        try {
+          const { latitude, longitude } = position.coords
+          const res = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json&accept-language=en`,
+            { headers: { 'User-Agent': 'Travenary/1.0' } },
+          )
+          if (res.ok) {
+            const data = await res.json() as { address?: { city?: string; town?: string; village?: string; state?: string; country?: string } }
+            const addr = data.address
+            const city = addr?.city ?? addr?.town ?? addr?.village ?? ''
+            const country = addr?.country ?? ''
+            const location = [city, country].filter(Boolean).join(', ')
+            if (location) {
+              setDepartureFrom(location)
+            } else {
+              setDepartureFrom(`${latitude.toFixed(2)}, ${longitude.toFixed(2)}`)
+            }
+          }
+        } catch { /* geocoding failed — use coords */ }
+        setLocating(false)
+      },
+      (err) => {
+        setLocating(false)
+        if (err.code === err.PERMISSION_DENIED) {
+          setErrorMessage(t('ai-generation:modal.locationDenied'))
+        } else {
+          setErrorMessage(t('ai-generation:modal.locationFailed'))
+        }
+      },
+      { timeout: 10000, enableHighAccuracy: false },
+    )
+  }
+
   const handleReset = (): void => {
     clearSavedSettings()
     setPrompt(DEFAULT_SETTINGS.prompt)
@@ -466,6 +509,7 @@ export function GenerationModal({ onClose, onFallback }: GenerationModalProps): 
     setLanguageMode(DEFAULT_SETTINGS.languageMode)
     setLanguageCode(DEFAULT_SETTINGS.languageCode)
     setLanguageOther(DEFAULT_SETTINGS.languageOther)
+    setDepartureFrom(DEFAULT_SETTINGS.departureFrom)
     setTiming(DEFAULT_SETTINGS.timing)
     setTimingOther(DEFAULT_SETTINGS.timingOther)
     setTimingDateFrom(DEFAULT_SETTINGS.timingDateFrom)
@@ -475,7 +519,6 @@ export function GenerationModal({ onClose, onFallback }: GenerationModalProps): 
     setBudgetProfile(DEFAULT_SETTINGS.budgetProfile)
     setBudgetProfileOther(DEFAULT_SETTINGS.budgetProfileOther)
     setSelectedPromptPreset('')
-    setShowAdvanced(false)
     setErrorMessage(null)
     const defaultModel = availableModels.find((m) => m.id === 'gpt-4o') ?? availableModels[0]
     if (defaultModel) setSelectedModel(defaultModel.id)
@@ -497,7 +540,7 @@ export function GenerationModal({ onClose, onFallback }: GenerationModalProps): 
             onClick={handleCancel}
             aria-label={t('ai-generation:modal.cancelButton')}
           >
-            ×
+            <X size={18} />
           </button>
         </div>
 
@@ -512,8 +555,9 @@ export function GenerationModal({ onClose, onFallback }: GenerationModalProps): 
                   type="button"
                   className="generation-modal__reset"
                   onClick={handleReset}
+                  title={t('ai-generation:modal.resetButton')}
                 >
-                  {t('ai-generation:modal.resetButton')}
+                  <ArrowCounterClockwise size={16} />
                 </button>
               </div>
               <textarea
@@ -628,6 +672,35 @@ export function GenerationModal({ onClose, onFallback }: GenerationModalProps): 
                         maxLength={40}
                       />
                     )}
+                  </div>
+
+                  <div className="generation-modal__advanced-row">
+                    <label htmlFor="generation-departure" className="generation-modal__label">
+                      {t('ai-generation:modal.departureLabel')}
+                    </label>
+                    <div className="generation-modal__departure-group">
+                      <input
+                        id="generation-departure"
+                        type="text"
+                        className="generation-modal__other-input"
+                        value={departureFrom}
+                        onChange={(e) => setDepartureFrom(e.target.value)}
+                        placeholder={t('ai-generation:modal.departurePlaceholder')}
+                        maxLength={100}
+                      />
+                      {typeof navigator !== 'undefined' && 'geolocation' in navigator && (
+                        <button
+                          type="button"
+                          className="generation-modal__locate-btn"
+                          onClick={handleLocateMe}
+                          disabled={locating}
+                          aria-label={t('ai-generation:modal.locateMe')}
+                          title={t('ai-generation:modal.locateMe')}
+                        >
+                          {locating ? '…' : '📍'}
+                        </button>
+                      )}
+                    </div>
                   </div>
 
                   <div className="generation-modal__advanced-row">
@@ -815,6 +888,11 @@ export function GenerationModal({ onClose, onFallback }: GenerationModalProps): 
                     <strong>{t('ai-generation:modal.summaryTiming')}:</strong> {timingOther.trim()}
                   </span>
                 )}
+                {departureFrom.trim() && (
+                  <span className="generation-modal__summary-chip">
+                    <strong>{t('ai-generation:modal.summaryDeparture')}:</strong> {departureFrom.trim()}
+                  </span>
+                )}
                 {travelerProfile && travelerProfile !== 'other' && (
                   <span className="generation-modal__summary-chip">
                     <strong>{t('ai-generation:modal.summaryTraveler')}:</strong>{' '}
@@ -847,13 +925,6 @@ export function GenerationModal({ onClose, onFallback }: GenerationModalProps): 
                   onClick={() => void handleGenerate()}
                 >
                   {t('ai-generation:modal.generateButton')}
-                </button>
-                <button
-                  type="button"
-                  className="generation-modal__cancel"
-                  onClick={handleCancel}
-                >
-                  {t('ai-generation:modal.cancelButton')}
                 </button>
               </div>
             </>
