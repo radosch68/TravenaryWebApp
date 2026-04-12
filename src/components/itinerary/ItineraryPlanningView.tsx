@@ -139,13 +139,24 @@ interface DayRowProps {
 function DayRow({ day, index, itineraryId, totalDays, onToggleAnchored }: DayRowProps): ReactElement {
   const { t, i18n } = useTranslation(['common'])
   const navigate = useNavigate()
+  const scrollStorageKey = `itinerary-detail-scroll:${itineraryId}`
+
+  const navigateToDay = useCallback((): void => {
+    try {
+      window.sessionStorage.setItem(scrollStorageKey, String(window.scrollY))
+    } catch {
+      // Ignore storage errors and continue navigation.
+    }
+
+    navigate(`/itineraries/${itineraryId}/days/${day.dayNumber}`)
+  }, [day.dayNumber, itineraryId, navigate, scrollStorageKey])
 
   const handleClick = useCallback((e: React.MouseEvent<HTMLLIElement>) => {
     // Let interactive children (buttons, drag handles) handle their own clicks
     const target = e.target as HTMLElement
     if (target.closest('button, [data-dnd-handle], .planning-section__grip')) return
-    navigate(`/itineraries/${itineraryId}/days/${day.dayNumber}`)
-  }, [navigate, itineraryId, day.dayNumber])
+    navigateToDay()
+  }, [navigateToDay])
 
   return (
     <li
@@ -165,7 +176,7 @@ function DayRow({ day, index, itineraryId, totalDays, onToggleAnchored }: DayRow
         }
 
         e.preventDefault()
-        navigate(`/itineraries/${itineraryId}/days/${day.dayNumber}`)
+        navigateToDay()
       }}
     >
       <div className="itinerary-day-header">

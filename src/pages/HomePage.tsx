@@ -1,5 +1,5 @@
 import type { ReactElement } from 'react'
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useSearchParams } from 'react-router-dom'
 
@@ -17,6 +17,7 @@ const ITINERARY_PAGE_SIZE = 12
 export function HomePage(): ReactElement {
   const { t } = useTranslation(['common', 'ai-generation'])
   const profile = useProfileStore((state) => state.profile)
+  const hasRestoredScrollRef = useRef(false)
   const [searchParams, setSearchParams] = useSearchParams()
   const [items, setItems] = useState<ItinerarySummary[]>([])
   const [total, setTotal] = useState(0)
@@ -79,6 +80,40 @@ export function HomePage(): ReactElement {
 
     return () => window.clearTimeout(handle)
   }, [fetchItems])
+
+  useEffect(() => {
+    if (loadState !== 'ready' || hasRestoredScrollRef.current) {
+      return
+    }
+
+    let savedScrollY: number | null = null
+    try {
+      const raw = window.sessionStorage.getItem('dashboard-scroll')
+      if (raw !== null) {
+        const parsed = Number(raw)
+        if (Number.isFinite(parsed) && parsed >= 0) {
+          savedScrollY = parsed
+        }
+      }
+    } catch {
+      savedScrollY = null
+    }
+
+    hasRestoredScrollRef.current = true
+
+    if (savedScrollY === null) {
+      return
+    }
+
+    requestAnimationFrame(() => {
+      window.scrollTo({ top: savedScrollY ?? 0, behavior: 'auto' })
+      try {
+        window.sessionStorage.removeItem('dashboard-scroll')
+      } catch {
+        // Ignore storage errors after restoration.
+      }
+    })
+  }, [loadState])
 
   const handleCreate = async (): Promise<void> => {
     setCreateError(false)

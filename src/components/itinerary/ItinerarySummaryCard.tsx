@@ -1,5 +1,5 @@
 import type { ReactElement } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 
 import type { ItinerarySummary } from '@/services/contracts'
@@ -12,11 +12,21 @@ interface ItinerarySummaryCardProps {
 
 export function ItinerarySummaryCard({ itinerary }: ItinerarySummaryCardProps): ReactElement {
   const { t, i18n } = useTranslation(['common'])
+  const location = useLocation()
   const dateLabel = formatDateRange(itinerary.startDate, itinerary.endDate, i18n.language)
+
+  const handleOpenDetail = (): void => {
+    try {
+      window.sessionStorage.setItem('dashboard-scroll', String(window.scrollY))
+      window.sessionStorage.setItem('dashboard-return-url', `${location.pathname}${location.search}`)
+    } catch {
+      // Ignore storage errors and continue navigation.
+    }
+  }
 
   return (
     <li className="itinerary-card">
-      <Link className="itinerary-card__main" to={`/itineraries/${itinerary.id}`}>
+      <Link className="itinerary-card__main" to={`/itineraries/${itinerary.id}`} onClick={handleOpenDetail}>
         {itinerary.coverPhoto?.url ? (
           <img
             className="itinerary-card__cover"

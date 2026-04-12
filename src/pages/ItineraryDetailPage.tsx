@@ -23,6 +23,8 @@ export function ItineraryDetailPage(): ReactElement {
   const { itineraryId } = useParams<{ itineraryId: string }>()
   const navigate = useNavigate()
   const { t, i18n } = useTranslation(['common'])
+  const hasRestoredScrollRef = useRef(false)
+  const [dashboardReturnUrl, setDashboardReturnUrl] = useState('/?page=1')
 
   const [itinerary, setItinerary] = useState<ItineraryDetail | null>(null)
   const [state, setState] = useState<'loading' | 'ready' | 'error' | 'not-found'>('loading')
@@ -106,6 +108,53 @@ export function ItineraryDetailPage(): ReactElement {
     void loadDetail()
   }, [loadDetail])
 
+  useEffect(() => {
+    try {
+      const saved = window.sessionStorage.getItem('dashboard-return-url')
+      if (saved && saved.startsWith('/')) {
+        setDashboardReturnUrl(saved)
+      }
+    } catch {
+      // Ignore storage errors and keep fallback URL.
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!itineraryId || state !== 'ready' || hasRestoredScrollRef.current) {
+      return
+    }
+
+    const scrollStorageKey = `itinerary-detail-scroll:${itineraryId}`
+    let savedScrollY: number | null = null
+
+    try {
+      const raw = window.sessionStorage.getItem(scrollStorageKey)
+      if (raw !== null) {
+        const parsed = Number(raw)
+        if (Number.isFinite(parsed) && parsed >= 0) {
+          savedScrollY = parsed
+        }
+      }
+    } catch {
+      savedScrollY = null
+    }
+
+    hasRestoredScrollRef.current = true
+
+    if (savedScrollY === null) {
+      return
+    }
+
+    requestAnimationFrame(() => {
+      window.scrollTo({ top: savedScrollY ?? 0, behavior: 'auto' })
+      try {
+        window.sessionStorage.removeItem(scrollStorageKey)
+      } catch {
+        // Ignore storage errors after restoration.
+      }
+    })
+  }, [itineraryId, state])
+
   const handleDelete = async (): Promise<void> => {
     if (!itineraryId) {
       return
@@ -127,6 +176,10 @@ export function ItineraryDetailPage(): ReactElement {
       setDeleteBusy(false)
     }
   }
+
+  const handleNavigateBackToDashboard = useCallback((): void => {
+    navigate(dashboardReturnUrl)
+  }, [dashboardReturnUrl, navigate])
 
   if (state === 'loading') {
     return (
@@ -173,7 +226,7 @@ export function ItineraryDetailPage(): ReactElement {
   return (
     <main className="app-shell">
       <Header />
-      <Breadcrumb items={[{ icon: 'home', to: '/', ariaLabel: t('common:itinerary.backToDashboard') }, { label: itinerary.title }]} />
+      <Breadcrumb items={[{ icon: 'home', to: dashboardReturnUrl, ariaLabel: t('common:itinerary.backToDashboard') }, { label: itinerary.title }]} />
       <section className="panel itinerary-detail-panel">
         {/* Tags — above cover photo, with edit pencil */}
         <EditableField
@@ -193,7 +246,7 @@ export function ItineraryDetailPage(): ReactElement {
                   hasShareLink={itinerary.hasShareLink}
                   onShareChange={(has) => setItinerary((prev) => prev ? { ...prev, hasShareLink: has } : prev)}
                 />
-                <PanelCloseButton ariaLabel={t('common:itinerary.backToDashboard')} />
+                <PanelCloseButton ariaLabel={t('common:itinerary.backToDashboard')} onClick={handleNavigateBackToDashboard} />
               </div>
               <div className="itinerary-detail-tags-row">
                 {itinerary.tags.length > 0 ? (
@@ -489,23 +542,24 @@ export function ItineraryDetailPage(): ReactElement {
         </div>
 
         <div className="itinerary-detail-panel__bottom-actions">
-          <PanelCloseButton ariaLabel={t('common:itinerary.backToDashboard')} />
+          <PanelCloseButton ariaLabel={t('common:itinerary.backToDashboard')} onClick={handleNavigateBackToDashboard} />
         </div>
       </section>
     </main>
   )
 }
 
-function PanelCloseButton({ ariaLabel }: { ariaLabel: string }): ReactElement {
+function PanelCloseButton({ ariaLabel, onClick }: { ariaLabel: string; onClick: () => void }): ReactElement {
   return (
-    <Link
-      to="/"
+    <button
+      type="button"
       className="panel-close-button"
       aria-label={ariaLabel}
       title={ariaLabel}
+      onClick={onClick}
     >
       <CloseIcon />
-    </Link>
+    </button>
   )
 }
 
