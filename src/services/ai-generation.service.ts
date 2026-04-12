@@ -1,4 +1,5 @@
 import { apiRequest } from '@/services/api-client'
+import type { GenerationContextOptions } from '@/services/contracts'
 
 export type OutputDepth = 'fast' | 'balanced' | 'detailed'
 
@@ -95,6 +96,7 @@ export async function startGeneration(
   signal?: AbortSignal,
   draftCount?: number,
   outputDepth?: OutputDepth,
+  contextOptions?: GenerationContextOptions,
 ): Promise<{ generationRequestId: string; status: 'pending' }> {
   return apiRequest<{ generationRequestId: string; status: 'pending' }>(
     '/ai-generation/generate',
@@ -105,11 +107,44 @@ export async function startGeneration(
         ...(model ? { model } : {}),
         ...(draftCount != null ? { draftCount } : {}),
         ...(outputDepth ? { outputDepth } : {}),
+        ...(contextOptions ? buildContextPayload(contextOptions) : {}),
       },
       protected: true,
       signal,
     },
   )
+}
+
+function buildContextPayload(opts: GenerationContextOptions): Record<string, unknown> {
+  const payload: Record<string, unknown> = {}
+  if (opts.languageMode && opts.languageMode !== 'auto') {
+    payload.languageMode = opts.languageMode
+    if (opts.languageMode === 'curated' && opts.languageCode) {
+      payload.languageCode = opts.languageCode
+    }
+    if (opts.languageMode === 'other' && opts.languageOther?.trim()) {
+      payload.languageOther = opts.languageOther.trim()
+    }
+  }
+  if (opts.timing) {
+    payload.timing = opts.timing
+    if (opts.timing === 'other' && opts.timingOther?.trim()) {
+      payload.timingOther = opts.timingOther.trim()
+    }
+  }
+  if (opts.travelerProfile) {
+    payload.travelerProfile = opts.travelerProfile
+    if (opts.travelerProfile === 'other' && opts.travelerProfileOther?.trim()) {
+      payload.travelerProfileOther = opts.travelerProfileOther.trim()
+    }
+  }
+  if (opts.budgetProfile) {
+    payload.budgetProfile = opts.budgetProfile
+    if (opts.budgetProfile === 'other' && opts.budgetProfileOther?.trim()) {
+      payload.budgetProfileOther = opts.budgetProfileOther.trim()
+    }
+  }
+  return payload
 }
 
 export async function pollForDrafts(

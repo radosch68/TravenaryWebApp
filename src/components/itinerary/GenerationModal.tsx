@@ -14,8 +14,21 @@ import {
   POLL_INTERVAL_MS,
 } from '@/services/ai-generation.service'
 import { ApiError } from '@/services/contracts'
+import type {
+  LanguageMode,
+  CuratedLanguageCode,
+  TimingValue,
+  TravelerProfileValue,
+  BudgetProfileValue,
+  GenerationContextOptions,
+} from '@/services/contracts'
 
 const DEPTH_VALUES: OutputDepth[] = ['fast', 'balanced', 'detailed']
+
+const CURATED_LANGUAGE_CODES: CuratedLanguageCode[] = ['en', 'cs-CZ', 'de', 'fr', 'es', 'it', 'pt-BR']
+const TIMING_VALUES: TimingValue[] = ['weekend', 'weeklong', 'twoWeeksPlus', 'seasonal', 'holiday', 'other']
+const TRAVELER_VALUES: TravelerProfileValue[] = ['solo', 'couple', 'familyWithKids', 'friendsGroup', 'business', 'other']
+const BUDGET_VALUES: BudgetProfileValue[] = ['budget', 'midRange', 'premium', 'luxury', 'other']
 
 type ModalStep =
   | 'input'
@@ -54,6 +67,15 @@ export function GenerationModal({ onClose, onFallback }: GenerationModalProps): 
   const [selectedDraftCount, setSelectedDraftCount] = useState<number>(2)
   const [selectedOutputDepth, setSelectedOutputDepth] = useState<OutputDepth>('balanced')
   const [showAdvanced, setShowAdvanced] = useState(false)
+  const [languageMode, setLanguageMode] = useState<LanguageMode>('auto')
+  const [languageCode, setLanguageCode] = useState<CuratedLanguageCode>('en')
+  const [languageOther, setLanguageOther] = useState('')
+  const [timing, setTiming] = useState<TimingValue | ''>('')
+  const [timingOther, setTimingOther] = useState('')
+  const [travelerProfile, setTravelerProfile] = useState<TravelerProfileValue | ''>('')
+  const [travelerProfileOther, setTravelerProfileOther] = useState('')
+  const [budgetProfile, setBudgetProfile] = useState<BudgetProfileValue | ''>('')
+  const [budgetProfileOther, setBudgetProfileOther] = useState('')
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [generationRequestId, setGenerationRequestId] = useState<string | null>(null)
   const [drafts, setDrafts] = useState<DraftItinerary[]>([])
@@ -231,12 +253,25 @@ export function GenerationModal({ onClose, onFallback }: GenerationModalProps): 
     deadlineRef.current = Date.now() + getTimeoutForModel(selectedModel)
 
     try {
+      const contextOptions: GenerationContextOptions = {
+        languageMode,
+        ...(languageMode === 'curated' ? { languageCode } : undefined),
+        ...(languageMode === 'other' && languageOther.trim() ? { languageOther: languageOther.trim() } : undefined),
+        ...(timing ? { timing } : undefined),
+        ...(timing === 'other' && timingOther.trim() ? { timingOther: timingOther.trim() } : undefined),
+        ...(travelerProfile ? { travelerProfile } : undefined),
+        ...(travelerProfile === 'other' && travelerProfileOther.trim() ? { travelerProfileOther: travelerProfileOther.trim() } : undefined),
+        ...(budgetProfile ? { budgetProfile } : undefined),
+        ...(budgetProfile === 'other' && budgetProfileOther.trim() ? { budgetProfileOther: budgetProfileOther.trim() } : undefined),
+      }
+
       const { generationRequestId: reqId } = await startGeneration(
         prompt,
         selectedModel,
         abortController.signal,
         selectedDraftCount,
         selectedOutputDepth,
+        contextOptions,
       )
 
       if (!isMountedRef.current || abortController.signal.aborted) {
@@ -419,6 +454,129 @@ export function GenerationModal({ onClose, onFallback }: GenerationModalProps): 
               {showAdvanced ? (
                 <div className="generation-modal__advanced">
                   <div className="generation-modal__advanced-row">
+                    <label htmlFor="generation-language" className="generation-modal__label">
+                      {t('ai-generation:modal.languageLabel')}
+                    </label>
+                    <select
+                      id="generation-language"
+                      value={languageMode === 'curated' ? `curated:${languageCode}` : languageMode}
+                      onChange={(e) => {
+                        const val = e.target.value
+                        if (val === 'auto') {
+                          setLanguageMode('auto')
+                        } else if (val === 'other') {
+                          setLanguageMode('other')
+                        } else if (val.startsWith('curated:')) {
+                          setLanguageMode('curated')
+                          setLanguageCode(val.replace('curated:', '') as CuratedLanguageCode)
+                        }
+                      }}
+                    >
+                      <option value="auto">{t('ai-generation:modal.languageAuto')}</option>
+                      {CURATED_LANGUAGE_CODES.map((code) => (
+                        <option key={code} value={`curated:${code}`}>
+                          {t(`ai-generation:modal.languageCodes.${code}`)}
+                        </option>
+                      ))}
+                      <option value="other">{t('ai-generation:modal.languageOtherLabel')}</option>
+                    </select>
+                    {languageMode === 'other' && (
+                      <input
+                        type="text"
+                        className="generation-modal__other-input"
+                        value={languageOther}
+                        onChange={(e) => setLanguageOther(e.target.value)}
+                        placeholder={t('ai-generation:modal.languageOtherPlaceholder')}
+                        maxLength={40}
+                      />
+                    )}
+                  </div>
+
+                  <div className="generation-modal__advanced-row">
+                    <label htmlFor="generation-timing" className="generation-modal__label">
+                      {t('ai-generation:modal.timingLabel')}
+                    </label>
+                    <select
+                      id="generation-timing"
+                      value={timing}
+                      onChange={(e) => setTiming(e.target.value as TimingValue | '')}
+                    >
+                      <option value="">{t('ai-generation:modal.timingNone')}</option>
+                      {TIMING_VALUES.map((v) => (
+                        <option key={v} value={v}>
+                          {t(`ai-generation:modal.timingValues.${v}`)}
+                        </option>
+                      ))}
+                    </select>
+                    {timing === 'other' && (
+                      <input
+                        type="text"
+                        className="generation-modal__other-input"
+                        value={timingOther}
+                        onChange={(e) => setTimingOther(e.target.value)}
+                        placeholder={t('ai-generation:modal.timingOtherPlaceholder')}
+                        maxLength={60}
+                      />
+                    )}
+                  </div>
+
+                  <div className="generation-modal__advanced-row">
+                    <label htmlFor="generation-traveler" className="generation-modal__label">
+                      {t('ai-generation:modal.travelerProfileLabel')}
+                    </label>
+                    <select
+                      id="generation-traveler"
+                      value={travelerProfile}
+                      onChange={(e) => setTravelerProfile(e.target.value as TravelerProfileValue | '')}
+                    >
+                      <option value="">{t('ai-generation:modal.travelerProfileNone')}</option>
+                      {TRAVELER_VALUES.map((v) => (
+                        <option key={v} value={v}>
+                          {t(`ai-generation:modal.travelerProfileValues.${v}`)}
+                        </option>
+                      ))}
+                    </select>
+                    {travelerProfile === 'other' && (
+                      <input
+                        type="text"
+                        className="generation-modal__other-input"
+                        value={travelerProfileOther}
+                        onChange={(e) => setTravelerProfileOther(e.target.value)}
+                        placeholder={t('ai-generation:modal.travelerProfileOtherPlaceholder')}
+                        maxLength={60}
+                      />
+                    )}
+                  </div>
+
+                  <div className="generation-modal__advanced-row">
+                    <label htmlFor="generation-budget" className="generation-modal__label">
+                      {t('ai-generation:modal.budgetProfileLabel')}
+                    </label>
+                    <select
+                      id="generation-budget"
+                      value={budgetProfile}
+                      onChange={(e) => setBudgetProfile(e.target.value as BudgetProfileValue | '')}
+                    >
+                      <option value="">{t('ai-generation:modal.budgetProfileNone')}</option>
+                      {BUDGET_VALUES.map((v) => (
+                        <option key={v} value={v}>
+                          {t(`ai-generation:modal.budgetProfileValues.${v}`)}
+                        </option>
+                      ))}
+                    </select>
+                    {budgetProfile === 'other' && (
+                      <input
+                        type="text"
+                        className="generation-modal__other-input"
+                        value={budgetProfileOther}
+                        onChange={(e) => setBudgetProfileOther(e.target.value)}
+                        placeholder={t('ai-generation:modal.budgetProfileOtherPlaceholder')}
+                        maxLength={60}
+                      />
+                    )}
+                  </div>
+
+                  <div className="generation-modal__advanced-row">
                     <label htmlFor="generation-model" className="generation-modal__label">
                       {t('ai-generation:modal.modelLabel')}
                     </label>
@@ -468,6 +626,58 @@ export function GenerationModal({ onClose, onFallback }: GenerationModalProps): 
               {errorMessage ? (
                 <p className="error generation-modal__error">{errorMessage}</p>
               ) : null}
+
+              <div className="generation-modal__summary-row">
+                <span className="generation-modal__summary-chip">
+                  <strong>{t('ai-generation:modal.summaryLanguage')}:</strong>{' '}
+                  {languageMode === 'auto'
+                    ? t('ai-generation:modal.languageAuto')
+                    : languageMode === 'curated'
+                      ? t(`ai-generation:modal.languageCodes.${languageCode}`)
+                      : languageOther.trim() || t('ai-generation:modal.languageOtherLabel')}
+                </span>
+                <span className="generation-modal__summary-chip">
+                  <strong>{t('ai-generation:modal.summaryModel')}:</strong>{' '}
+                  {availableModels.find((m) => m.id === selectedModel)?.label ?? selectedModel}
+                </span>
+                <span className="generation-modal__summary-chip">
+                  <strong>{t('ai-generation:modal.summaryOutputScope')}:</strong>{' '}
+                  {t(`ai-generation:modal.outputScope${selectedOutputDepth.charAt(0).toUpperCase() + selectedOutputDepth.slice(1)}`)}
+                </span>
+                {timing && timing !== 'other' && (
+                  <span className="generation-modal__summary-chip">
+                    <strong>{t('ai-generation:modal.summaryTiming')}:</strong>{' '}
+                    {t(`ai-generation:modal.timingValues.${timing}`)}
+                  </span>
+                )}
+                {timing === 'other' && timingOther.trim() && (
+                  <span className="generation-modal__summary-chip">
+                    <strong>{t('ai-generation:modal.summaryTiming')}:</strong> {timingOther.trim()}
+                  </span>
+                )}
+                {travelerProfile && travelerProfile !== 'other' && (
+                  <span className="generation-modal__summary-chip">
+                    <strong>{t('ai-generation:modal.summaryTraveler')}:</strong>{' '}
+                    {t(`ai-generation:modal.travelerProfileValues.${travelerProfile}`)}
+                  </span>
+                )}
+                {travelerProfile === 'other' && travelerProfileOther.trim() && (
+                  <span className="generation-modal__summary-chip">
+                    <strong>{t('ai-generation:modal.summaryTraveler')}:</strong> {travelerProfileOther.trim()}
+                  </span>
+                )}
+                {budgetProfile && budgetProfile !== 'other' && (
+                  <span className="generation-modal__summary-chip">
+                    <strong>{t('ai-generation:modal.summaryBudget')}:</strong>{' '}
+                    {t(`ai-generation:modal.budgetProfileValues.${budgetProfile}`)}
+                  </span>
+                )}
+                {budgetProfile === 'other' && budgetProfileOther.trim() && (
+                  <span className="generation-modal__summary-chip">
+                    <strong>{t('ai-generation:modal.summaryBudget')}:</strong> {budgetProfileOther.trim()}
+                  </span>
+                )}
+              </div>
 
               <div className="generation-modal__actions">
                 <button

@@ -155,3 +155,21 @@ export interface UpdateItineraryRequest {
   startDate?: string | null
   days?: ItineraryDayInput[]
 }
+
+export type LanguageMode = 'auto' | 'curated' | 'other'
+export type CuratedLanguageCode = 'en' | 'cs-CZ' | 'de' | 'fr' | 'es' | 'it' | 'pt-BR'
+export type TimingValue = 'weekend' | 'weeklong' | 'twoWeeksPlus' | 'seasonal' | 'holiday' | 'other'
+export type TravelerProfileValue = 'solo' | 'couple' | 'familyWithKids' | 'friendsGroup' | 'business' | 'other'
+export type BudgetProfileValue = 'budget' | 'midRange' | 'premium' | 'luxury' | 'other'
+
+export interface GenerationContextOptions {
+  languageMode?: LanguageMode
+  languageCode?: CuratedLanguageCode
+  languageOther?: string
+  timing?: TimingValue
+  timingOther?: string
+  travelerProfile?: TravelerProfileValue
+  travelerProfileOther?: string
+  budgetProfile?: BudgetProfileValue
+  budgetProfileOther?: string
+}
