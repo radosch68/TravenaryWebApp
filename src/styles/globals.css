@@ -949,6 +949,25 @@ button:disabled {
   font-size: var(--text-sm);
 }
 
+.generation-modal__date-range {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex: 1;
+  min-width: 8rem;
+}
+
+.generation-modal__date-input {
+  flex: 1;
+  padding: 0.35rem 0.5rem;
+  font-size: var(--text-sm);
+}
+
+.generation-modal__date-separator {
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+}
+
 .generation-modal__summary-row {
   display: flex;
   flex-wrap: wrap;

@@ -30,17 +30,21 @@
       "pt-BR": "Portugalština (BR)"
     },
     "languageOtherLabel": "Jiný...",
-    "timingLabel": "Délka cesty",
+    "timingLabel": "Termín cesty",
     "timingNone": "Neuvedeno",
     "timingValues": {
-      "weekend": "Víkendový výlet",
-      "weeklong": "Přibližně týden",
-      "twoWeeksPlus": "Dva týdny a více",
-      "seasonal": "Sezónní / flexibilní termín",
-      "holiday": "Období svátků",
+      "thisWeekend": "Tento víkend",
+      "nextWeek": "Příští týden",
+      "nextMonth": "Příští měsíc",
+      "summerHoliday": "Letní dovolená",
+      "winterHoliday": "Zimní / vánoční prázdniny",
+      "customDates": "Vlastní termín",
+      "flexible": "Flexibilní / nerozhodnut",
       "other": "Jiné..."
     },
-    "timingOtherPlaceholder": "Popište timing...",
+    "timingOtherPlaceholder": "Popište termín...",
+    "timingDateFrom": "Od",
+    "timingDateTo": "Do",
     "travelerProfileLabel": "Profil cestovatele",
     "travelerProfileNone": "Neuvedeno",
     "travelerProfileValues": {

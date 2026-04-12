@@ -33,14 +33,18 @@
     "timingLabel": "Trip timing",
     "timingNone": "Not specified",
     "timingValues": {
-      "weekend": "Weekend trip",
-      "weeklong": "About a week",
-      "twoWeeksPlus": "Two weeks or more",
-      "seasonal": "Seasonal / flexible dates",
-      "holiday": "Holiday period",
+      "thisWeekend": "This weekend",
+      "nextWeek": "Next week",
+      "nextMonth": "Next month",
+      "summerHoliday": "Summer holiday",
+      "winterHoliday": "Winter / Christmas holiday",
+      "customDates": "Custom dates",
+      "flexible": "Flexible / undecided",
       "other": "Other..."
     },
     "timingOtherPlaceholder": "Describe timing...",
+    "timingDateFrom": "From date",
+    "timingDateTo": "To date",
     "travelerProfileLabel": "Traveler profile",
     "travelerProfileNone": "Not specified",
     "travelerProfileValues": {

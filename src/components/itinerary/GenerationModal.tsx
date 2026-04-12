@@ -26,7 +26,7 @@ import type {
 const DEPTH_VALUES: OutputDepth[] = ['fast', 'balanced', 'detailed']
 
 const CURATED_LANGUAGE_CODES: CuratedLanguageCode[] = ['en', 'cs-CZ', 'de', 'fr', 'es', 'it', 'pt-BR']
-const TIMING_VALUES: TimingValue[] = ['weekend', 'weeklong', 'twoWeeksPlus', 'seasonal', 'holiday', 'other']
+const TIMING_VALUES: TimingValue[] = ['thisWeekend', 'nextWeek', 'nextMonth', 'summerHoliday', 'winterHoliday', 'customDates', 'flexible', 'other']
 const TRAVELER_VALUES: TravelerProfileValue[] = ['solo', 'couple', 'familyWithKids', 'friendsGroup', 'business', 'other']
 const BUDGET_VALUES: BudgetProfileValue[] = ['budget', 'midRange', 'premium', 'luxury', 'other']
 
@@ -67,6 +67,8 @@ interface SavedSettings {
   languageOther: string
   timing: TimingValue | ''
   timingOther: string
+  timingDateFrom: string
+  timingDateTo: string
   travelerProfile: TravelerProfileValue | ''
   travelerProfileOther: string
   budgetProfile: BudgetProfileValue | ''
@@ -82,6 +84,8 @@ const DEFAULT_SETTINGS: Omit<SavedSettings, 'selectedModel'> = {
   languageOther: '',
   timing: '',
   timingOther: '',
+  timingDateFrom: '',
+  timingDateTo: '',
   travelerProfile: '',
   travelerProfileOther: '',
   budgetProfile: '',
@@ -125,6 +129,8 @@ export function GenerationModal({ onClose, onFallback }: GenerationModalProps): 
   const [languageOther, setLanguageOther] = useState('')
   const [timing, setTiming] = useState<TimingValue | ''>('')
   const [timingOther, setTimingOther] = useState('')
+  const [timingDateFrom, setTimingDateFrom] = useState('')
+  const [timingDateTo, setTimingDateTo] = useState('')
   const [travelerProfile, setTravelerProfile] = useState<TravelerProfileValue | ''>('')
   const [travelerProfileOther, setTravelerProfileOther] = useState('')
   const [budgetProfile, setBudgetProfile] = useState<BudgetProfileValue | ''>('')
@@ -260,6 +266,8 @@ export function GenerationModal({ onClose, onFallback }: GenerationModalProps): 
       setLanguageOther(saved.languageOther)
       setTiming(saved.timing)
       setTimingOther(saved.timingOther)
+      if (saved.timingDateFrom) setTimingDateFrom(saved.timingDateFrom)
+      if (saved.timingDateTo) setTimingDateTo(saved.timingDateTo)
       setTravelerProfile(saved.travelerProfile)
       setTravelerProfileOther(saved.travelerProfileOther)
       setBudgetProfile(saved.budgetProfile)
@@ -319,6 +327,8 @@ export function GenerationModal({ onClose, onFallback }: GenerationModalProps): 
       languageOther,
       timing,
       timingOther,
+      timingDateFrom,
+      timingDateTo,
       travelerProfile,
       travelerProfileOther,
       budgetProfile,
@@ -348,6 +358,7 @@ export function GenerationModal({ onClose, onFallback }: GenerationModalProps): 
         ...(languageMode === 'other' && languageOther.trim() ? { languageOther: languageOther.trim() } : undefined),
         ...(timing ? { timing } : undefined),
         ...(timing === 'other' && timingOther.trim() ? { timingOther: timingOther.trim() } : undefined),
+        ...(timing === 'customDates' && timingDateFrom ? { timingOther: timingDateTo ? `${timingDateFrom} to ${timingDateTo}` : timingDateFrom } : undefined),
         ...(travelerProfile ? { travelerProfile } : undefined),
         ...(travelerProfile === 'other' && travelerProfileOther.trim() ? { travelerProfileOther: travelerProfileOther.trim() } : undefined),
         ...(budgetProfile ? { budgetProfile } : undefined),
@@ -457,6 +468,8 @@ export function GenerationModal({ onClose, onFallback }: GenerationModalProps): 
     setLanguageOther(DEFAULT_SETTINGS.languageOther)
     setTiming(DEFAULT_SETTINGS.timing)
     setTimingOther(DEFAULT_SETTINGS.timingOther)
+    setTimingDateFrom(DEFAULT_SETTINGS.timingDateFrom)
+    setTimingDateTo(DEFAULT_SETTINGS.timingDateTo)
     setTravelerProfile(DEFAULT_SETTINGS.travelerProfile)
     setTravelerProfileOther(DEFAULT_SETTINGS.travelerProfileOther)
     setBudgetProfile(DEFAULT_SETTINGS.budgetProfile)
@@ -633,6 +646,26 @@ export function GenerationModal({ onClose, onFallback }: GenerationModalProps): 
                         </option>
                       ))}
                     </select>
+                    {timing === 'customDates' && (
+                      <div className="generation-modal__date-range">
+                        <input
+                          type="date"
+                          className="generation-modal__date-input"
+                          value={timingDateFrom}
+                          onChange={(e) => setTimingDateFrom(e.target.value)}
+                          aria-label={t('ai-generation:modal.timingDateFrom')}
+                        />
+                        <span className="generation-modal__date-separator">–</span>
+                        <input
+                          type="date"
+                          className="generation-modal__date-input"
+                          value={timingDateTo}
+                          onChange={(e) => setTimingDateTo(e.target.value)}
+                          min={timingDateFrom || undefined}
+                          aria-label={t('ai-generation:modal.timingDateTo')}
+                        />
+                      </div>
+                    )}
                     {timing === 'other' && (
                       <input
                         type="text"
@@ -765,10 +798,16 @@ export function GenerationModal({ onClose, onFallback }: GenerationModalProps): 
                   <strong>{t('ai-generation:modal.summaryModel')}:</strong>{' '}
                   {availableModels.find((m) => m.id === selectedModel)?.label ?? selectedModel}
                 </span>
-                {timing && timing !== 'other' && (
+                {timing && timing !== 'other' && timing !== 'customDates' && (
                   <span className="generation-modal__summary-chip">
                     <strong>{t('ai-generation:modal.summaryTiming')}:</strong>{' '}
                     {t(`ai-generation:modal.timingValues.${timing}`)}
+                  </span>
+                )}
+                {timing === 'customDates' && timingDateFrom && (
+                  <span className="generation-modal__summary-chip">
+                    <strong>{t('ai-generation:modal.summaryTiming')}:</strong>{' '}
+                    {timingDateTo ? `${timingDateFrom} – ${timingDateTo}` : timingDateFrom}
                   </span>
                 )}
                 {timing === 'other' && timingOther.trim() && (

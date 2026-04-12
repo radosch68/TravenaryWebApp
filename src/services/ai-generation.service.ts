@@ -128,7 +128,7 @@ function buildContextPayload(opts: GenerationContextOptions): Record<string, unk
   }
   if (opts.timing) {
     payload.timing = opts.timing
-    if (opts.timing === 'other' && opts.timingOther?.trim()) {
+    if ((opts.timing === 'other' || opts.timing === 'customDates') && opts.timingOther?.trim()) {
       payload.timingOther = opts.timingOther.trim()
     }
   }
