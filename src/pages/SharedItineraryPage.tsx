@@ -1,10 +1,14 @@
 import type { ReactElement } from 'react'
-import { useCallback, useEffect, useState } from 'react'
-import { useParams } from 'react-router-dom'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useNavigate, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 
 import { BrandBanner } from '@/components/BrandBanner'
+import { ItineraryActivityBenchSummary } from '@/components/itinerary/ItineraryActivityBenchSummary'
+import { ItineraryMapLauncher } from '@/components/itinerary/ItineraryMapLauncher'
 import { ItineraryTimelineView } from '@/components/itinerary/ItineraryTimelineView'
+import { buildLocationMapPinsFromDays } from '@/components/itinerary/location-map-pins'
+import type { LocationMapPin } from '@/components/itinerary/location-map-pins'
 import { ApiError } from '@/services/contracts'
 import { getSharedItinerary } from '@/services/itinerary-service'
 import type { SharedItineraryDetail } from '@/services/contracts'
@@ -13,6 +17,7 @@ import { unsplashUrl } from '@/utils/unsplash-url'
 
 export function SharedItineraryPage(): ReactElement {
   const { shareToken } = useParams<{ shareToken: string }>()
+  const navigate = useNavigate()
   const { t, i18n } = useTranslation(['common'])
 
   const [itinerary, setItinerary] = useState<SharedItineraryDetail | null>(null)
@@ -29,7 +34,7 @@ export function SharedItineraryPage(): ReactElement {
       setItinerary(payload)
       setState('ready')
     } catch (error) {
-      if (error instanceof ApiError && error.status === 404) {
+      if (error instanceof ApiError && (error.status === 400 || error.status === 404)) {
         setState('not-found')
         return
       }
@@ -44,6 +49,24 @@ export function SharedItineraryPage(): ReactElement {
 
     return () => window.clearTimeout(handle)
   }, [loadShared])
+
+  const itineraryMapPins = useMemo<LocationMapPin[]>(() => {
+    if (!itinerary) {
+      return []
+    }
+
+    return buildLocationMapPinsFromDays(itinerary.days, {
+      getActivityTypeLabel: (activityType) => t(`common:itinerary.dayEditor.activityTypeOptions.${activityType}`),
+    })
+  }, [itinerary, t])
+
+  const handleOpenDayDetail = useCallback((dayNumber: number): void => {
+    if (!shareToken) {
+      return
+    }
+
+    navigate(`/s/${shareToken}/days/${dayNumber}`)
+  }, [navigate, shareToken])
 
   if (state === 'loading') {
     return (
@@ -129,7 +152,22 @@ export function SharedItineraryPage(): ReactElement {
           </span>
         </div>
 
-        <ItineraryTimelineView itinerary={itinerary} />
+        <ItineraryMapLauncher
+          pins={itineraryMapPins}
+          title={t('common:itinerary.dayEditor.itineraryMapTitle')}
+          emptyLabel={t('common:itinerary.dayEditor.mapNoMarkedLocations')}
+          openLabel={t('common:itinerary.dayEditor.openFullMap')}
+          to={`/s/${shareToken}/map`}
+        />
+
+        <ItineraryActivityBenchSummary activityBench={itinerary.activityBench} />
+
+        <ItineraryTimelineView
+          itinerary={itinerary}
+          onOpenDay={handleOpenDayDetail}
+          referenceDisplayMode="thumbnails"
+          contentMode="planning-blocks"
+        />
 
         <p className="shared-page__footer">{t('common:itinerary.share.poweredBy')}</p>
       </section>

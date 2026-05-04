@@ -16,11 +16,13 @@ import { Header } from '@/components/Header'
 import { Breadcrumb } from '@/components/Breadcrumb'
 import { EditableField } from '@/components/EditableField'
 import { DialogShell } from '@/components/DialogShell'
+import { PanelCloseButton } from '@/components/PanelCloseButton'
 import { DayEditorShell } from '@/components/itinerary/DayEditorShell'
 import { ActivityBenchPanel } from '@/components/itinerary/ActivityBenchPanel'
 import { ActivityFormPanel } from '@/components/itinerary/ActivityFormPanel'
 import type { ActivityFormSavePayload } from '@/components/itinerary/ActivityFormPanel'
 import { ActivityTypePicker } from '@/components/itinerary/ActivityTypePicker'
+import { ItineraryMapLauncher } from '@/components/itinerary/ItineraryMapLauncher'
 import { buildLocationMapPinsFromActivities } from '@/components/itinerary/location-map-pins'
 import type { LocationMapPin } from '@/components/itinerary/location-map-pins'
 import { ApiError } from '@/services/contracts'
@@ -30,13 +32,15 @@ import type { ErrorDetail } from '@/services/contracts'
 import { formatLocalDate, formatWeekday } from '@/utils/date-format'
 import { isActivityAnchored } from '@/utils/activity-classification'
 import { sectionKey } from '@/utils/day-edit-transforms'
-import { ArrowSquareOut, MapTrifold, PencilSimple } from '@phosphor-icons/react'
+import { PencilSimple } from '@phosphor-icons/react'
 import { useDayEditStore } from '@/store/day-edit-store'
+import { useAuthStore } from '@/store/auth-store'
 
 export function DayDetailPage(): ReactElement {
   const { itineraryId, dayNumber: dayNumberParam } = useParams<{ itineraryId: string; dayNumber: string }>()
   const navigate = useNavigate()
   const { t, i18n } = useTranslation(['common'])
+  const clearSession = useAuthStore((authState) => authState.clearSession)
 
   const [itinerary, setItinerary] = useState<ItineraryDetail | null>(null)
   const [state, setState] = useState<'loading' | 'ready' | 'error' | 'not-found' | 'day-not-found'>('loading')
@@ -113,9 +117,15 @@ export function DayDetailPage(): ReactElement {
         return
       }
 
+      if (error instanceof ApiError && error.status === 401) {
+        clearSession()
+        navigate('/signin', { replace: true })
+        return
+      }
+
       setState('error')
     }
-  }, [itineraryId, hasValidDayNumberParam, dayNum, loadDay])
+  }, [clearSession, dayNum, hasValidDayNumberParam, itineraryId, loadDay, navigate])
 
   useEffect(() => {
     const handle = window.setTimeout(() => {
@@ -438,19 +448,6 @@ export function DayDetailPage(): ReactElement {
     })
   }, [sections, t])
 
-  const dayMapRouteLabel = useMemo(() => {
-    if (dayMapPins.length === 0) {
-      return ''
-    }
-
-    const firstPin = dayMapPins[0]
-    const lastPin = dayMapPins[dayMapPins.length - 1]
-    const firstLabel = firstPin.locationLabel?.trim() || firstPin.activityTitle
-    const lastLabel = lastPin.locationLabel?.trim() || lastPin.activityTitle
-
-    return firstLabel === lastLabel ? firstLabel : `${firstLabel} → ${lastLabel}`
-  }, [dayMapPins])
-
   // Find the activity being edited
   const editingActivity = useMemo<ItineraryActivity | undefined>(() => {
     if (!editingActivityId) return undefined
@@ -545,7 +542,7 @@ export function DayDetailPage(): ReactElement {
       >
         <section className="panel day-detail-panel">
           <div className="day-detail-panel__top-actions">
-            <DayPanelCloseButton
+            <PanelCloseButton
               ariaLabel={t('common:back')}
               onClick={() => handleNavigateAway(`/itineraries/${itinerary.id}`)}
             />
@@ -598,43 +595,13 @@ export function DayDetailPage(): ReactElement {
             )}
           />
 
-          <section className="itinerary-detail-panel__map-section" aria-label={t('common:itinerary.dayEditor.dailyMapTitle')}>
-            {dayMapPins.length > 0 ? (
-              <Link
-                className="itinerary-detail-panel__map-launcher"
-                to={`/?mapItineraryId=${encodeURIComponent(itinerary.id)}&mapDayNumber=${encodeURIComponent(String(day.dayNumber))}`}
-                target="_blank"
-                rel="noreferrer"
-                aria-label={t('common:itinerary.dayEditor.openFullMap')}
-                title={t('common:itinerary.dayEditor.openFullMap')}
-              >
-                <div className="itinerary-detail-panel__map-launcher-copy">
-                  <MapTrifold size={40} weight="regular" aria-hidden="true" />
-                  <div>
-                    <h2 className="itinerary-detail-panel__map-title">{t('common:itinerary.dayEditor.dailyMapTitle')}</h2>
-                    <p className="itinerary-detail-panel__map-count">
-                      {dayMapRouteLabel}
-                    </p>
-                  </div>
-                </div>
-                <span className="itinerary-detail-panel__map-open" aria-hidden="true">
-                  <ArrowSquareOut size={20} weight="bold" aria-hidden="true" />
-                </span>
-              </Link>
-            ) : (
-              <div className="itinerary-detail-panel__map-launcher itinerary-detail-panel__map-launcher--disabled">
-                <div className="itinerary-detail-panel__map-launcher-copy">
-                  <MapTrifold size={40} weight="regular" aria-hidden="true" />
-                  <div>
-                    <h2 className="itinerary-detail-panel__map-title">{t('common:itinerary.dayEditor.dailyMapTitle')}</h2>
-                    <p className="itinerary-detail-panel__map-count itinerary-detail-panel__map-count--empty">
-                      {t('common:itinerary.dayEditor.mapNoMarkedLocations')}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            )}
-          </section>
+          <ItineraryMapLauncher
+            pins={dayMapPins}
+            title={t('common:itinerary.dayEditor.dailyMapTitle')}
+            emptyLabel={t('common:itinerary.dayEditor.mapNoMarkedLocations')}
+            openLabel={t('common:itinerary.dayEditor.openFullMap')}
+            to={`/?mapItineraryId=${encodeURIComponent(itinerary.id)}&mapDayNumber=${encodeURIComponent(String(day.dayNumber))}`}
+          />
 
           <DayEditorShell
             sections={sections}
@@ -665,7 +632,7 @@ export function DayDetailPage(): ReactElement {
           )}
 
           <div className="day-detail-panel__bottom-actions">
-            <DayPanelCloseButton
+            <PanelCloseButton
               ariaLabel={t('common:back')}
               onClick={() => handleNavigateAway(`/itineraries/${itinerary.id}`)}
             />
@@ -728,27 +695,4 @@ function toActivityInput(activity: ItineraryActivity): ItineraryActivityInput {
     ...activity,
     details,
   }
-}
-
-function DayPanelCloseButton({ ariaLabel, onClick }: { ariaLabel: string; onClick: () => void }): ReactElement {
-  return (
-    <button
-      type="button"
-      className="panel-close-button"
-      aria-label={ariaLabel}
-      title={ariaLabel}
-      onClick={onClick}
-    >
-      <CloseIcon />
-    </button>
-  )
-}
-
-function CloseIcon(): ReactElement {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-      <path d="M6 6L18 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-      <path d="M18 6L6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-    </svg>
-  )
 }

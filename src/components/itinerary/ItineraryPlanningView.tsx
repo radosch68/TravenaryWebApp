@@ -1,9 +1,9 @@
 import { Fragment } from 'react'
 import type { ReactElement } from 'react'
-import { useCallback, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { PencilSimple, Plus, X } from '@phosphor-icons/react'
+import { Moon, PencilSimple, Plus, X } from '@phosphor-icons/react'
 import {
   DndContext,
   closestCenter,
@@ -15,7 +15,7 @@ import {
 import type { DragEndEvent } from '@dnd-kit/core'
 
 import { YesNoDialog } from '@/components/YesNoDialog'
-import type { ItineraryDay, ItineraryDetail } from '@/services/contracts'
+import type { ItineraryActivity, ItineraryDay, ItineraryDetail } from '@/services/contracts'
 import { formatLocalDate, formatWeekday } from '@/utils/date-format'
 import { groupActivitiesForPlanning, flattenSectionsToActivities } from '@/utils/activity-classification'
 import { PlanningDaySection } from './PlanningDaySection'
@@ -34,6 +34,15 @@ interface PendingAnchoredMove {
   message: string
 }
 
+interface OvernightAccommodation {
+  activity: ItineraryActivity
+}
+
+type OvernightCoverage =
+  | { status: 'covered'; accommodation: OvernightAccommodation }
+  | { status: 'missing' }
+  | { status: 'multiple'; count: number }
+
 export function ItineraryPlanningView({
   itinerary,
   onReorder,
@@ -44,6 +53,7 @@ export function ItineraryPlanningView({
 }: ItineraryPlanningViewProps): ReactElement {
   const { t, i18n } = useTranslation(['common'])
   const [pendingAnchoredMove, setPendingAnchoredMove] = useState<PendingAnchoredMove | null>(null)
+  const overnightCoverageByGapDay = useMemo(() => getOvernightCoverageByGapDay(itinerary.days), [itinerary.days])
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { delay: 75, tolerance: 5 } }),
@@ -188,7 +198,11 @@ export function ItineraryPlanningView({
             {itinerary.days.map((day, index) => (
               <Fragment key={`planning-day-${day.dayNumber}`}>
                 {onInsertDay ? (
-                  <DayInsertSlot dayNumber={day.dayNumber} onInsertDay={onInsertDay} />
+                  <DayInsertSlot
+                    dayNumber={day.dayNumber}
+                    onInsertDay={onInsertDay}
+                    overnightCoverage={index > 0 ? overnightCoverageByGapDay.get(day.dayNumber - 1) ?? { status: 'missing' } : undefined}
+                  />
                 ) : null}
                 <DayRow
                   day={day}
@@ -220,6 +234,46 @@ export function ItineraryPlanningView({
         />
       ) : null}
     </>
+  )
+}
+
+function getOvernightCoverageByGapDay(days: ItineraryDay[]): Map<number, OvernightCoverage> {
+  const coverage = new Map<number, OvernightAccommodation[]>()
+
+  days.forEach((day) => {
+    day.activities.forEach((activity) => {
+      if (activity.type !== 'accommodation') {
+        return
+      }
+
+      const nights = Math.floor(activity.details?.nights ?? 0)
+      if (nights < 1) {
+        return
+      }
+
+      for (let offset = 0; offset < nights; offset += 1) {
+        const gapDayNumber = day.dayNumber + offset
+        const items = coverage.get(gapDayNumber) ?? []
+        items.push({ activity })
+        coverage.set(gapDayNumber, items)
+      }
+    })
+  })
+
+  return new Map<number, OvernightCoverage>(
+    days.slice(0, -1).map((day): [number, OvernightCoverage] => {
+      const accommodations = coverage.get(day.dayNumber) ?? []
+
+      if (accommodations.length === 1) {
+        return [day.dayNumber, { status: 'covered', accommodation: accommodations[0] }]
+      }
+
+      if (accommodations.length > 1) {
+        return [day.dayNumber, { status: 'multiple', count: accommodations.length }]
+      }
+
+      return [day.dayNumber, { status: 'missing' }]
+    }),
   )
 }
 
@@ -324,10 +378,35 @@ function DayRow({
   )
 }
 
-function DayInsertSlot({ dayNumber, onInsertDay }: { dayNumber: number; onInsertDay: (dayNumber: number) => void }): ReactElement {
+function DayInsertSlot({
+  dayNumber,
+  onInsertDay,
+  overnightCoverage,
+}: {
+  dayNumber: number
+  onInsertDay: (dayNumber: number) => void
+  overnightCoverage?: OvernightCoverage
+}): ReactElement {
   const { t } = useTranslation(['common'])
+
+  const handleAccommodationClick = useCallback((): void => {
+    if (overnightCoverage?.status !== 'covered') {
+      return
+    }
+
+    document
+      .getElementById(getPlanningActivityElementId(overnightCoverage.accommodation.activity.id))
+      ?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+  }, [overnightCoverage])
+
   return (
-    <li className="itinerary-day-insert-slot">
+    <li className={`itinerary-day-insert-slot${overnightCoverage ? ' itinerary-day-insert-slot--overnight' : ''}`}>
+      {overnightCoverage ? (
+        <OvernightCoverageBand
+          coverage={overnightCoverage}
+          onClick={overnightCoverage.status === 'covered' ? handleAccommodationClick : undefined}
+        />
+      ) : null}
       <button
         type="button"
         className="itinerary-day-insert-button itinerary-day-header__icon-button"
@@ -339,4 +418,50 @@ function DayInsertSlot({ dayNumber, onInsertDay }: { dayNumber: number; onInsert
       </button>
     </li>
   )
+}
+
+function OvernightCoverageBand({
+  coverage,
+  onClick,
+}: {
+  coverage: OvernightCoverage
+  onClick?: () => void
+}): ReactElement {
+  const { t } = useTranslation(['common'])
+  const label = coverage.status === 'covered'
+    ? coverage.accommodation.activity.title
+    : coverage.status === 'multiple'
+      ? t('common:itinerary.presentation.overnightMultiple')
+      : t('common:itinerary.presentation.overnightMissing')
+  const className = `overnight-coverage overnight-coverage--${coverage.status}${onClick ? ' overnight-coverage--clickable' : ''}`
+  const content = (
+    <>
+      <Moon size={15} weight="fill" className="overnight-coverage__icon" />
+      <span className="overnight-coverage__label">{label}</span>
+    </>
+  )
+
+  if (onClick) {
+    return (
+      <button
+        type="button"
+        className={className}
+        onClick={onClick}
+        aria-label={t('common:itinerary.presentation.overnightScrollToAccommodation', { title: label })}
+        title={t('common:itinerary.presentation.overnightScrollToAccommodation', { title: label })}
+      >
+        {content}
+      </button>
+    )
+  }
+
+  return (
+    <div className={className} aria-label={label} title={label}>
+      {content}
+    </div>
+  )
+}
+
+function getPlanningActivityElementId(activityId: string): string {
+  return `planning-activity-${activityId}`
 }

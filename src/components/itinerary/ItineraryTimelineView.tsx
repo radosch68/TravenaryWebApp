@@ -5,7 +5,10 @@ import { Eye, Plus, X } from '@phosphor-icons/react'
 
 import type { ItineraryDetail, SharedItineraryDetail } from '@/services/contracts'
 import { formatLocalDate, formatWeekday } from '@/utils/date-format'
+import { PlanningDaySection } from './PlanningDaySection'
 import { TimelineDaySection } from './TimelineDaySection'
+
+type TimelineContentMode = 'timeline' | 'planning-blocks'
 
 interface ItineraryTimelineViewProps {
   itinerary: ItineraryDetail | SharedItineraryDetail
@@ -13,6 +16,7 @@ interface ItineraryTimelineViewProps {
   onInsertDay?: (dayNumber: number) => void
   onDeleteDay?: (dayNumber: number) => void
   referenceDisplayMode?: 'chips' | 'thumbnails'
+  contentMode?: TimelineContentMode
 }
 
 export function ItineraryTimelineView({
@@ -21,6 +25,7 @@ export function ItineraryTimelineView({
   onInsertDay,
   onDeleteDay,
   referenceDisplayMode = 'chips',
+  contentMode = 'timeline',
 }: ItineraryTimelineViewProps): ReactElement {
   const { t, i18n } = useTranslation(['common'])
 
@@ -100,10 +105,21 @@ export function ItineraryTimelineView({
             </div>
             {day.summary ? <p>{day.summary}</p> : null}
 
-            <TimelineDaySection
-              activities={day.activities}
-              referenceDisplayMode={referenceDisplayMode}
-            />
+            {contentMode === 'planning-blocks' ? (
+              <PlanningDaySection
+                day={day}
+                dayIndex={index}
+                totalDays={itinerary.days.length}
+                disabled
+                showDropSlots={false}
+                referenceDisplayMode={referenceDisplayMode}
+              />
+            ) : (
+              <TimelineDaySection
+                activities={day.activities}
+                referenceDisplayMode={referenceDisplayMode}
+              />
+            )}
           </li>
         </Fragment>
       ))}

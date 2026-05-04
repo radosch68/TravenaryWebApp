@@ -1,12 +1,10 @@
 import type { ReactElement } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Star } from '@phosphor-icons/react'
 
 import type { ItineraryActivity } from '@/services/contracts'
 import { getEffectiveAnchored, sortActivitiesForTimeline } from '@/utils/activity-classification'
-import { formatLocalTimeRange } from '@/utils/date-format'
-import { ACTIVITY_TYPE_ICON, ACTIVITY_TYPE_COLOR } from './activity-presentation'
-import { ActivityMetadataCompact } from './ActivityMetadataCompact'
+import { ACTIVITY_TYPE_COLOR } from './activity-presentation'
+import { ActivityCardContent } from './ActivityCardContent'
 
 interface TimelineDaySectionProps {
   activities: ItineraryActivity[]
@@ -52,8 +50,12 @@ function TimelineActivityRow({
   t: (key: string) => string
   referenceDisplayMode?: 'chips' | 'thumbnails'
 }): ReactElement {
-  const { i18n } = useTranslation(['common'])
   const typeColor = ACTIVITY_TYPE_COLOR[activity.type] ?? ACTIVITY_TYPE_COLOR.note
+  const anchoredMarker = getEffectiveAnchored(activity) ? (
+    <span className="timeline-activity__anchored-marker">
+      {t('common:itinerary.presentation.anchoredMarker')}
+    </span>
+  ) : null
 
   return (
     <li
@@ -63,26 +65,13 @@ function TimelineActivityRow({
         border: `1px solid ${typeColor.icon}1A`,
       }}
     >
-      <span className="timeline-activity__time">
-        {formatLocalTimeRange(activity.time, activity.timeEnd, i18n.language)}
-      </span>
-      <span className="timeline-activity__type-icon" style={{ color: typeColor.icon }}>
-        {ACTIVITY_TYPE_ICON[activity.type] ?? <Star size={16} />}
-      </span>
-      <span className="timeline-activity__title">{activity.title}</span>
-      {activity.text ? (
-        <span className="timeline-activity__desc">{activity.text}</span>
-      ) : null}
-      <ActivityMetadataCompact
+      <ActivityCardContent
         activity={activity}
-        className="timeline-activity__meta"
+        headerLayout="inline"
+        className="timeline-activity__content"
         referenceDisplayMode={referenceDisplayMode}
+        anchoredMarker={anchoredMarker}
       />
-      {getEffectiveAnchored(activity) ? (
-        <span className="timeline-activity__anchored-marker">
-          {t('common:itinerary.presentation.anchoredMarker')}
-        </span>
-      ) : null}
     </li>
   )
 }

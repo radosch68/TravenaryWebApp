@@ -5,9 +5,9 @@ import { CaretCircleDoubleUp } from '@phosphor-icons/react'
 
 import type { ActivityType, ItineraryActivity } from '@/services/contracts'
 import benchManImage from '@/assets/bench-man-192.png'
-import { formatLocalTimeRange } from '@/utils/date-format'
 import { groupActivityBenchByType } from '@/utils/activity-bench'
-import { ACTIVITY_TYPE_COLOR, ACTIVITY_TYPE_ICON } from './activity-presentation'
+import { ACTIVITY_TYPE_COLOR } from './activity-presentation'
+import { ActivityCardContent } from './ActivityCardContent'
 
 const ACTIVITY_TYPE_LABEL_KEY: Record<Exclude<ActivityType, 'divider'>, string> = {
   note: 'note',
@@ -98,7 +98,7 @@ interface BenchActivityRowProps {
 }
 
 function BenchActivityRow({ activity, onMoveToCurrentDay, disabled }: BenchActivityRowProps): ReactElement {
-  const { t, i18n } = useTranslation(['common'])
+  const { t } = useTranslation(['common'])
   const typeColor = ACTIVITY_TYPE_COLOR[activity.type] ?? ACTIVITY_TYPE_COLOR.note
   const { setNodeRef, transform, isDragging, listeners, attributes } = useDraggable({
     id: `bench-activity-${activity.id}`,
@@ -119,40 +119,27 @@ function BenchActivityRow({ activity, onMoveToCurrentDay, disabled }: BenchActiv
       style={style}
       className={`activity-editor-row activity-editor-row--bench${isDragging ? ' activity-editor-row--dragging' : ''}`}
     >
-      <div className="activity-editor-row__left">
-        <span className="activity-editor-row__drag-handle" {...listeners} {...attributes} aria-hidden="true">
-          <GripIcon />
-        </span>
-        <span className="activity-editor-row__type-icon" style={{ color: typeColor.icon }}>
-          {ACTIVITY_TYPE_ICON[activity.type]}
-        </span>
-      </div>
-
-      <div className="activity-editor-row__header activity-editor-row__header--static">
-        <span className="activity-editor-row__title">{activity.title}</span>
-        {activity.time ? (
-          <span className="activity-editor-row__time">
-            {formatLocalTimeRange(activity.time, activity.timeEnd, i18n.language)}
+      <ActivityCardContent
+        activity={activity}
+        referenceDisplayMode="thumbnails"
+        headerLeading={(
+          <span className="activity-editor-row__drag-handle" {...listeners} {...attributes} aria-hidden="true">
+            <GripIcon />
           </span>
-        ) : null}
-      </div>
-
-      <div className="activity-editor-row__description-wrap activity-editor-row__description-wrap--static">
-        {activity.text ? <span className="activity-editor-row__description">{activity.text}</span> : null}
-      </div>
-
-      <div className="activity-editor-row__right">
-        <button
-          type="button"
-          className="activity-editor-row__move-btn"
-          onClick={() => onMoveToCurrentDay(activity.id)}
-          disabled={disabled}
-          title={t('common:itinerary.dayEditor.activityBench.moveToCurrentDay')}
-          aria-label={t('common:itinerary.dayEditor.activityBench.moveToCurrentDay')}
-        >
-          <CaretCircleDoubleUp size={20} />
-        </button>
-      </div>
+        )}
+        headerAction={(
+          <button
+            type="button"
+            className="activity-editor-row__move-btn"
+            onClick={() => onMoveToCurrentDay(activity.id)}
+            disabled={disabled}
+            title={t('common:itinerary.dayEditor.activityBench.moveToCurrentDay')}
+            aria-label={t('common:itinerary.dayEditor.activityBench.moveToCurrentDay')}
+          >
+            <CaretCircleDoubleUp size={20} />
+          </button>
+        )}
+      />
     </li>
   )
 }

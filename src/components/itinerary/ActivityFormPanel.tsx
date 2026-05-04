@@ -14,6 +14,18 @@ import formStyles from './ActivityFormPanel.module.css'
 
 const FULL_EDIT_TYPES: ReadonlySet<ActivityType> = new Set(['note', 'poi', 'custom', 'carRental', 'food', 'shopping', 'tour', 'accommodation'])
 const LIMITED_EDIT_FIELDS = ['title', 'text', 'time', 'timeEnd'] as const
+const EDITABLE_ACTIVITY_TYPES: readonly Exclude<ActivityType, 'divider'>[] = [
+  'flight',
+  'transfer',
+  'carRental',
+  'accommodation',
+  'poi',
+  'food',
+  'shopping',
+  'tour',
+  'note',
+  'custom',
+]
 
 const ANCHOR_ELIGIBLE_TYPES: ReadonlySet<ActivityType> = new Set([
   'note', 'flight', 'accommodation', 'transfer', 'poi', 'carRental', 'custom', 'food', 'shopping', 'tour'
@@ -315,7 +327,8 @@ export function ActivityFormPanel({
 }: ActivityFormPanelProps): ReactElement {
   const { t, i18n } = useTranslation(['common'])
   const isCreate = !activity
-  const isFullEdit = isCreate || FULL_EDIT_TYPES.has(activity.type)
+  const [selectedActivityType, setSelectedActivityType] = useState<ActivityType>(activityType)
+  const isFullEdit = isCreate || FULL_EDIT_TYPES.has(selectedActivityType)
   const timePlaceholder = getLocalizedTimeInputPlaceholder(i18n.language)
   const useNativeTimeInput = typeof window !== 'undefined'
     && window.matchMedia('(hover: none), (pointer: coarse)').matches
@@ -372,6 +385,30 @@ export function ActivityFormPanel({
   const timeInputRef = useRef<HTMLInputElement | null>(null)
   const timeEndInputRef = useRef<HTMLInputElement | null>(null)
   const isFormDisabled = disabled || isSubmitting
+
+  const resetTypeSpecificFields = (nextType: ActivityType): void => {
+    setActivityDetailsSectionOpen(nextType === 'food' || nextType === 'tour' || nextType === 'accommodation')
+    setCuisine('')
+    setGuidanceMode('selfGuided')
+    setNightsInput('1')
+    setGuestsInput('')
+    setCheckInFrom('')
+    setCheckInUntil('')
+    setCheckOutUntil('')
+    setPlatform('')
+    setContactPhone('')
+    setContactEmail('')
+    setBookingRef('')
+  }
+
+  const handleSelectedActivityTypeChange = (nextType: ActivityType): void => {
+    if (nextType === selectedActivityType || !EDITABLE_ACTIVITY_TYPES.includes(nextType as Exclude<ActivityType, 'divider'>)) {
+      return
+    }
+
+    setSelectedActivityType(nextType)
+    resetTypeSpecificFields(nextType)
+  }
 
   const handleTimeInput = (value: string): void => {
     setTime(value)
@@ -847,7 +884,7 @@ export function ActivityFormPanel({
     }
 
     // Preserve existing anchor state when this form cannot safely edit anchoring.
-    const isAnchorEligible = ANCHOR_ELIGIBLE_TYPES.has(activityType)
+    const isAnchorEligible = ANCHOR_ELIGIBLE_TYPES.has(selectedActivityType)
     const canEditAnchoring = isAnchorEligible && Boolean(owningDayDate)
     let resolvedAnchorDate: string | null = activity?.anchorDate ?? null
     if (canEditAnchoring) {
@@ -856,7 +893,7 @@ export function ActivityFormPanel({
 
     const result: ItineraryActivity = {
       id: activity?.id ?? generateClientId(),
-      type: activityType,
+      type: selectedActivityType,
       title: title.trim(),
       anchorDate: resolvedAnchorDate,
       ...(text.trim() ? { text: text.trim() } : {}),
@@ -867,11 +904,11 @@ export function ActivityFormPanel({
     }
 
     // Build type-specific details
-    if (activityType === 'food') {
+    if (selectedActivityType === 'food') {
       result.details = cuisine.trim() ? { cuisine: cuisine.trim() } : {}
-    } else if (activityType === 'tour') {
+    } else if (selectedActivityType === 'tour') {
       result.details = { guidanceMode }
-    } else if (activityType === 'accommodation') {
+    } else if (selectedActivityType === 'accommodation') {
       const parsedNights = parseInt(nightsInput, 10)
       const normalizedNights = Number.isFinite(parsedNights) && parsedNights >= 1 ? parsedNights : 1
       const accDetails: ItineraryActivity['details'] = { nights: normalizedNights }
@@ -888,8 +925,6 @@ export function ActivityFormPanel({
       if (contactEmail.trim()) accDetails!.contactEmail = contactEmail.trim()
       if (bookingRef.trim()) accDetails!.bookingRef = bookingRef.trim()
       result.details = accDetails
-    } else if (activity?.details) {
-      result.details = activity.details
     }
 
     setIsSubmitting(true)
@@ -915,9 +950,9 @@ export function ActivityFormPanel({
     }
   }
 
-  const typeColor = ACTIVITY_TYPE_COLOR[activityType]
-  const hasActivitySpecificFields = activityType === 'food' || activityType === 'tour' || activityType === 'accommodation'
-  const activitySpecificSectionTitle = t(`common:itinerary.dayEditor.activityTypeOptions.${ACTIVITY_TYPE_LABEL_KEY[activityType]}`)
+  const typeColor = ACTIVITY_TYPE_COLOR[selectedActivityType]
+  const hasActivitySpecificFields = selectedActivityType === 'food' || selectedActivityType === 'tour' || selectedActivityType === 'accommodation'
+  const activitySpecificSectionTitle = t(`common:itinerary.dayEditor.activityTypeOptions.${ACTIVITY_TYPE_LABEL_KEY[selectedActivityType]}`)
   const getReferenceRowSummary = (row: ReferenceDraftRow, rowIndex: number): string => {
     const fallback = t('common:itinerary.dayEditor.referenceDefaultTitle', { index: rowIndex + 1 })
     return row.caption.trim() || row.url.trim() || fallback
@@ -962,8 +997,8 @@ export function ActivityFormPanel({
       className={formStyles.typeBadge}
       style={{ background: typeColor.bg, color: typeColor.icon, borderColor: `${typeColor.icon}26` }}
     >
-      <span className={formStyles.typeBadgeIcon}>{ACTIVITY_TYPE_ICON[activityType]}</span>
-      <span>{t(`common:itinerary.dayEditor.activityTypeOptions.${ACTIVITY_TYPE_LABEL_KEY[activityType]}`)}</span>
+      <span className={formStyles.typeBadgeIcon}>{ACTIVITY_TYPE_ICON[selectedActivityType]}</span>
+      <span>{t(`common:itinerary.dayEditor.activityTypeOptions.${ACTIVITY_TYPE_LABEL_KEY[selectedActivityType]}`)}</span>
     </span>
   )
 
@@ -1004,6 +1039,24 @@ export function ActivityFormPanel({
 
         {commonSectionOpen ? (
           <div id="activity-common-section-content" className="activity-form-panel__section-content">
+            {!isCreate ? (
+              <div className="activity-form-panel__field">
+                <label htmlFor="activity-type">{t('common:itinerary.dayEditor.activityType')}</label>
+                <select
+                  id="activity-type"
+                  value={selectedActivityType}
+                  onChange={(e) => handleSelectedActivityTypeChange(e.target.value as ActivityType)}
+                  disabled={isFormDisabled}
+                >
+                  {EDITABLE_ACTIVITY_TYPES.map((optionType) => (
+                    <option key={optionType} value={optionType}>
+                      {t(`common:itinerary.dayEditor.activityTypeOptions.${ACTIVITY_TYPE_LABEL_KEY[optionType]}`)}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            ) : null}
+
             <div className="activity-form-panel__field">
               <label htmlFor="activity-title">{t('common:itinerary.dayEditor.fieldTitle')}</label>
               <input
@@ -1028,7 +1081,7 @@ export function ActivityFormPanel({
               </div>
             )}
 
-            {activityType !== 'accommodation' && (
+            {selectedActivityType !== 'accommodation' && (
               <div className="activity-form-panel__field-row activity-form-panel__field-row--time">
                 <div className="activity-form-panel__field">
                   <label htmlFor="activity-time">{t('common:itinerary.dayEditor.fieldTime')}</label>
@@ -1063,7 +1116,7 @@ export function ActivityFormPanel({
               </div>
             )}
 
-            {ANCHOR_ELIGIBLE_TYPES.has(activityType) && owningDayDate ? (
+            {ANCHOR_ELIGIBLE_TYPES.has(selectedActivityType) && owningDayDate ? (
               <div className="activity-form-panel__block-option activity-form-panel__anchor-option">
                 <label className="activity-form-panel__checkbox" htmlFor="activity-anchor-to-day">
                   <input
@@ -1106,7 +1159,7 @@ export function ActivityFormPanel({
 
           {activityDetailsSectionOpen ? (
             <div id="activity-details-section-content" className="activity-form-panel__section-content">
-              {activityType === 'food' ? (
+              {selectedActivityType === 'food' ? (
                 <div className="activity-form-panel__field">
                   <label htmlFor="activity-cuisine">{t('common:itinerary.dayEditor.fieldCuisine')}</label>
                   <input
@@ -1119,7 +1172,7 @@ export function ActivityFormPanel({
                 </div>
               ) : null}
 
-              {activityType === 'tour' ? (
+              {selectedActivityType === 'tour' ? (
                 <div className="activity-form-panel__field">
                   <label htmlFor="activity-guidance-mode">{t('common:itinerary.dayEditor.fieldGuidanceMode')}</label>
                   <select
@@ -1134,7 +1187,7 @@ export function ActivityFormPanel({
                 </div>
               ) : null}
 
-              {activityType === 'accommodation' ? (
+              {selectedActivityType === 'accommodation' ? (
                 <>
                   <div className="activity-form-panel__field-row activity-form-panel__field-row--time">
                     <div className="activity-form-panel__field">

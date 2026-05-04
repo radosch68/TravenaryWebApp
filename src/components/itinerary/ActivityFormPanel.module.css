@@ -1,11 +1,11 @@
 .modal {
   width: min(100%, 480px);
-  max-height: min(90vh, 600px);
+  max-height: calc(100dvh - 2rem);
 }
 
 .nestedModal {
   width: min(100%, 560px);
-  max-height: min(90vh, 720px);
+  max-height: calc(100dvh - 2rem);
 }
 
 .typeBadge {

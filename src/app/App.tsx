@@ -9,6 +9,8 @@ import { ItineraryDetailPage } from '@/pages/ItineraryDetailPage'
 import { ItineraryMapPage } from '@/pages/ItineraryMapPage'
 import { DayDetailPage } from '@/pages/DayDetailPage'
 import { SharedItineraryPage } from '@/pages/SharedItineraryPage'
+import { SharedDayDetailPage } from '@/pages/SharedDayDetailPage'
+import { SharedItineraryMapPage } from '@/pages/SharedItineraryMapPage'
 import { HomePage } from '../pages/HomePage'
 import { GithubOAuthCallbackPage } from '../pages/GithubOAuthCallbackPage'
 import { LinkProviderPage } from '../pages/LinkProviderPage'
@@ -121,6 +123,9 @@ export default function App(): ReactElement {
           }
         />
         <Route path="/oauth/github/callback" element={<GithubOAuthCallbackPage />} />
+        <Route path="/s/:shareToken/days/:dayNumber/map" element={<SharedItineraryMapPage />} />
+        <Route path="/s/:shareToken/days/:dayNumber" element={<SharedDayDetailPage />} />
+        <Route path="/s/:shareToken/map" element={<SharedItineraryMapPage />} />
         <Route path="/s/:shareToken" element={<SharedItineraryPage />} />
         <Route
           path="/"

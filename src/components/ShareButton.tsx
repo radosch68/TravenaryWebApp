@@ -2,7 +2,7 @@ import type { ReactElement } from 'react'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import { createShareLink, revokeShareLink } from '@/services/itinerary-service'
+import { createShareLink, getShareLink, revokeShareLink } from '@/services/itinerary-service'
 
 async function copyTextToClipboard(text: string): Promise<boolean> {
   if (navigator.clipboard?.writeText) {
@@ -51,6 +51,7 @@ export function ShareButton({
   const [popoverOpen, setPopoverOpen] = useState(false)
   const [shareUrl, setShareUrl] = useState<string>()
   const [busy, setBusy] = useState(false)
+  const [loadingShareUrl, setLoadingShareUrl] = useState(false)
   const [copied, setCopied] = useState(false)
   const [error, setError] = useState<string>()
   const popoverRef = useRef<HTMLDivElement>(null)
@@ -92,6 +93,38 @@ export function ShareButton({
       document.removeEventListener('keydown', handleEscape)
     }
   }, [popoverOpen])
+
+  useEffect(() => {
+    if (!popoverOpen || !hasShareLink || shareUrl) return
+
+    let ignoreResult = false
+
+    async function loadShareUrl(): Promise<void> {
+      setLoadingShareUrl(true)
+      setError(undefined)
+
+      try {
+        const response = await getShareLink(itineraryId)
+        if (!ignoreResult) {
+          setShareUrl(response.shareUrl)
+        }
+      } catch {
+        if (!ignoreResult) {
+          setError(t('common:itinerary.share.loadError'))
+        }
+      } finally {
+        if (!ignoreResult) {
+          setLoadingShareUrl(false)
+        }
+      }
+    }
+
+    void loadShareUrl()
+
+    return () => {
+      ignoreResult = true
+    }
+  }, [hasShareLink, itineraryId, popoverOpen, shareUrl, t])
 
   const handleCreate = useCallback(async () => {
     setBusy(true)
@@ -189,6 +222,14 @@ export function ShareButton({
                   {copied
                     ? t('common:itinerary.share.linkCopied')
                     : t('common:itinerary.share.copyLink')}
+                </button>
+              ) : loadingShareUrl ? (
+                <button
+                  type="button"
+                  className="share-popover__action"
+                  disabled
+                >
+                  {t('common:itinerary.share.loadingLink')}
                 </button>
               ) : (
                 <button

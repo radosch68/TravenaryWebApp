@@ -73,7 +73,6 @@ export async function getItinerary(itineraryId: string): Promise<ItineraryDetail
   return apiRequest<ItineraryDetail>(`/itineraries/${itineraryId}`, {
     method: 'GET',
     protected: true,
-    skipAuthRefreshOn401: true,
   })
 }
 
@@ -123,6 +122,15 @@ export async function createShareLink(
 ): Promise<ShareTokenResponse> {
   return apiRequest<ShareTokenResponse>(`/itineraries/${itineraryId}/share`, {
     method: 'POST',
+    protected: true,
+  })
+}
+
+export async function getShareLink(
+  itineraryId: string,
+): Promise<ShareTokenResponse> {
+  return apiRequest<ShareTokenResponse>(`/itineraries/${itineraryId}/share`, {
+    method: 'GET',
     protected: true,
   })
 }
