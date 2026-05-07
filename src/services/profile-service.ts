@@ -26,7 +26,9 @@ export async function changePassword(
   })
 }
 
-export async function updatePreferredLanguage(preferredLanguage: SupportedLanguage): Promise<UserProfile> {
+export async function updatePreferredLanguage(
+  preferredLanguage: SupportedLanguage,
+): Promise<UserProfile> {
   return apiRequest<UserProfile>('/users/me', {
     method: 'PATCH',
     protected: true,

@@ -1,8 +1,8 @@
 import type { NavigateFunction } from 'react-router-dom'
 
 import i18n from '@/i18n'
-import { ApiError } from '@/services/contracts'
 import { socialSignIn } from '@/services/auth-service'
+import { ApiError } from '@/services/contracts'
 import { useAuthStore } from '@/store/auth-store'
 
 function extractEmailFromJwtCredential(credential: string): string | undefined {
@@ -13,7 +13,9 @@ function extractEmailFromJwtCredential(credential: string): string | undefined {
 
   try {
     const normalizedPayload = payload.replace(/-/g, '+').replace(/_/g, '/')
-    const decodedPayload = window.atob(normalizedPayload.padEnd(Math.ceil(normalizedPayload.length / 4) * 4, '='))
+    const decodedPayload = window.atob(
+      normalizedPayload.padEnd(Math.ceil(normalizedPayload.length / 4) * 4, '='),
+    )
     const parsedPayload = JSON.parse(decodedPayload) as { email?: unknown }
     return typeof parsedPayload.email === 'string' ? parsedPayload.email : undefined
   } catch {

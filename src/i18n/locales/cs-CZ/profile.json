@@ -1,6 +1,7 @@
 {
   "title": "Profil",
   "sections": {
+    "overview": "Přehled účtu",
     "preferences": "Nastavení",
     "displayName": "Zobrazované jméno",
     "password": "Heslo",
@@ -26,10 +27,6 @@
     "apple": "Apple",
     "github": "GitHub"
   },
-  "languages": {
-    "en": "Angličtina",
-    "cs": "Čeština"
-  },
   "actions": {
     "saveDisplayName": "Uložit jméno",
     "savePassword": "Změnit heslo",
@@ -50,10 +47,7 @@
     "deletePasswordRequired": "Smazání účtu potvrďte heslem.",
     "deletePasswordRequiredMixed": "Tento účet podporuje přihlášení heslem i sociálním účtem. Smazání potvrďte heslem.",
     "deleteNoPassword": "Tento účet používá pouze sociální přihlášení. Potvrzení místním heslem není potřeba.",
-    "displayNameRequired": "Zobrazované jméno je povinné.",
-    "displayNameMax": "Zobrazované jméno může mít maximálně 80 znaků.",
-    "passwordRequired": "Heslo je povinné.",
-    "passwordMismatch": "Hesla se neshodují."
+    "loadError": "Profil se nyní nepodařilo načíst."
   },
   "validation": {
     "displayNameRequired": "Zobrazované jméno je povinné.",

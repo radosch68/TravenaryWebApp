@@ -1,20 +1,28 @@
 import type { ReactElement } from 'react'
 
+import styles from '@/pages/AuthPage.module.css'
+
 interface GithubSignInButtonProps {
   onClick: () => Promise<void>
   label: string
   disabled?: boolean
 }
 
-export function GithubSignInButton({ onClick, label, disabled = false }: GithubSignInButtonProps): ReactElement {
+export function GithubSignInButton({
+  onClick,
+  label,
+  disabled = false,
+}: GithubSignInButtonProps): ReactElement {
   return (
     <button
       type="button"
-      className="social-provider-btn social-provider-btn--github"
+      className={styles.socialProviderBtn}
       disabled={disabled}
-      onClick={() => void onClick()}
+      onClick={() => {
+        void onClick()
+      }}
     >
-      <span className="social-provider-btn__icon" aria-hidden="true">
+      <span className={styles.socialProviderBtnIcon} aria-hidden="true">
         <svg viewBox="0 0 24 24" role="img" focusable="false">
           <path
             fill="currentColor"
@@ -22,7 +30,7 @@ export function GithubSignInButton({ onClick, label, disabled = false }: GithubS
           />
         </svg>
       </span>
-      <span className="social-provider-btn__label">{label}</span>
+      <span>{label}</span>
     </button>
   )
 }

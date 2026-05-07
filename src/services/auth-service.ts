@@ -1,5 +1,5 @@
 import { apiRequest } from '@/services/api-client'
-import type { AuthTokens, UserProfile } from '@/services/contracts'
+import type { AuthTokens } from '@/services/contracts'
 import { tokenService } from '@/services/token-service'
 
 export interface SignUpRequest {
@@ -14,16 +14,10 @@ export interface SignInRequest {
 }
 
 export async function signUp(payload: SignUpRequest): Promise<AuthTokens> {
-  const response = await apiRequest<AuthTokens & UserProfile>('/auth/signup', {
+  return apiRequest<AuthTokens>('/auth/signup', {
     method: 'POST',
     body: payload,
   })
-
-  return {
-    accessToken: response.accessToken,
-    refreshToken: response.refreshToken,
-    expiresIn: response.expiresIn,
-  }
 }
 
 export async function signIn(payload: SignInRequest): Promise<AuthTokens> {
@@ -42,15 +36,6 @@ export async function signOut(): Promise<void> {
   await apiRequest<void>('/auth/revoke', {
     method: 'POST',
     body: { refreshToken },
-  })
-}
-
-export async function refreshTokens(): Promise<AuthTokens> {
-  return apiRequest<AuthTokens>('/auth/refresh', {
-    method: 'POST',
-    body: {
-      refreshToken: tokenService.getRefreshToken(),
-    },
   })
 }
 

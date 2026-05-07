@@ -1,6 +1,7 @@
 {
   "title": "Profile",
   "sections": {
+    "overview": "Account overview",
     "preferences": "Preferences",
     "displayName": "Display name",
     "password": "Password",
@@ -26,10 +27,6 @@
     "apple": "Apple",
     "github": "GitHub"
   },
-  "languages": {
-    "en": "English",
-    "cs": "Czech"
-  },
   "actions": {
     "saveDisplayName": "Save display name",
     "savePassword": "Change password",
@@ -50,10 +47,7 @@
     "deletePasswordRequired": "Confirm account deletion with your password.",
     "deletePasswordRequiredMixed": "This account supports both password and social sign-in. Confirm deletion with your password.",
     "deleteNoPassword": "This account uses social sign-in only. No local password confirmation is required.",
-    "displayNameRequired": "Display name is required.",
-    "displayNameMax": "Display name must be at most 80 characters.",
-    "passwordRequired": "Password is required.",
-    "passwordMismatch": "Passwords do not match."
+    "loadError": "Unable to load your profile right now."
   },
   "validation": {
     "displayNameRequired": "Display name is required.",

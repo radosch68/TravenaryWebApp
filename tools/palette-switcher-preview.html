@@ -1,0 +1,737 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Palette Switcher Preview</title>
+    <style>
+      :root {
+        --background: #f7f7f8;
+        --foreground: #1f2937;
+        --card: #ffffff;
+        --card-foreground: #1f2937;
+        --muted: #f0f2f4;
+        --muted-foreground: #6b7280;
+        --primary: #0f766e;
+        --primary-foreground: #f8fafc;
+        --secondary: #e5e7eb;
+        --secondary-foreground: #374151;
+        --accent: #dbeafe;
+        --accent-foreground: #1e3a8a;
+        --destructive: #dc2626;
+        --destructive-foreground: #fff7f7;
+        --border: #d1d5db;
+        --input: #d1d5db;
+        --ring: #0f766e;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        font-family: "Avenir Next", "Segoe UI", sans-serif;
+        background: var(--background);
+        color: var(--foreground);
+      }
+
+      .page {
+        min-height: 100vh;
+        padding: 20px;
+        display: grid;
+        gap: 16px;
+      }
+
+      .toolbar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        align-items: center;
+        justify-content: space-between;
+        padding: 14px;
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        background: var(--card);
+      }
+
+      .toolbar h1 {
+        margin: 0;
+        font-size: 1.1rem;
+      }
+
+      .toolbar p {
+        margin: 4px 0 0;
+        color: var(--muted-foreground);
+        font-size: 0.92rem;
+      }
+
+      .palette-control {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .toolbar-controls {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        flex-wrap: wrap;
+      }
+
+      select {
+        font: inherit;
+        padding: 9px 12px;
+        border-radius: 10px;
+        border: 1px solid var(--input);
+        background: var(--card);
+        color: var(--card-foreground);
+        min-width: 240px;
+      }
+
+      .swatches {
+        display: grid;
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+        gap: 8px;
+      }
+
+      .swatch {
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        overflow: hidden;
+        background: var(--card);
+      }
+
+      .swatch-chip {
+        height: 26px;
+      }
+
+      .swatch-name {
+        padding: 6px 8px;
+        font-size: 0.8rem;
+        color: var(--muted-foreground);
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: 1.2fr 1fr;
+        gap: 16px;
+      }
+
+      .card {
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        background: var(--card);
+        color: var(--card-foreground);
+        padding: 16px;
+      }
+
+      .card h2 {
+        margin: 0 0 8px;
+        font-size: 1.1rem;
+      }
+
+      .muted {
+        color: var(--muted-foreground);
+      }
+
+      .btn-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 12px;
+      }
+
+      button {
+        font: inherit;
+        border-radius: 10px;
+        border: 1px solid transparent;
+        padding: 9px 12px;
+        cursor: pointer;
+      }
+
+      .btn-primary {
+        background: var(--primary);
+        color: var(--primary-foreground);
+      }
+
+      .btn-secondary {
+        background: var(--secondary);
+        color: var(--secondary-foreground);
+      }
+
+      .btn-accent {
+        background: var(--accent);
+        color: var(--accent-foreground);
+      }
+
+      .btn-danger {
+        background: var(--destructive);
+        color: var(--destructive-foreground);
+      }
+
+      .field {
+        margin-top: 12px;
+      }
+
+      label {
+        display: block;
+        margin-bottom: 6px;
+        color: var(--muted-foreground);
+        font-size: 0.88rem;
+      }
+
+      input {
+        width: 100%;
+        font: inherit;
+        border: 1px solid var(--input);
+        border-radius: 10px;
+        padding: 9px 10px;
+        background: var(--card);
+        color: var(--card-foreground);
+      }
+
+      input:focus {
+        outline: 2px solid color-mix(in srgb, var(--ring) 40%, transparent);
+        outline-offset: 1px;
+      }
+
+      .list {
+        margin: 12px 0 0;
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        overflow: hidden;
+      }
+
+      .row {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        padding: 10px 12px;
+        border-bottom: 1px solid var(--border);
+        background: var(--card);
+      }
+
+      .row:last-child {
+        border-bottom: none;
+      }
+
+      .row-highlight {
+        background: var(--accent);
+        color: var(--accent-foreground);
+      }
+
+      .row-highlight .tag {
+        background: color-mix(in srgb, var(--accent-foreground) 18%, transparent);
+        color: var(--accent-foreground);
+        border-color: color-mix(in srgb, var(--accent-foreground) 36%, transparent);
+      }
+
+      .tag {
+        font-size: 0.78rem;
+        padding: 4px 7px;
+        border-radius: 999px;
+        background: var(--muted);
+        color: var(--muted-foreground);
+        border: 1px solid var(--border);
+      }
+
+      .kpi-grid {
+        margin-top: 12px;
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 10px;
+      }
+
+      .kpi {
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        background: var(--muted);
+        padding: 10px;
+      }
+
+      .kpi-label {
+        font-size: 0.78rem;
+        color: var(--muted-foreground);
+      }
+
+      .kpi-value {
+        margin-top: 2px;
+        font-size: 1.1rem;
+        font-weight: 700;
+      }
+
+      @media (max-width: 900px) {
+        .grid {
+          grid-template-columns: 1fr;
+        }
+
+        .swatches {
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+
+        .kpi-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="page">
+      <section class="toolbar">
+        <div>
+          <h1>Palette Switcher Preview</h1>
+          <p>Switch palettes and inspect the same UI using shared semantic tokens.</p>
+        </div>
+        <div class="toolbar-controls">
+          <div class="palette-control">
+            <label for="palette" class="muted">Palette</label>
+            <select id="palette"></select>
+          </div>
+          <div class="palette-control">
+            <label for="mode" class="muted">Mode</label>
+            <select id="mode">
+              <option value="day">Day</option>
+              <option value="night">Night</option>
+            </select>
+          </div>
+        </div>
+      </section>
+
+      <section class="swatches" id="swatches"></section>
+
+      <section class="grid">
+        <article class="card">
+          <h2>Shell Preview</h2>
+          <p class="muted">Header/card/form/button/list sample using current semantic token mapping.</p>
+
+          <div class="btn-row">
+            <button class="btn-primary" type="button">Primary Action</button>
+            <button class="btn-secondary" type="button">Secondary</button>
+            <button class="btn-accent" type="button">Accent</button>
+            <button class="btn-danger" type="button">Delete</button>
+          </div>
+
+          <div class="field">
+            <label for="title">Trip title</label>
+            <input id="title" type="text" value="Spring in Lisbon" />
+          </div>
+
+          <div class="list">
+            <div class="row">
+              <span>Day 1 - Arrival and Old Town Walk</span>
+              <span class="tag">planned</span>
+            </div>
+            <div class="row row-highlight">
+              <span>Day 2 - Sunset viewpoint and tram loop (highlighted)</span>
+              <span class="tag">featured</span>
+            </div>
+            <div class="row">
+              <span>Day 3 - Coastal loop and beach stop</span>
+              <span class="tag">in progress</span>
+            </div>
+            <div class="row">
+              <span>Day 4 - Museum + food tour</span>
+              <span class="tag">draft</span>
+            </div>
+          </div>
+        </article>
+
+        <article class="card">
+          <h2>KPI Snapshot</h2>
+          <p class="muted">Contrast check on cards, muted surfaces and text hierarchy.</p>
+          <div class="kpi-grid">
+            <div class="kpi">
+              <div class="kpi-label">Itineraries</div>
+              <div class="kpi-value">12</div>
+            </div>
+            <div class="kpi">
+              <div class="kpi-label">Upcoming Trips</div>
+              <div class="kpi-value">4</div>
+            </div>
+            <div class="kpi">
+              <div class="kpi-label">Shared Links</div>
+              <div class="kpi-value">7</div>
+            </div>
+          </div>
+        </article>
+      </section>
+    </main>
+
+    <script>
+      const palettes = {
+        existingCurrent: {
+          label: 'Existing Current App Palette',
+          tokens: {
+            '--background': 'oklch(0.984 0.016 85.2)',
+            '--foreground': 'oklch(0.305 0.031 66.8)',
+            '--card': 'oklch(0.996 0.01 84.8)',
+            '--card-foreground': 'oklch(0.305 0.031 66.8)',
+            '--muted': 'oklch(0.955 0.021 84.1)',
+            '--muted-foreground': 'oklch(0.53 0.026 66.1)',
+            '--primary': 'oklch(0.545 0.102 180.5)',
+            '--primary-foreground': 'oklch(0.985 0.007 95.2)',
+            '--secondary': 'oklch(0.94 0.027 83.5)',
+            '--secondary-foreground': 'oklch(0.355 0.036 64.9)',
+            '--accent': 'oklch(0.902 0.058 163.9)',
+            '--accent-foreground': 'oklch(0.295 0.032 64.5)',
+            '--destructive': 'oklch(0.577 0.245 27.325)',
+            '--destructive-foreground': '#fff7f7',
+            '--border': 'oklch(0.875 0.029 77.8)',
+            '--input': 'oklch(0.875 0.029 77.8)',
+            '--ring': 'oklch(0.545 0.102 180.5)'
+          }
+        },
+        sandstoneVoyage: {
+          label: 'Sandstone Voyage',
+          tokens: {
+            '--background': '#f8f4ea',
+            '--foreground': '#2f2416',
+            '--card': '#fff9ee',
+            '--card-foreground': '#2f2416',
+            '--muted': '#f1e8d8',
+            '--muted-foreground': '#6f5a41',
+            '--primary': '#0d7c66',
+            '--primary-foreground': '#f5fffb',
+            '--secondary': '#e8d9bf',
+            '--secondary-foreground': '#3f2f1d',
+            '--accent': '#d7efe7',
+            '--accent-foreground': '#12483d',
+            '--destructive': '#b43232',
+            '--destructive-foreground': '#fff5f5',
+            '--border': '#d8c7a9',
+            '--input': '#d8c7a9',
+            '--ring': '#0d7c66'
+          }
+        },
+        coastalAtlas: {
+          label: 'Coastal Atlas',
+          tokens: {
+            '--background': '#f4f7fb',
+            '--foreground': '#1c2a3a',
+            '--card': '#ffffff',
+            '--card-foreground': '#1c2a3a',
+            '--muted': '#e9eef5',
+            '--muted-foreground': '#5a6e86',
+            '--primary': '#1e63b5',
+            '--primary-foreground': '#f7fbff',
+            '--secondary': '#d9e4f3',
+            '--secondary-foreground': '#233d59',
+            '--accent': '#d8eff8',
+            '--accent-foreground': '#0f4667',
+            '--destructive': '#c43744',
+            '--destructive-foreground': '#fff6f7',
+            '--border': '#c8d6e8',
+            '--input': '#c8d6e8',
+            '--ring': '#1e63b5'
+          }
+        },
+        forestLedger: {
+          label: 'Forest Ledger',
+          tokens: {
+            '--background': '#f1f5ef',
+            '--foreground': '#1f2e24',
+            '--card': '#f9fcf8',
+            '--card-foreground': '#1f2e24',
+            '--muted': '#e3ebe0',
+            '--muted-foreground': '#5f7163',
+            '--primary': '#2f6d4f',
+            '--primary-foreground': '#f4fff8',
+            '--secondary': '#d2dfcc',
+            '--secondary-foreground': '#2e4a37',
+            '--accent': '#d9ebd6',
+            '--accent-foreground': '#2e533a',
+            '--destructive': '#b54141',
+            '--destructive-foreground': '#fff6f6',
+            '--border': '#bfd0bc',
+            '--input': '#bfd0bc',
+            '--ring': '#2f6d4f'
+          }
+        },
+        terracottaJournal: {
+          label: 'Terracotta Journal',
+          tokens: {
+            '--background': '#f9f1ea',
+            '--foreground': '#38261d',
+            '--card': '#fff8f2',
+            '--card-foreground': '#38261d',
+            '--muted': '#f0dfd0',
+            '--muted-foreground': '#7d5a48',
+            '--primary': '#b4563d',
+            '--primary-foreground': '#fff7f3',
+            '--secondary': '#e8cfbe',
+            '--secondary-foreground': '#53362a',
+            '--accent': '#f0dfd4',
+            '--accent-foreground': '#6f3f2f',
+            '--destructive': '#b83a3a',
+            '--destructive-foreground': '#fff5f5',
+            '--border': '#d8bca9',
+            '--input': '#d8bca9',
+            '--ring': '#b4563d'
+          }
+        },
+        graphitePro: {
+          label: 'Graphite Pro',
+          tokens: {
+            '--background': '#f4f5f7',
+            '--foreground': '#1f2328',
+            '--card': '#ffffff',
+            '--card-foreground': '#1f2328',
+            '--muted': '#eceff3',
+            '--muted-foreground': '#5d6672',
+            '--primary': '#2f5f9c',
+            '--primary-foreground': '#f7fbff',
+            '--secondary': '#dde2e8',
+            '--secondary-foreground': '#2e3e4f',
+            '--accent': '#dce8f8',
+            '--accent-foreground': '#294c78',
+            '--destructive': '#bc3f45',
+            '--destructive-foreground': '#fff6f7',
+            '--border': '#cdd5de',
+            '--input': '#cdd5de',
+            '--ring': '#2f5f9c'
+          }
+        },
+        grayscaleStudio: {
+          label: 'Grayscale Studio',
+          tokens: {
+            '--background': '#f5f5f5',
+            '--foreground': '#222222',
+            '--card': '#ffffff',
+            '--card-foreground': '#222222',
+            '--muted': '#ebebeb',
+            '--muted-foreground': '#6a6a6a',
+            '--primary': '#1f1f1f',
+            '--primary-foreground': '#f7f7f7',
+            '--secondary': '#ececec',
+            '--secondary-foreground': '#4a4a4a',
+            '--accent': '#5f7fa3',
+            '--accent-foreground': '#f6f8fb',
+            '--destructive': '#c25a5a',
+            '--destructive-foreground': '#ffffff',
+            '--border': '#cfcfcf',
+            '--input': '#cfcfcf',
+            '--ring': '#1f1f1f'
+          },
+          darkTokens: {
+            '--background': '#1a1a1a',
+            '--foreground': '#ececec',
+            '--card': '#232323',
+            '--card-foreground': '#ececec',
+            '--muted': '#2b2b2b',
+            '--muted-foreground': '#b6b6b6',
+            '--primary': '#d9d9d9',
+            '--primary-foreground': '#1f1f1f',
+            '--secondary': '#363636',
+            '--secondary-foreground': '#e2e2e2',
+            '--accent': '#5f7fa3',
+            '--accent-foreground': '#f6f8fb',
+            '--destructive': '#c25a5a',
+            '--destructive-foreground': '#ffffff',
+            '--border': '#3c3c3c',
+            '--input': '#3c3c3c',
+            '--ring': '#d9d9d9'
+          }
+        },
+        catppuccinLatte: {
+          label: 'Catppuccin Latte (Official)',
+          tokens: {
+            '--background': '#eff1f5',
+            '--foreground': '#4c4f69',
+            '--card': '#ffffff',
+            '--card-foreground': '#4c4f69',
+            '--muted': '#e6e9ef',
+            '--muted-foreground': '#6c6f85',
+            '--primary': '#1e66f5',
+            '--primary-foreground': '#eff1f5',
+            '--secondary': '#ccd0da',
+            '--secondary-foreground': '#5c5f77',
+            '--accent': '#40a02b',
+            '--accent-foreground': '#eff1f5',
+            '--destructive': '#d20f39',
+            '--destructive-foreground': '#ffffff',
+            '--border': '#bcc0cc',
+            '--input': '#bcc0cc',
+            '--ring': '#1e66f5'
+          }
+        },
+        nord: {
+          label: 'Nord (Official)',
+          tokens: {
+            '--background': '#eceff4',
+            '--foreground': '#2e3440',
+            '--card': '#f5f7fa',
+            '--card-foreground': '#2e3440',
+            '--muted': '#e5e9f0',
+            '--muted-foreground': '#4c566a',
+            '--primary': '#5e81ac',
+            '--primary-foreground': '#eceff4',
+            '--secondary': '#d8dee9',
+            '--secondary-foreground': '#434c5e',
+            '--accent': '#88c0d0',
+            '--accent-foreground': '#2e3440',
+            '--destructive': '#bf616a',
+            '--destructive-foreground': '#ffffff',
+            '--border': '#cfd6e1',
+            '--input': '#cfd6e1',
+            '--ring': '#5e81ac'
+          }
+        },
+        tokyoNight: {
+          label: 'Tokyo Night (Day Variant)',
+          tokens: {
+            '--background': '#e9e9ed',
+            '--foreground': '#3760bf',
+            '--card': '#f6f6f8',
+            '--card-foreground': '#3760bf',
+            '--muted': '#dbdce3',
+            '--muted-foreground': '#6172b0',
+            '--primary': '#2e7de9',
+            '--primary-foreground': '#ffffff',
+            '--secondary': '#c4c8da',
+            '--secondary-foreground': '#2e3c64',
+            '--accent': '#007197',
+            '--accent-foreground': '#f6f6f8',
+            '--destructive': '#f52a65',
+            '--destructive-foreground': '#ffffff',
+            '--border': '#c8ccdd',
+            '--input': '#c8ccdd',
+            '--ring': '#2e7de9'
+          }
+        },
+        radixStarter: {
+          label: 'Radix Themes Starter (Slate + Blue)',
+          tokens: {
+            '--background': '#f8fafc',
+            '--foreground': '#111827',
+            '--card': '#ffffff',
+            '--card-foreground': '#111827',
+            '--muted': '#f1f5f9',
+            '--muted-foreground': '#475569',
+            '--primary': '#2563eb',
+            '--primary-foreground': '#f8fafc',
+            '--secondary': '#e2e8f0',
+            '--secondary-foreground': '#334155',
+            '--accent': '#0ea5e9',
+            '--accent-foreground': '#082f49',
+            '--destructive': '#dc2626',
+            '--destructive-foreground': '#ffffff',
+            '--border': '#dbe3ee',
+            '--input': '#dbe3ee',
+            '--ring': '#2563eb'
+          }
+        },
+        everforest: {
+          label: 'Everforest (Official)',
+          tokens: {
+            '--background': '#f3ead3',
+            '--foreground': '#5c6a72',
+            '--card': '#fff9e8',
+            '--card-foreground': '#5c6a72',
+            '--muted': '#e6dcc4',
+            '--muted-foreground': '#829181',
+            '--primary': '#8da101',
+            '--primary-foreground': '#fdf6e3',
+            '--secondary': '#d8ceb7',
+            '--secondary-foreground': '#56635f',
+            '--accent': '#3a94c5',
+            '--accent-foreground': '#fdf6e3',
+            '--destructive': '#f85552',
+            '--destructive-foreground': '#ffffff',
+            '--border': '#d4c9b2',
+            '--input': '#d4c9b2',
+            '--ring': '#8da101'
+          }
+        }
+      }
+
+      const paletteSelect = document.getElementById('palette')
+      const modeSelect = document.getElementById('mode')
+      const swatches = document.getElementById('swatches')
+
+      function nightTokensFromPalette(lightTokens) {
+        return {
+          '--background': '#1a1a1a',
+          '--foreground': '#ececec',
+          '--card': '#232323',
+          '--card-foreground': '#ececec',
+          '--muted': '#2b2b2b',
+          '--muted-foreground': '#b6b6b6',
+          '--primary': lightTokens['--primary'] || '#8ea8c4',
+          '--primary-foreground': '#f8f8f8',
+          '--secondary': '#333333',
+          '--secondary-foreground': '#e2e2e2',
+          '--accent': lightTokens['--accent'] || '#6f8eaf',
+          '--accent-foreground': '#f8f9fb',
+          '--destructive': lightTokens['--destructive'] || '#c25a5a',
+          '--destructive-foreground': '#ffffff',
+          '--border': '#3c3c3c',
+          '--input': '#3c3c3c',
+          '--ring': lightTokens['--ring'] || lightTokens['--primary'] || '#8ea8c4'
+        }
+      }
+
+      function applyPalette(key, mode) {
+        const palette = palettes[key]
+        if (!palette) return
+        const tokens = mode === 'night'
+          ? (palette.darkTokens || nightTokensFromPalette(palette.tokens))
+          : palette.tokens
+        Object.entries(tokens).forEach(([token, value]) => {
+          document.documentElement.style.setProperty(token, value)
+        })
+      }
+
+      function renderSwatches(key, mode) {
+        const palette = palettes[key]
+        if (!palette) return
+        const tokens = mode === 'night'
+          ? (palette.darkTokens || nightTokensFromPalette(palette.tokens))
+          : palette.tokens
+        const chipTokens = ['--background', '--primary', '--accent', '--secondary', '--destructive']
+        swatches.innerHTML = chipTokens
+          .map((token) => {
+            const value = tokens[token]
+            return `
+              <div class="swatch">
+                <div class="swatch-chip" style="background:${value}"></div>
+                <div class="swatch-name">${token.replace('--', '')}</div>
+              </div>
+            `
+          })
+          .join('')
+      }
+
+      Object.entries(palettes).forEach(([key, palette]) => {
+        const option = document.createElement('option')
+        option.value = key
+        option.textContent = palette.label
+        paletteSelect.appendChild(option)
+      })
+
+      const savedPalette = localStorage.getItem('palette-preview-choice')
+      const savedMode = localStorage.getItem('palette-preview-mode')
+      const initialMode = savedMode === 'night' ? 'night' : 'day'
+      const initial = savedPalette && palettes[savedPalette] ? savedPalette : 'existingCurrent'
+      modeSelect.value = initialMode
+      paletteSelect.value = initial
+      applyPalette(initial, initialMode)
+      renderSwatches(initial, initialMode)
+
+      paletteSelect.addEventListener('change', (event) => {
+        const next = event.target.value
+        const mode = modeSelect.value
+        applyPalette(next, mode)
+        renderSwatches(next, mode)
+        localStorage.setItem('palette-preview-choice', next)
+      })
+
+      modeSelect.addEventListener('change', (event) => {
+        const mode = event.target.value === 'night' ? 'night' : 'day'
+        const key = paletteSelect.value
+        applyPalette(key, mode)
+        renderSwatches(key, mode)
+        localStorage.setItem('palette-preview-mode', mode)
+      })
+    </script>
+  </body>
+</html>

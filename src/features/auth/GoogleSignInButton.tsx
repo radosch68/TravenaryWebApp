@@ -4,12 +4,14 @@ import { useTranslation } from 'react-i18next'
 
 import { renderGoogleSignInButton } from '@/features/auth/google-auth'
 
+import styles from '@/pages/AuthPage.module.css'
+
 interface GoogleSignInButtonProps {
   onIdToken: (idToken: string) => Promise<void>
 }
 
 export function GoogleSignInButton({ onIdToken }: GoogleSignInButtonProps): ReactElement {
-  const { t, i18n } = useTranslation('errors')
+  const { t, i18n } = useTranslation(['errors'])
   const hasClientId = Boolean(import.meta.env.VITE_GOOGLE_OAUTH_CLIENT_ID)
   const buttonContainerRef = useRef<HTMLDivElement | null>(null)
   const onIdTokenRef = useRef(onIdToken)
@@ -48,8 +50,8 @@ export function GoogleSignInButton({ onIdToken }: GoogleSignInButtonProps): Reac
   }, [hasClientId, sdkLocale])
 
   if (!hasClientId || loadError) {
-    return <p className="error">{t('providerUnavailable')}</p>
+    return <p className={styles.error}>{t('errors:providerUnavailable')}</p>
   }
 
-  return <div aria-busy={isSubmitting} ref={buttonContainerRef} className="google-signin-btn" />
+  return <div aria-busy={isSubmitting} ref={buttonContainerRef} className={styles.googleSigninBtn} />
 }

@@ -1,0 +1,120 @@
+.shell {
+  width: 100%;
+  margin: 0;
+  padding: 0.45rem 0 1rem;
+  display: grid;
+  gap: 0.625rem;
+}
+
+.contentFrame {
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  background: color-mix(in oklab, var(--card) 94%, white 6%);
+  display: grid;
+  grid-template-columns: 220px minmax(0, 1fr);
+  overflow: hidden;
+}
+
+.sidebar {
+  border-right: 1px solid var(--border);
+  padding: 0.8rem;
+  background: color-mix(in oklab, var(--muted) 88%, var(--background) 12%);
+}
+
+.navList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.4rem;
+}
+
+.navItem {
+  width: 100%;
+  border: 1px solid transparent;
+  border-radius: calc(var(--radius) - 0.2rem);
+  background: transparent;
+  color: var(--foreground);
+  padding: 0.55rem 0.6rem;
+  font: inherit;
+  font-size: 0.92rem;
+  display: flex;
+  align-items: center;
+  gap: 0.48rem;
+  text-align: left;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.navItem[data-active='true'] {
+  border-color: color-mix(in oklab, var(--primary) 34%, var(--border) 66%);
+  background: color-mix(in oklab, var(--primary) 14%, var(--background) 86%);
+}
+
+.navItem:hover {
+  border-color: color-mix(in oklab, var(--primary) 22%, var(--border) 78%);
+  background: color-mix(in oklab, var(--primary) 10%, var(--background) 90%);
+}
+
+.navItem[data-disabled='true'] {
+  opacity: 0.62;
+  cursor: not-allowed;
+}
+
+.navItem[data-disabled='true']:hover {
+  border-color: transparent;
+  background: transparent;
+}
+
+.mainContent {
+  padding: 0.9rem;
+  min-height: 64vh;
+}
+
+@media (max-width: 40rem) {
+  .contentFrame {
+    grid-template-columns: 1fr;
+  }
+
+  .sidebar {
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+    padding: 0.65rem;
+  }
+
+  .navList {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .shell {
+    width: 100%;
+    padding: 0.5rem 0 0.8rem;
+  }
+
+  .mainContent {
+    padding: 0.7rem;
+  }
+}
+
+@media (orientation: landscape) and (max-width: 56.25rem) and (max-height: 32rem),
+  (orientation: landscape) and (pointer: coarse) and (max-height: 32rem) {
+  .contentFrame {
+    grid-template-columns: 1fr;
+  }
+
+  .sidebar {
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+    padding: 0.65rem;
+  }
+
+  .navList {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .mainContent {
+    padding: 0.7rem;
+  }
+}

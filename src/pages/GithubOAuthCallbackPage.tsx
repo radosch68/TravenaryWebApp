@@ -2,6 +2,8 @@ import type { ReactElement } from 'react'
 import { useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 
+import styles from './AuthPage.module.css'
+
 export function GithubOAuthCallbackPage(): ReactElement {
   const { t } = useTranslation(['auth'])
 
@@ -22,9 +24,11 @@ export function GithubOAuthCallbackPage(): ReactElement {
   }, [])
 
   return (
-    <main className="auth-shell">
-      <section className="auth-card">
-        <p role="status" aria-live="polite">{t('auth:social.oauthCallback')}</p>
+    <main className={styles.shell}>
+      <section className={styles.card}>
+        <p role="status" aria-live="polite" className={styles.subtitle}>
+          {t('auth:social.oauthCallback')}
+        </p>
       </section>
     </main>
   )

@@ -7,7 +7,7 @@ interface ApiAuthHandlers {
   onRefreshFailure: () => void
 }
 
-const DEFAULT_TIMEOUT_MS = 15_000
+const DEFAULT_TIMEOUT_MS = 15000
 
 let authHandlers: ApiAuthHandlers | undefined
 let refreshInFlight: Promise<AuthTokens> | null = null
@@ -29,7 +29,7 @@ export function apiBaseUrl(): string {
           return configuredUrl.toString().replace(/\/$/, '')
         }
       } catch {
-        // Ignore malformed configured URL and continue using fallback behavior.
+        // Ignore malformed URL and keep fallback behavior.
       }
     }
 
@@ -45,8 +45,7 @@ export function apiBaseUrl(): string {
 
 function normalizeApiError(status: number, payload: unknown): ApiError {
   if (payload && typeof payload === 'object') {
-    const typed = payload as Partial<ErrorResponse>
-    return new ApiError(status, typed)
+    return new ApiError(status, payload as Partial<ErrorResponse>)
   }
 
   return new ApiError(status, {
@@ -66,10 +65,6 @@ async function parseResponseBody(response: Response): Promise<unknown> {
 
 export function configureApiClientAuthHandlers(handlers: ApiAuthHandlers): void {
   authHandlers = handlers
-}
-
-export function getCurrentAccessToken(): string | null {
-  return authHandlers?.getAccessToken() ?? null
 }
 
 export async function refreshSessionTokens(): Promise<AuthTokens> {
@@ -93,6 +88,7 @@ export async function refreshSessionTokens(): Promise<AuthTokens> {
   refreshInFlight = (async () => {
     const abortController = new AbortController()
     const timeoutId = setTimeout(() => abortController.abort(), DEFAULT_TIMEOUT_MS)
+
     try {
       const response = await fetch(`${apiBaseUrl()}/auth/refresh`, {
         method: 'POST',
@@ -109,10 +105,10 @@ export async function refreshSessionTokens(): Promise<AuthTokens> {
       }
 
       const payload = (await parseResponseBody(response)) as AuthTokens
-      authHandlers?.onRefreshSuccess(payload)
+      authHandlers.onRefreshSuccess(payload)
       return payload
     } catch (error) {
-      authHandlers?.onRefreshFailure()
+      authHandlers.onRefreshFailure()
 
       if (error instanceof ApiError) {
         throw error
@@ -217,7 +213,10 @@ export async function apiRequest<T>(
     }
 
     if (signal?.aborted) {
-      throw new ApiError(499, { code: 'REQUEST_ABORTED', message: 'Request was aborted' })
+      throw new ApiError(499, {
+        code: 'REQUEST_ABORTED',
+        message: 'Request was aborted',
+      })
     }
 
     if (error instanceof Error && error.name === 'AbortError') {

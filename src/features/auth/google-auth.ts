@@ -1,5 +1,5 @@
 const SDK_POLL_INTERVAL_MS = 200
-const SDK_LOAD_TIMEOUT_MS = 5_000
+const SDK_LOAD_TIMEOUT_MS = 5000
 
 export function renderGoogleSignInButton(
   element: HTMLElement,
@@ -13,7 +13,8 @@ export function renderGoogleSignInButton(
   }
 
   let disposed = false
-
+  let pendingRafId: number | null = null
+  let pendingTimeoutId: number | null = null
   type GoogleAccountsId = NonNullable<typeof window.google>['accounts']['id']
 
   const doRender = (width: number, googleAccountsId: GoogleAccountsId): void => {
@@ -24,7 +25,6 @@ export function renderGoogleSignInButton(
           onUnavailable()
           return
         }
-
         onCredential(response.credential)
       },
     })
@@ -40,37 +40,86 @@ export function renderGoogleSignInButton(
     })
   }
 
-  // Re-render whenever the container changes size so the button fills the full
-  // width. This fixes Safari, where clientWidth may be 0 on the first
-  // synchronous pass before the browser has completed layout.
   const observer = new ResizeObserver((entries) => {
-    if (disposed) return
-    const w = Math.round(entries[0]?.contentRect.width ?? 0)
+    if (disposed) {
+      return
+    }
+    const width = Math.round(entries[0]?.contentRect.width ?? 0)
     const googleAccountsId = window.google?.accounts?.id
-    if (w > 0 && googleAccountsId?.renderButton) {
-      doRender(w, googleAccountsId)
+    if (width > 0 && googleAccountsId?.renderButton) {
+      doRender(width, googleAccountsId)
     }
   })
   observer.observe(element)
+
+  const rerenderFromViewport = (): void => {
+    if (disposed) {
+      return
+    }
+
+    const googleAccountsId = window.google?.accounts?.id
+    if (!googleAccountsId?.renderButton) {
+      return
+    }
+
+    const width = Math.round(element.getBoundingClientRect().width)
+    if (width > 0) {
+      doRender(width, googleAccountsId)
+    }
+  }
+
+  const scheduleViewportRerender = (): void => {
+    if (disposed) {
+      return
+    }
+
+    if (pendingRafId !== null) {
+      window.cancelAnimationFrame(pendingRafId)
+    }
+    if (pendingTimeoutId !== null) {
+      window.clearTimeout(pendingTimeoutId)
+    }
+
+    pendingRafId = window.requestAnimationFrame(() => {
+      pendingRafId = null
+      rerenderFromViewport()
+      // Safari can report an intermediate viewport right after rotation.
+      pendingTimeoutId = window.setTimeout(() => {
+        pendingTimeoutId = null
+        rerenderFromViewport()
+      }, 280)
+    })
+  }
+
+  window.addEventListener('resize', scheduleViewportRerender)
+  window.addEventListener('orientationchange', scheduleViewportRerender)
 
   const render = (): boolean => {
     const googleAccountsId = window.google?.accounts?.id
     if (disposed || !googleAccountsId?.renderButton) {
       return false
     }
+
     const width = element.clientWidth
     if (width > 0) {
       doRender(width, googleAccountsId)
     }
-    // Return true even when width is 0 – SDK is ready; the ResizeObserver will
-    // fire once the element is laid out and call doRender with the real width.
+
     return true
   }
 
   if (render()) {
     return () => {
       disposed = true
+      window.removeEventListener('resize', scheduleViewportRerender)
+      window.removeEventListener('orientationchange', scheduleViewportRerender)
       observer.disconnect()
+      if (pendingRafId !== null) {
+        window.cancelAnimationFrame(pendingRafId)
+      }
+      if (pendingTimeoutId !== null) {
+        window.clearTimeout(pendingTimeoutId)
+      }
     }
   }
 
@@ -90,7 +139,15 @@ export function renderGoogleSignInButton(
 
   return () => {
     disposed = true
+    window.removeEventListener('resize', scheduleViewportRerender)
+    window.removeEventListener('orientationchange', scheduleViewportRerender)
     observer.disconnect()
+    if (pendingRafId !== null) {
+      window.cancelAnimationFrame(pendingRafId)
+    }
+    if (pendingTimeoutId !== null) {
+      window.clearTimeout(pendingTimeoutId)
+    }
     window.clearInterval(intervalId)
     window.clearTimeout(timeoutId)
   }

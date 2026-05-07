@@ -1,20 +1,18 @@
-import type { ReactElement } from 'react'
-import { zodResolver } from '@hookform/resolvers/zod'
+import type { FormEvent, ReactElement } from 'react'
 import { useState } from 'react'
-import { useForm } from 'react-hook-form'
 import { Link, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 
-import { BrandLanguageHeader } from '@/components/BrandLanguageHeader'
 import { acquireAppleIdToken } from '@/features/auth/apple-auth'
+import { acquireGithubAuthCode } from '@/features/auth/github-auth'
 import { GithubSignInButton } from '@/features/auth/GithubSignInButton'
 import { GoogleSignInButton } from '@/features/auth/GoogleSignInButton'
 import { completeSocialAuth, handleSocialAuth } from '@/features/auth/social-auth-handlers'
-import { type SignUpFormData, signUpSchema } from '@/features/auth/schemas'
-import { acquireGithubAuthCode } from '../features/auth/github-auth'
 import { signUp } from '@/services/auth-service'
 import { ApiError } from '@/services/contracts'
 import { useAuthStore } from '@/store/auth-store'
+
+import styles from './AuthPage.module.css'
 
 export function SignUpPage(): ReactElement {
   const navigate = useNavigate()
@@ -22,108 +20,150 @@ export function SignUpPage(): ReactElement {
   const bootstrapAuthenticatedSession = useAuthStore(
     (state) => state.bootstrapAuthenticatedSession,
   )
-  const [apiError, setApiError] = useState('')
-
-  const form = useForm<SignUpFormData>({
-    resolver: zodResolver(signUpSchema),
-    mode: 'onBlur',
-    defaultValues: {
-      email: '',
-      password: '',
-      displayName: '',
-    },
-  })
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [displayName, setDisplayName] = useState('')
+  const [apiError, setApiError] = useState<string | null>(null)
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   const socialAuthEnabled = import.meta.env.VITE_ENABLE_SOCIAL_AUTH === 'true'
   const googleEnabled = socialAuthEnabled && Boolean(import.meta.env.VITE_GOOGLE_OAUTH_CLIENT_ID)
   const appleEnabled = socialAuthEnabled && Boolean(import.meta.env.VITE_APPLE_OAUTH_CLIENT_ID)
   const githubEnabled = socialAuthEnabled && Boolean(import.meta.env.VITE_GITHUB_OAUTH_CLIENT_ID)
 
-  const onSubmit = form.handleSubmit(async (values) => {
-    setApiError('')
+  async function onSubmit(event: FormEvent<HTMLFormElement>): Promise<void> {
+    event.preventDefault()
+    if (isSubmitting) {
+      return
+    }
+
+    setIsSubmitting(true)
+    setApiError(null)
+
     try {
-      const tokens = await signUp({ ...values, displayName: values.displayName || undefined })
+      const tokens = await signUp({
+        email,
+        password,
+        displayName: displayName.trim() || undefined,
+      })
       await bootstrapAuthenticatedSession(tokens)
       navigate('/')
     } catch (error) {
       if (error instanceof ApiError && error.status === 409) {
         setApiError(t('auth:errors.emailTaken'))
-        return
+      } else {
+        setApiError(t('errors:server'))
       }
-
-      setApiError(t('errors:server'))
+    } finally {
+      setIsSubmitting(false)
     }
-  })
+  }
 
-  const onApple = async (): Promise<void> => {
+  async function onApple(): Promise<void> {
     await handleSocialAuth('apple', acquireAppleIdToken, navigate, setApiError)
   }
 
-  const onGoogleIdToken = async (idToken: string): Promise<void> => {
-    setApiError('')
+  async function onGoogleIdToken(idToken: string): Promise<void> {
     await completeSocialAuth('google', idToken, navigate, setApiError)
   }
 
-  const onGithub = async (): Promise<void> => {
+  async function onGithub(): Promise<void> {
     await handleSocialAuth('github', acquireGithubAuthCode, navigate, setApiError)
   }
 
   return (
-    <main className="auth-shell">
-      <header className="topbar">
-        <BrandLanguageHeader variant="topbar" />
-      </header>
-      <section className="auth-card">
-        <h1>{t('auth:signUp.title')}</h1>
-        <p>{t('auth:signUp.subtitle')}</p>
+    <main className={styles.shell}>
+      <section className={styles.card}>
+        <p className={styles.brand}>Travenary</p>
+        <h1 className={styles.title}>{t('auth:signUp.title')}</h1>
+        <p className={styles.subtitle}>{t('auth:signUp.subtitle')}</p>
 
         {googleEnabled || appleEnabled || githubEnabled ? (
-          <div className="social-row">
-            {googleEnabled ? (
-              <GoogleSignInButton onIdToken={onGoogleIdToken} />
-            ) : null}
+          <div className={styles.socialRow}>
+            {googleEnabled ? <GoogleSignInButton onIdToken={onGoogleIdToken} /> : null}
             {githubEnabled ? (
-              <GithubSignInButton onClick={onGithub} label={t('auth:actions.continueGithub')} />
+              <GithubSignInButton
+                disabled={isSubmitting}
+                onClick={onGithub}
+                label={t('auth:actions.continueGithub')}
+              />
             ) : null}
             {appleEnabled ? (
-              <button type="button" onClick={() => void onApple()}>
+              <button
+                className={styles.socialProviderBtn}
+                type="button"
+                disabled={isSubmitting}
+                onClick={() => {
+                  void onApple()
+                }}
+              >
                 {t('auth:actions.continueApple')}
               </button>
             ) : null}
           </div>
         ) : (
-          <p>{t('auth:social.disabled')}</p>
+          <p className={styles.subtitle}>{t('auth:social.disabled')}</p>
         )}
 
-        <p className="auth-divider">{t('auth:signUp.useEmail')}</p>
+        <p className={styles.authDivider}>{t('auth:signUp.useEmail')}</p>
 
-        <form className="form" onSubmit={(event) => void onSubmit(event)}>
-          <label htmlFor="email">{t('auth:fields.email')}</label>
-          <input id="email" type="email" {...form.register('email')} />
-          {form.formState.errors.email?.message && (
-            <p className="error">{t(`auth:${form.formState.errors.email.message}`)}</p>
-          )}
+        <form className={styles.form} onSubmit={(event) => void onSubmit(event)}>
+          <div className={styles.field}>
+            <label className={styles.label} htmlFor="email">
+              {t('auth:fields.email')}
+            </label>
+            <input
+              id="email"
+              className={styles.input}
+              type="email"
+              autoComplete="email"
+              required
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+            />
+          </div>
 
-          <label htmlFor="password">{t('auth:fields.password')}</label>
-          <input id="password" type="password" {...form.register('password')} />
-          {form.formState.errors.password?.message && (
-            <p className="error">{t(`auth:${form.formState.errors.password.message}`)}</p>
-          )}
+          <div className={styles.field}>
+            <label className={styles.label} htmlFor="password">
+              {t('auth:fields.password')}
+            </label>
+            <input
+              id="password"
+              className={styles.input}
+              type="password"
+              autoComplete="new-password"
+              required
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+            />
+          </div>
 
-          <label htmlFor="displayName">{t('auth:fields.displayName')}</label>
-          <input id="displayName" type="text" {...form.register('displayName')} />
+          <div className={styles.field}>
+            <label className={styles.label} htmlFor="displayName">
+              {t('auth:fields.displayName')}
+            </label>
+            <input
+              id="displayName"
+              className={styles.input}
+              type="text"
+              autoComplete="name"
+              value={displayName}
+              onChange={(event) => setDisplayName(event.target.value)}
+            />
+          </div>
 
-          {apiError && <p className="error">{apiError}</p>}
+          {apiError ? <p className={styles.error}>{apiError}</p> : null}
 
-          <button type="submit" disabled={form.formState.isSubmitting}>
-            {form.formState.isSubmitting
-              ? t('auth:actions.signingUp')
-              : t('auth:actions.signUp')}
+          <button className={styles.submit} type="submit" disabled={isSubmitting}>
+            {isSubmitting ? t('auth:actions.signingUp') : t('auth:actions.signUp')}
           </button>
         </form>
 
-        <p>
-          {t('auth:signUp.hasAccount')} <Link to="/signin">{t('auth:actions.signIn')}</Link>
+        <p className={styles.footer}>
+          {t('auth:signUp.hasAccount')}{' '}
+          <Link className={styles.link} to="/signin">
+            {t('auth:actions.signIn')}
+          </Link>
         </p>
       </section>
     </main>

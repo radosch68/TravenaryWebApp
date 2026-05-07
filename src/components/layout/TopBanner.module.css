@@ -1,0 +1,134 @@
+.banner {
+  --banner-motion-ms: 500ms;
+  position: sticky;
+  top: 0;
+  z-index: 80;
+  width: 100%;
+  touch-action: pan-y;
+  padding: calc(env(safe-area-inset-top) + 0.35rem) 0.6rem 0.45rem;
+  background: color-mix(in oklab, var(--background) 48%, transparent);
+  backdrop-filter: blur(10px) saturate(130%);
+  border-bottom: 1px solid color-mix(in oklab, var(--border) 60%, transparent);
+  transform: translateY(0);
+  transition: transform var(--banner-motion-ms) ease;
+}
+
+.banner[data-hidden='true'] {
+  transform: translateY(calc(-100% - env(safe-area-inset-top)));
+  pointer-events: none;
+}
+
+.inner {
+  width: 100%;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+}
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  min-width: 0;
+  color: var(--foreground);
+  text-decoration: none;
+}
+
+.logo {
+  height: 3.52rem;
+  width: auto;
+  max-width: min(58vw, 26rem);
+  display: block;
+  object-fit: contain;
+  transform: scale(1.2);
+  transform-origin: left center;
+}
+
+.actions {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0;
+  min-width: 0;
+}
+
+.languageGroup,
+.accountGroup,
+.screenGroup {
+  display: inline-flex;
+  align-items: center;
+}
+
+.languageGroup {
+  width: 7.25rem;
+  justify-content: flex-end;
+}
+
+.accountGroup,
+.screenGroup {
+  margin-left: 0.72rem;
+}
+
+.accountGroup {
+  gap: 0.38rem;
+}
+
+.languageSelect {
+  width: 100%;
+}
+
+.actionButton {
+  min-width: 0;
+}
+
+.actionLabel {
+  white-space: nowrap;
+}
+
+@media (max-width: 40rem) {
+  .banner {
+    padding: calc(env(safe-area-inset-top) + 0.3rem) 0.45rem 0.4rem;
+  }
+
+  .inner {
+    gap: 0.35rem;
+  }
+
+  .logo {
+    height: 3.28rem;
+    max-width: min(62vw, 18rem);
+    transform: scale(1.2);
+  }
+
+  .languageSelect {
+    width: 100%;
+  }
+
+  .languageGroup {
+    width: 2rem;
+  }
+
+  .accountGroup,
+  .screenGroup {
+    margin-left: 0.3rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .banner {
+    transition: none;
+  }
+}
+
+@media (max-width: 40rem) {
+  .actionLabel {
+    display: none;
+  }
+
+  .actionButton {
+    width: 2rem;
+    height: 2rem;
+    padding-inline: 0;
+  }
+}

@@ -2,7 +2,5 @@
   "network": "Network error. Please check your connection and try again.",
   "server": "Server error. Please try again.",
   "unknown": "Something went wrong.",
-  "providerUnavailable": "Provider is unavailable right now. Use email sign-in.",
-  "dateConflict": "This date change conflicts with anchored activities. Update anchors first or choose different dates.",
-  "dateConflictTitle": "Date conflict"
+  "providerUnavailable": "Provider is unavailable right now. Use email sign-in."
 }

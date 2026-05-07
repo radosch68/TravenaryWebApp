@@ -1,59 +1,100 @@
-import type { ChangeEvent, ReactElement } from 'react'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { useEffect, useState } from 'react'
-import { useForm } from 'react-hook-form'
-import { useNavigate } from 'react-router-dom'
+import type { ChangeEvent, FormEvent } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { useNavigate } from 'react-router-dom'
 
-import {
-  type DeleteAccountFormData,
-  type DisplayNameFormData,
-  type PasswordChangeFormData,
-  deleteAccountSchema,
-  displayNameSchema,
-  passwordChangeSchema,
-} from '@/features/profile/schemas'
-import { Header } from '@/components/Header'
-import { Breadcrumb } from '@/components/Breadcrumb'
-import { signOut } from '@/services/auth-service'
-import { ApiError } from '@/services/contracts'
+import { AppShell } from '@/components/layout/AppShell'
+import { ApiError, type UserProfile } from '@/services/contracts'
 import {
   changePassword,
   deleteAccount,
+  getMe,
   updateDisplayName,
   updatePreferredLanguage,
 } from '@/services/profile-service'
-import { DevLogPanel } from '@/components/DevLogPanel'
 import { useAuthStore } from '@/store/auth-store'
 import { useProfileStore } from '@/store/profile-store'
 
-export function ProfilePage(): ReactElement {
-  const navigate = useNavigate()
-  const { t, i18n } = useTranslation(['profile', 'common'])
-  const profile = useProfileStore((state) => state.profile)
-  const setProfile = useProfileStore((state) => state.setProfile)
-  const activeLanguage = useProfileStore((state) => state.activeLanguage)
-  const applyAuthenticatedProfile = useProfileStore((state) => state.applyAuthenticatedProfile)
-  const clearSession = useAuthStore((state) => state.clearSession)
+import styles from './ProfilePage.module.css'
 
+export function ProfilePage() {
+  const navigate = useNavigate()
+  const { t, i18n } = useTranslation(['profile', 'common', 'errors'])
+  const clearSession = useAuthStore((state) => state.clearSession)
+  const setProfileStore = useProfileStore((state) => state.setProfile)
+
+  const [profile, setProfile] = useState<UserProfile | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const [loadError, setLoadError] = useState('')
+
+  const [displayNameValue, setDisplayNameValue] = useState('')
   const [displayNameStatus, setDisplayNameStatus] = useState('')
+  const [isSavingDisplayName, setIsSavingDisplayName] = useState(false)
+
+  const [isSavingLanguage, setIsSavingLanguage] = useState(false)
+
+  const [currentPasswordValue, setCurrentPasswordValue] = useState('')
+  const [newPasswordValue, setNewPasswordValue] = useState('')
+  const [confirmNewPasswordValue, setConfirmNewPasswordValue] = useState('')
   const [passwordStatus, setPasswordStatus] = useState('')
-  const [deleteError, setDeleteError] = useState('')
+  const [isSavingPassword, setIsSavingPassword] = useState(false)
+
   const [showDeleteForm, setShowDeleteForm] = useState(false)
+  const [deletePasswordValue, setDeletePasswordValue] = useState('')
+  const [deleteError, setDeleteError] = useState('')
+  const [isDeleting, setIsDeleting] = useState(false)
+
+  useEffect(() => {
+    let isMounted = true
+
+    async function loadProfile(): Promise<void> {
+      setIsLoading(true)
+      setLoadError('')
+      try {
+        const loadedProfile = await getMe()
+        if (!isMounted) {
+          return
+        }
+
+        setProfile(loadedProfile)
+        setDisplayNameValue(loadedProfile.displayName || '')
+        setProfileStore(loadedProfile.displayName ?? null, loadedProfile.email)
+      } catch {
+        if (!isMounted) {
+          return
+        }
+
+        setLoadError(t('profile:messages.loadError'))
+      } finally {
+        if (isMounted) {
+          setIsLoading(false)
+        }
+      }
+    }
+
+    void loadProfile()
+
+    return () => {
+      isMounted = false
+    }
+  }, [t])
+
   const hasPasswordProvider = profile?.authProviders?.includes('password') ?? true
-  const requiresDeletePassword = profile?.authProviders?.includes('password') ?? true
   const hasSocialProvider = profile?.authProviders?.some((provider) => provider !== 'password') ?? false
+  const requiresDeletePassword = hasPasswordProvider
   const canSetInitialPassword = !hasPasswordProvider && hasSocialProvider
 
-  const activeLocale = activeLanguage === 'cs-CZ' ? 'cs-CZ' : 'en'
-  const profilePreferredLanguage = profile?.preferredLanguage ?? activeLanguage
+  const activeLocale = i18n.language === 'cs-CZ' ? 'cs-CZ' : 'en'
 
-  const resolveProfileMessage = (message: string): string => {
-    const translated = t(message, { ns: 'profile' })
-    return translated === message ? t(`profile:${message}`) : translated
-  }
+  const formattedProviders = useMemo(() => {
+    if (!profile?.authProviders.length) {
+      return t('profile:fields.notAvailable')
+    }
 
-  const formatDateTime = (value?: string): string => {
+    return profile.authProviders.map((provider) => t(`profile:providers.${provider}`)).join(', ')
+  }, [profile?.authProviders, t])
+
+  function formatDateTime(value?: string): string {
     if (!value) {
       return t('profile:fields.notAvailable')
     }
@@ -64,304 +105,371 @@ export function ProfilePage(): ReactElement {
     }).format(new Date(value))
   }
 
-  const formatProviders = (): string => {
-    if (!profile?.authProviders.length) {
-      return t('profile:fields.notAvailable')
-    }
-
-    return profile.authProviders
-      .map((provider) => t(`profile:providers.${provider}`))
-      .join(', ')
-  }
-
-  const displayNameForm = useForm<DisplayNameFormData>({
-    resolver: zodResolver(displayNameSchema),
-    defaultValues: {
-      displayName: profile?.displayName || '',
-    },
-  })
-
-  useEffect(() => {
-    if (!displayNameForm.formState.isDirty) {
-      displayNameForm.reset({ displayName: profile?.displayName || '' })
-    }
-  }, [displayNameForm, profile?.displayName])
-
-  const passwordForm = useForm<PasswordChangeFormData>({
-    resolver: zodResolver(passwordChangeSchema),
-    mode: 'onChange',
-    reValidateMode: 'onChange',
-    defaultValues: {
-      currentPassword: '',
-      newPassword: '',
-      confirmNewPassword: '',
-    },
-  })
-
-  const deleteForm = useForm<DeleteAccountFormData>({
-    resolver: zodResolver(deleteAccountSchema),
-    defaultValues: {
-      password: '',
-    },
-  })
-
-  const submitDisplayName = displayNameForm.handleSubmit(async (values) => {
-    try {
-      const updatedProfile = await updateDisplayName(values.displayName)
-      setProfile(updatedProfile)
-      setDisplayNameStatus(t('profile:messages.saved'))
-      window.setTimeout(() => setDisplayNameStatus(''), 4000)
-    } catch {
-      setDisplayNameStatus(t('profile:messages.displayNameSaveError'))
-    }
-  })
-
-  const submitPassword = passwordForm.handleSubmit(async (values) => {
-    setPasswordStatus('')
-
-    if (hasPasswordProvider && !values.currentPassword) {
-      passwordForm.setError('currentPassword', {
-        type: 'required',
-        message: 'validation.passwordRequired',
-      })
+  async function onDisplayNameSubmit(event: FormEvent<HTMLFormElement>): Promise<void> {
+    event.preventDefault()
+    if (!profile || isSavingDisplayName) {
       return
     }
 
-    const settingInitialPassword = !hasPasswordProvider
+    const trimmedDisplayName = displayNameValue.trim()
+    if (!trimmedDisplayName) {
+      setDisplayNameStatus(t('profile:validation.displayNameRequired'))
+      return
+    }
 
+    if (trimmedDisplayName.length > 80) {
+      setDisplayNameStatus(t('profile:validation.displayNameMax'))
+      return
+    }
+
+    setIsSavingDisplayName(true)
+    setDisplayNameStatus('')
+    try {
+      const updatedProfile = await updateDisplayName(trimmedDisplayName)
+      setProfile(updatedProfile)
+      setDisplayNameValue(updatedProfile.displayName || '')
+      setProfileStore(updatedProfile.displayName ?? null, updatedProfile.email)
+      setDisplayNameStatus(t('profile:messages.saved'))
+    } catch {
+      setDisplayNameStatus(t('profile:messages.displayNameSaveError'))
+    } finally {
+      setIsSavingDisplayName(false)
+    }
+  }
+
+  async function onLanguageChange(event: ChangeEvent<HTMLSelectElement>): Promise<void> {
+    if (!profile || isSavingLanguage) {
+      return
+    }
+
+    const nextLanguage = event.target.value === 'cs-CZ' ? 'cs-CZ' : 'en'
+    setIsSavingLanguage(true)
+    try {
+      const updatedProfile = await updatePreferredLanguage(nextLanguage)
+      setProfile(updatedProfile)
+      localStorage.setItem('preferredLanguage', updatedProfile.preferredLanguage)
+      await i18n.changeLanguage(updatedProfile.preferredLanguage)
+    } catch {
+      setLoadError(t('errors:server'))
+    } finally {
+      setIsSavingLanguage(false)
+    }
+  }
+
+  async function onPasswordSubmit(event: FormEvent<HTMLFormElement>): Promise<void> {
+    event.preventDefault()
+    if (!profile || isSavingPassword) {
+      return
+    }
+
+    setPasswordStatus('')
+
+    if (hasPasswordProvider && !currentPasswordValue.trim()) {
+      setPasswordStatus(t('profile:validation.passwordRequired'))
+      return
+    }
+
+    if (newPasswordValue.length < 8) {
+      setPasswordStatus(t('profile:validation.passwordMin'))
+      return
+    }
+
+    if (newPasswordValue !== confirmNewPasswordValue) {
+      setPasswordStatus(t('profile:validation.passwordMismatch'))
+      return
+    }
+
+    setIsSavingPassword(true)
     try {
       const updatedProfile = await changePassword(
-        values.currentPassword,
-        values.newPassword,
+        hasPasswordProvider ? currentPasswordValue : undefined,
+        newPasswordValue,
       )
       setProfile(updatedProfile)
-      setPasswordStatus(t(settingInitialPassword ? 'profile:messages.passwordSet' : 'profile:messages.passwordSaved'))
-      passwordForm.reset()
-      window.setTimeout(() => setPasswordStatus(''), 4000)
+      setCurrentPasswordValue('')
+      setNewPasswordValue('')
+      setConfirmNewPasswordValue('')
+      setPasswordStatus(t(hasPasswordProvider ? 'profile:messages.passwordSaved' : 'profile:messages.passwordSet'))
     } catch (error) {
       if (error instanceof ApiError && error.status === 401) {
-        passwordForm.setError('currentPassword', {
-          type: 'server',
-          message: 'messages.passwordError',
-        })
+        setPasswordStatus(t('profile:messages.passwordError'))
         return
       }
 
-      passwordForm.setError('newPassword', {
-        type: 'server',
-        message: 'messages.passwordSetError',
-      })
+      setPasswordStatus(t('profile:messages.passwordSetError'))
+    } finally {
+      setIsSavingPassword(false)
     }
-  })
+  }
 
-  const submitDelete = deleteForm.handleSubmit(async (values) => {
-    setDeleteError('')
-
-    if (requiresDeletePassword && !values.password) {
-      deleteForm.setError('password', {
-        type: 'required',
-        message: 'validation.passwordRequired',
-      })
+  async function onDeleteSubmit(event: FormEvent<HTMLFormElement>): Promise<void> {
+    event.preventDefault()
+    if (!profile || isDeleting) {
       return
     }
 
+    setDeleteError('')
+
+    if (requiresDeletePassword && !deletePasswordValue.trim()) {
+      setDeleteError(t('profile:validation.passwordRequired'))
+      return
+    }
+
+    setIsDeleting(true)
     try {
-      await deleteAccount(values.password)
-      await signOut()
+      await deleteAccount(requiresDeletePassword ? deletePasswordValue : undefined)
       clearSession()
       navigate('/signin')
     } catch {
       setDeleteError(t('profile:messages.deleteError'))
+    } finally {
+      setIsDeleting(false)
     }
-  })
+  }
 
-  const onLanguageChange = async (event: ChangeEvent<HTMLSelectElement>): Promise<void> => {
-    const nextLanguage = event.target.value === 'cs-CZ' ? 'cs-CZ' : 'en'
-    const updatedProfile = await updatePreferredLanguage(nextLanguage)
-    applyAuthenticatedProfile(updatedProfile)
-    await i18n.changeLanguage(updatedProfile.preferredLanguage)
+  if (isLoading) {
+    return (
+      <AppShell>
+        <section className={styles.panel}>
+          <p className={styles.loading}>{t('common:loading')}</p>
+        </section>
+      </AppShell>
+    )
+  }
+
+  if (!profile) {
+    return (
+      <AppShell>
+        <section className={styles.panel}>
+          <p className={styles.error}>{loadError || t('errors:unknown')}</p>
+        </section>
+      </AppShell>
+    )
   }
 
   return (
-    <main className="app-shell">
-      <Header />
-      <Breadcrumb items={[{ icon: 'home', to: '/', ariaLabel: t('common:navigation.dashboard') }, { label: profile?.displayName || profile?.email || t('profile:title') }]} />
-      <section className="profile-grid">
-        <article className="panel">
-          <div className="profile-panel__header">
-            <h1>{t('profile:title')}</h1>
-            {profile?.avatarUrl ? (
-              <img
-                className="profile-panel__avatar"
-                src={profile.avatarUrl}
-                alt={t('common:avatarAlt')}
-                title={t('profile:fields.avatarLabel')}
-                onError={(e) => {
-                  e.currentTarget.style.display = 'none'
-                }}
-              />
-            ) : null}
-          </div>
-          <p>
-            <strong>{t('profile:fields.email')}:</strong>{' '}
-            {profile?.email || t('profile:fields.notAvailable')}
-          </p>
-          <p>
-            <strong>{t('profile:fields.displayName')}:</strong>{' '}
-            {profile?.displayName || profile?.email || t('profile:fields.notAvailable')}
-          </p>
-          <p>
-            <strong>{t('profile:fields.providers')}:</strong> {formatProviders()}
-          </p>
-          <p>
-            <strong>{t('profile:fields.createdAt')}:</strong> {formatDateTime(profile?.createdAt)}
-          </p>
-          <p>
-            <strong>{t('profile:fields.updatedAt')}:</strong> {formatDateTime(profile?.updatedAt)}
-          </p>
-        </article>
+    <AppShell>
+      <div className={styles.page}>
+        <section className={styles.heroCard}>
+          <p className={styles.kicker}>{t('common:navigation.profile')}</p>
+          <h1 className={styles.title}>{profile.displayName || profile.email || t('common:profile.title')}</h1>
+          <p className={styles.subtitle}>{t('common:profile.subtitle')}</p>
+          {loadError ? <p className={styles.error}>{loadError}</p> : null}
+        </section>
 
-        <article className="panel">
-          <h2>{t('profile:sections.preferences')}</h2>
-          <div className="inline-field">
-            <label htmlFor="language">{t('profile:fields.language')}</label>
-            <select
-              id="language"
-              value={profilePreferredLanguage}
-              onChange={(event) => void onLanguageChange(event)}
-            >
-              <option value="en">{t('common:languageSelector.optionEnglish')}</option>
-              <option value="cs-CZ">{t('common:languageSelector.optionCzech')}</option>
-            </select>
-          </div>
-        </article>
-
-        <article className="panel">
-          <h2>{t('profile:sections.displayName')}</h2>
-          <form className="form" onSubmit={(event) => void submitDisplayName(event)}>
-            <label htmlFor="displayName">{t('profile:fields.displayName')}</label>
-            <input
-              id="displayName"
-              type="text"
-              disabled={displayNameForm.formState.isSubmitting}
-              {...displayNameForm.register('displayName')}
-            />
-            <button type="submit" disabled={displayNameForm.formState.isSubmitting}>
-              {t('profile:actions.saveDisplayName')}
-            </button>
-            {displayNameStatus && <p>{displayNameStatus}</p>}
-          </form>
-        </article>
-
-        <article className="panel">
-          <h2>{t('profile:sections.password')}</h2>
-          <form className="form" onSubmit={(event) => void submitPassword(event)}>
-            {canSetInitialPassword ? (
-              <p className="text-muted">{t('profile:messages.passwordOptionalForSocial')}</p>
-            ) : null}
-            {hasPasswordProvider ? (
-              <>
-                <label htmlFor="currentPassword">{t('profile:fields.currentPassword')}</label>
-                <input
-                  id="currentPassword"
-                  type="password"
-                  disabled={passwordForm.formState.isSubmitting}
-                  {...passwordForm.register('currentPassword')}
+        <section className={styles.grid}>
+          <article className={styles.panel}>
+            <div className={styles.panelHeader}>
+              <h2 className={styles.sectionTitle}>{t('profile:sections.overview')}</h2>
+              {profile.avatarUrl ? (
+                <img
+                  className={styles.avatar}
+                  src={profile.avatarUrl}
+                  alt={t('profile:fields.avatarLabel')}
+                  title={t('profile:fields.avatarLabel')}
+                  onError={(event) => {
+                    event.currentTarget.style.display = 'none'
+                  }}
                 />
-                {passwordForm.formState.errors.currentPassword?.message ? (
-                  <p className="error">
-                    {resolveProfileMessage(String(passwordForm.formState.errors.currentPassword.message))}
-                  </p>
-                ) : null}
-              </>
-            ) : null}
-            <label htmlFor="newPassword">{t('profile:fields.newPassword')}</label>
-            <input
-              id="newPassword"
-              type="password"
-              disabled={passwordForm.formState.isSubmitting}
-              {...passwordForm.register('newPassword')}
-            />
-            {passwordForm.formState.errors.newPassword?.message ? (
-              <p className="error">
-                {resolveProfileMessage(String(passwordForm.formState.errors.newPassword.message))}
-              </p>
-            ) : null}
-            <label htmlFor="confirmNewPassword">{t('profile:fields.confirmNewPassword')}</label>
-            <input
-              id="confirmNewPassword"
-              type="password"
-              disabled={passwordForm.formState.isSubmitting}
-              {...passwordForm.register('confirmNewPassword')}
-            />
-            {passwordForm.formState.errors.confirmNewPassword?.message ? (
-              <p className="error">
-                {resolveProfileMessage(String(passwordForm.formState.errors.confirmNewPassword.message))}
-              </p>
-            ) : null}
-            <button type="submit" disabled={passwordForm.formState.isSubmitting}>
-              {t(hasPasswordProvider ? 'profile:actions.savePassword' : 'profile:actions.setPassword')}
-            </button>
-            {passwordStatus && <p>{passwordStatus}</p>}
-          </form>
-        </article>
-
-        <article className="panel panel--delete-action">
-          {!showDeleteForm ? (
-            <button
-              className="button-danger"
-              type="button"
-              onClick={() => setShowDeleteForm(true)}
-            >
-              {t('profile:actions.startDelete')}
-            </button>
-          ) : (
-            <form className="form" onSubmit={(event) => void submitDelete(event)}>
-              {requiresDeletePassword ? (
-                <>
-                  <p>
-                    {hasSocialProvider
-                      ? t('profile:messages.deletePasswordRequiredMixed')
-                      : t('profile:messages.deletePasswordRequired')}
-                  </p>
-                  <label htmlFor="deletePassword">{t('profile:fields.password')}</label>
-                  <input
-                    id="deletePassword"
-                    type="password"
-                    disabled={deleteForm.formState.isSubmitting}
-                    {...deleteForm.register('password')}
-                  />
-                  {deleteForm.formState.errors.password?.message ? (
-                    <p className="error">
-                      {t(`profile:${String(deleteForm.formState.errors.password.message)}`)}
-                    </p>
-                  ) : null}
-                </>
-              ) : (
-                <p>{t('profile:messages.deleteNoPassword')}</p>
-              )}
-              <div className="button-row">
-                <button
-                  className="button-danger"
-                  type="submit"
-                  disabled={deleteForm.formState.isSubmitting}
-                >
-                  {t('profile:actions.confirmDelete')}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setShowDeleteForm(false)}
-                  disabled={deleteForm.formState.isSubmitting}
-                >
-                  {t('profile:actions.cancelDelete')}
-                </button>
+              ) : null}
+            </div>
+            <dl className={styles.definitionList}>
+              <div className={styles.definitionRow}>
+                <dt>{t('profile:fields.email')}</dt>
+                <dd>{profile.email || t('profile:fields.notAvailable')}</dd>
               </div>
-              {deleteError && <p className="error">{deleteError}</p>}
+              <div className={styles.definitionRow}>
+                <dt>{t('profile:fields.displayName')}</dt>
+                <dd>{profile.displayName || profile.email || t('profile:fields.notAvailable')}</dd>
+              </div>
+              <div className={styles.definitionRow}>
+                <dt>{t('profile:fields.providers')}</dt>
+                <dd>{formattedProviders}</dd>
+              </div>
+              <div className={styles.definitionRow}>
+                <dt>{t('profile:fields.createdAt')}</dt>
+                <dd>{formatDateTime(profile.createdAt)}</dd>
+              </div>
+              <div className={styles.definitionRow}>
+                <dt>{t('profile:fields.updatedAt')}</dt>
+                <dd>{formatDateTime(profile.updatedAt)}</dd>
+              </div>
+            </dl>
+          </article>
+
+          <article className={styles.panel}>
+            <h2 className={styles.sectionTitle}>{t('profile:sections.preferences')}</h2>
+            <form className={styles.form} onSubmit={(event) => void onDisplayNameSubmit(event)}>
+              <div className={styles.field}>
+                <label htmlFor="displayName">{t('profile:fields.displayName')}</label>
+                <input
+                  id="displayName"
+                  className={styles.input}
+                  type="text"
+                  autoComplete="name"
+                  value={displayNameValue}
+                  onChange={(event) => setDisplayNameValue(event.target.value)}
+                  disabled={isSavingDisplayName}
+                  maxLength={80}
+                />
+              </div>
+              <div className={styles.field}>
+                <label htmlFor="preferredLanguage">{t('profile:fields.language')}</label>
+                <select
+                  id="preferredLanguage"
+                  className={styles.select}
+                  value={profile.preferredLanguage}
+                  onChange={(event) => {
+                    void onLanguageChange(event)
+                  }}
+                  disabled={isSavingLanguage}
+                >
+                  <option value="en">{t('common:languageSelector.optionEnglish')}</option>
+                  <option value="cs-CZ">{t('common:languageSelector.optionCzech')}</option>
+                </select>
+              </div>
+              <button className={styles.primaryButton} type="submit" disabled={isSavingDisplayName}>
+                {t('profile:actions.saveDisplayName')}
+              </button>
+              {displayNameStatus ? (
+                <p
+                  className={displayNameStatus === t('profile:messages.saved') ? styles.success : styles.error}
+                >
+                  {displayNameStatus}
+                </p>
+              ) : null}
             </form>
-          )}
-        </article>
-      </section>
-      <DevLogPanel />
-    </main>
+          </article>
+
+          <article className={styles.panel}>
+            <h2 className={styles.sectionTitle}>{t('profile:sections.password')}</h2>
+            <form className={styles.form} onSubmit={(event) => void onPasswordSubmit(event)}>
+              {canSetInitialPassword ? (
+                <p className={styles.mutedText}>{t('profile:messages.passwordOptionalForSocial')}</p>
+              ) : null}
+
+              {hasPasswordProvider ? (
+                <div className={styles.field}>
+                  <label htmlFor="currentPassword">{t('profile:fields.currentPassword')}</label>
+                  <input
+                    id="currentPassword"
+                    className={styles.input}
+                    type="password"
+                    autoComplete="current-password"
+                    value={currentPasswordValue}
+                    onChange={(event) => setCurrentPasswordValue(event.target.value)}
+                    disabled={isSavingPassword}
+                  />
+                </div>
+              ) : null}
+
+              <div className={styles.field}>
+                <label htmlFor="newPassword">{t('profile:fields.newPassword')}</label>
+                <input
+                  id="newPassword"
+                  className={styles.input}
+                  type="password"
+                  autoComplete="new-password"
+                  value={newPasswordValue}
+                  onChange={(event) => setNewPasswordValue(event.target.value)}
+                  disabled={isSavingPassword}
+                />
+              </div>
+
+              <div className={styles.field}>
+                <label htmlFor="confirmNewPassword">{t('profile:fields.confirmNewPassword')}</label>
+                <input
+                  id="confirmNewPassword"
+                  className={styles.input}
+                  type="password"
+                  autoComplete="new-password"
+                  value={confirmNewPasswordValue}
+                  onChange={(event) => setConfirmNewPasswordValue(event.target.value)}
+                  disabled={isSavingPassword}
+                />
+              </div>
+
+              <button className={styles.primaryButton} type="submit" disabled={isSavingPassword}>
+                {t(hasPasswordProvider ? 'profile:actions.savePassword' : 'profile:actions.setPassword')}
+              </button>
+
+              {passwordStatus ? (
+                <p
+                  className={
+                    passwordStatus === t('profile:messages.passwordSaved') ||
+                    passwordStatus === t('profile:messages.passwordSet')
+                      ? styles.success
+                      : styles.error
+                  }
+                >
+                  {passwordStatus}
+                </p>
+              ) : null}
+            </form>
+          </article>
+
+          <article className={styles.panel}>
+            {!showDeleteForm ? (
+              <button
+                className={styles.dangerButton}
+                type="button"
+                onClick={() => {
+                  setShowDeleteForm(true)
+                  setDeleteError('')
+                }}
+              >
+                {t('profile:actions.startDelete')}
+              </button>
+            ) : (
+              <form className={styles.form} onSubmit={(event) => void onDeleteSubmit(event)}>
+                {requiresDeletePassword ? (
+                  <>
+                    <p className={styles.mutedText}>
+                      {hasSocialProvider
+                        ? t('profile:messages.deletePasswordRequiredMixed')
+                        : t('profile:messages.deletePasswordRequired')}
+                    </p>
+                    <div className={styles.field}>
+                      <label htmlFor="deletePassword">{t('profile:fields.password')}</label>
+                      <input
+                        id="deletePassword"
+                        className={styles.input}
+                        type="password"
+                        autoComplete="current-password"
+                        value={deletePasswordValue}
+                        onChange={(event) => setDeletePasswordValue(event.target.value)}
+                        disabled={isDeleting}
+                      />
+                    </div>
+                  </>
+                ) : (
+                  <p className={styles.mutedText}>{t('profile:messages.deleteNoPassword')}</p>
+                )}
+
+                <div className={styles.buttonRow}>
+                  <button className={styles.dangerButton} type="submit" disabled={isDeleting}>
+                    {t('profile:actions.confirmDelete')}
+                  </button>
+                  <button
+                    className={styles.secondaryButton}
+                    type="button"
+                    onClick={() => {
+                      setShowDeleteForm(false)
+                      setDeletePasswordValue('')
+                      setDeleteError('')
+                    }}
+                    disabled={isDeleting}
+                  >
+                    {t('profile:actions.cancelDelete')}
+                  </button>
+                </div>
+
+                {deleteError ? <p className={styles.error}>{deleteError}</p> : null}
+              </form>
+            )}
+          </article>
+        </section>
+      </div>
+    </AppShell>
   )
 }

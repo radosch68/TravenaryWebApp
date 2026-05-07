@@ -1,14 +1,19 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
-import App from '@/app/App'
-import { installGlobalFrontendLogging } from '@/services/frontend-logger'
-import '@/i18n'
-import '@/styles/globals.css'
 
-installGlobalFrontendLogging()
+import { ThemeProvider } from '@/components/theme/ThemeProvider'
+import '@/i18n'
+import { applySavedPalette } from '@/utils/palette'
+
+import './index.css'
+import App from './App.tsx'
+
+applySavedPalette()
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <App />
+    <ThemeProvider>
+      <App />
+    </ThemeProvider>
   </StrictMode>,
 )

@@ -1,6 +1,6 @@
 import { generateClientId } from '@/utils/client-id'
 
-const GITHUB_POPUP_TIMEOUT_MS = 120_000
+const GITHUB_POPUP_TIMEOUT_MS = 120000
 const GITHUB_POPUP_POLL_MS = 300
 
 type GithubPopupMessage = {
@@ -17,7 +17,10 @@ export async function acquireGithubAuthCode(): Promise<string> {
   }
 
   const state = generateClientId()
-  const callbackUrl = new URL(`${import.meta.env.BASE_URL}oauth/github/callback`, window.location.origin)
+  const callbackUrl = new URL(
+    `${import.meta.env.BASE_URL}oauth/github/callback`,
+    window.location.origin,
+  )
 
   const authorizeUrl = new URL('https://github.com/login/oauth/authorize')
   authorizeUrl.searchParams.set('client_id', clientId)
@@ -46,7 +49,6 @@ export async function acquireGithubAuthCode(): Promise<string> {
       if (!popup.closed) {
         return
       }
-
       cleanup()
       reject(new Error('provider_unavailable'))
     }, GITHUB_POPUP_POLL_MS)
