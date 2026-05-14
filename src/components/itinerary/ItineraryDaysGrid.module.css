@@ -1,0 +1,581 @@
+.daysGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.75rem;
+  align-items: start;
+}
+
+.fullBleedOnMobile {
+  margin-inline: 0;
+}
+
+.dayCard {
+  --day-card-padding: 0.75rem;
+  scroll-margin-top: 5.6rem;
+  border: 1px solid var(--border);
+  border-radius: calc(var(--radius) - 0.05rem);
+  background: color-mix(in oklab, var(--card) 95%, white 5%);
+  overflow: hidden;
+  display: grid;
+  gap: 0.72rem;
+  padding: var(--day-card-padding);
+  align-self: start;
+}
+
+.dayCardToday {
+  border-color: color-mix(in oklab, var(--primary) 58%, var(--border) 42%);
+  box-shadow: 0 0 0 1px color-mix(in oklab, var(--primary) 28%, transparent 72%);
+}
+
+.overnightBanner {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  width: 100%;
+  max-width: 100%;
+  border-radius: calc(var(--radius) - 0.28rem);
+  padding: 0.34rem 0.58rem;
+  border: 1px solid transparent;
+  font-size: 0.74rem;
+}
+
+.overnightBannerCovered {
+  background: color-mix(in oklab, #0f7f69 16%, transparent);
+  border-color: color-mix(in oklab, #0f7f69 40%, transparent);
+  color: color-mix(in oklab, #0f7f69 70%, var(--foreground) 30%);
+}
+
+.overnightBannerMissing {
+  background: color-mix(in oklab, var(--muted) 88%, transparent);
+  border-color: color-mix(in oklab, var(--border) 70%, transparent);
+  color: var(--muted-foreground);
+}
+
+.overnightBannerMultiple {
+  background: color-mix(in oklab, #8b6d2a 16%, transparent);
+  border-color: color-mix(in oklab, #8b6d2a 40%, transparent);
+  color: color-mix(in oklab, #8b6d2a 70%, var(--foreground) 30%);
+}
+
+.overnightLabel {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dayHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-inline: calc(-1 * var(--day-card-padding));
+  margin-top: calc(-1 * var(--day-card-padding));
+  padding: calc(var(--day-card-padding) - 0.02rem) var(--day-card-padding) 0.4rem;
+  border-bottom: 1px solid color-mix(in oklab, var(--border) 82%, transparent 18%);
+  background: color-mix(in oklab, var(--muted) 70%, var(--card) 30%);
+}
+
+.dayHeaderMain {
+  display: flex;
+  align-items: center;
+  gap: 0.62rem;
+  min-width: 0;
+}
+
+.dayNumber {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-size: clamp(2rem, 4.1vw, 2.65rem);
+  line-height: 1;
+  letter-spacing: 0.01em;
+  color: color-mix(in oklab, var(--foreground) 86%, var(--muted-foreground) 14%);
+}
+
+.dayDateStack {
+  display: grid;
+  gap: 0.04rem;
+}
+
+.dayWeekday {
+  margin: 0;
+  font-size: 0.76rem;
+  color: var(--muted-foreground);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.dayIndex {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-size: clamp(1.2rem, 2vw, 1.45rem);
+  line-height: 1.15;
+  letter-spacing: 0.01em;
+}
+
+.dayDate {
+  margin: 0;
+  font-size: 0.98rem;
+  color: color-mix(in oklab, var(--foreground) 72%, var(--muted-foreground) 28%);
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.dayMapLauncher {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.34rem;
+  border: 1px solid rgba(13, 124, 102, 0.3);
+  border-radius: calc(var(--radius) - 0.2rem);
+  background: rgba(13, 124, 102, 0.1);
+  color: #1d5f55;
+  text-decoration: none;
+  padding: 0.35rem 0.54rem;
+  font-size: 0.73rem;
+  font-weight: 400;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.dayMapLauncher:hover {
+  border-color: rgba(13, 124, 102, 0.42);
+  background: rgba(13, 124, 102, 0.16);
+}
+
+.daySummary {
+  margin: 0;
+  color: var(--foreground);
+  line-height: 1.45;
+}
+
+.emptyActivities {
+  margin: 0;
+  color: var(--muted-foreground);
+  font-size: 0.88rem;
+}
+
+.sectionList {
+  display: grid;
+  gap: 1.7rem;
+  margin-top: 0.95rem;
+}
+
+.sectionCard {
+  display: grid;
+  gap: 0.3rem;
+}
+
+.sectionDivider {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.sectionDivider::after {
+  content: '';
+  height: 1px;
+  flex: 1;
+  background: color-mix(in oklab, var(--border) 82%, transparent 18%);
+}
+
+.sectionDividerLabel {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted-foreground);
+}
+
+.activityList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.46rem;
+}
+
+.activityCard {
+  --activity-accent: #8a7a68;
+  --activity-bg: transparent;
+  border: 1px solid color-mix(in oklab, var(--activity-accent) 26%, var(--border) 74%);
+  border-radius: calc(var(--radius) - 0.24rem);
+  background: var(--activity-bg);
+  display: grid;
+  gap: 0.44rem;
+  padding: 0.5rem;
+}
+
+.activityCardHeaderOnly {
+  padding: 0;
+}
+
+.activityCard[data-activity-type='flight'] {
+  --activity-accent: #b8860b;
+  --activity-bg: rgba(218, 165, 32, 0.03);
+}
+
+.activityCard[data-activity-type='accommodation'] {
+  --activity-accent: #7b2d8e;
+  --activity-bg: rgba(138, 43, 226, 0.03);
+}
+
+.activityCard[data-activity-type='transfer'] {
+  --activity-accent: #1a7fd4;
+  --activity-bg: rgba(30, 144, 255, 0.03);
+}
+
+.activityCard[data-activity-type='poi'] {
+  --activity-accent: #228b22;
+  --activity-bg: rgba(34, 139, 34, 0.03);
+}
+
+.activityCard[data-activity-type='carRental'] {
+  --activity-accent: #8b4513;
+  --activity-bg: rgba(139, 69, 19, 0.03);
+}
+
+.activityCard[data-activity-type='food'] {
+  --activity-accent: #c62828;
+  --activity-bg: rgba(220, 20, 60, 0.03);
+}
+
+.activityCard[data-activity-type='shopping'] {
+  --activity-accent: #c2185b;
+  --activity-bg: rgba(233, 30, 99, 0.03);
+}
+
+.activityCard[data-activity-type='tour'] {
+  --activity-accent: #00796b;
+  --activity-bg: rgba(0, 150, 136, 0.03);
+}
+
+.activityCard[data-activity-type='custom'] {
+  --activity-accent: #d2691e;
+  --activity-bg: rgba(255, 140, 0, 0.03);
+}
+
+.activityCard[data-activity-type='note'] {
+  --activity-accent: #8a7a68;
+  --activity-bg: transparent;
+}
+
+.activityHeader {
+  display: flex;
+  flex-direction: column;
+  gap: 0.12rem;
+  margin: -0.5rem -0.5rem 0;
+  padding: 0.34rem 0.5rem 0.3rem;
+  border-bottom: 1px solid color-mix(in oklab, var(--activity-accent) 28%, var(--border) 72%);
+  background: color-mix(in oklab, var(--activity-accent) 10%, transparent);
+}
+
+.activityHeaderOnly {
+  margin: 0;
+  border-bottom: none;
+  border-radius: calc(var(--radius) - 0.24rem);
+}
+
+.activityHeaderLine {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: start;
+  column-gap: 0.42rem;
+  min-width: 0;
+}
+
+.activityHeaderNote {
+  display: flex;
+  justify-content: flex-start;
+  padding-left: calc(1.25rem + 0.42rem);
+}
+
+.activityIcon {
+  display: grid;
+  place-items: center;
+  min-width: 1.25rem;
+  color: var(--activity-accent);
+  flex: 0 0 auto;
+}
+
+.activityTitle {
+  margin: 0;
+  font-size: 0.88rem;
+  font-weight: 700;
+  line-height: 1.25;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+
+.activityTime {
+  font-size: 0.78rem;
+  color: var(--muted-foreground);
+  white-space: nowrap;
+  text-align: right;
+  justify-self: end;
+  align-self: start;
+}
+
+.anchoredChip,
+.detailChip,
+.metaPill,
+.moreChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  border: 1px solid color-mix(in oklab, var(--border) 76%, transparent 24%);
+  border-radius: 999px;
+  padding: 0.08rem 0.42rem;
+  font-size: 0.7rem;
+  color: var(--muted-foreground);
+  background: color-mix(in oklab, var(--card) 90%, transparent 10%);
+}
+
+.anchoredChip {
+  border-color: color-mix(in oklab, #1f1f1f 36%, transparent);
+  color: color-mix(in oklab, #1f1f1f 62%, var(--foreground) 38%);
+}
+
+.activityDescription {
+  margin: 0;
+  font-size: 0.84rem;
+  line-height: 1.42;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.detailList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.28rem;
+}
+
+.accommodationDetails {
+  margin: -0.12rem -0.5rem 0;
+  border-bottom: 1px solid color-mix(in oklab, var(--activity-accent) 28%, var(--border) 72%);
+}
+
+.accommodationSummary {
+  display: flex;
+  align-items: center;
+  column-gap: 0.55rem;
+  row-gap: 0.26rem;
+  flex-wrap: wrap;
+  cursor: pointer;
+  padding: 0.34rem 0.5rem;
+  font-size: 0.82rem;
+  font-weight: 400;
+  line-height: 1.35;
+  color: color-mix(in oklab, var(--foreground) 78%, var(--muted-foreground) 22%);
+  user-select: none;
+  list-style: none;
+}
+
+.accommodationSummary::-webkit-details-marker {
+  display: none;
+}
+
+.accommodationSummary::before {
+  content: '';
+  flex: 0 0 auto;
+  width: 0;
+  height: 0;
+  margin-left: -0.18rem;
+  border-top: 0.28rem solid transparent;
+  border-bottom: 0.28rem solid transparent;
+  border-left: 0.42rem solid currentColor;
+  transition: transform 0.12s ease;
+}
+
+.accommodationDetails[open] .accommodationSummary::before {
+  transform: rotate(90deg);
+}
+
+.accommodationSummaryItem {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+.accommodationSummaryItem:nth-child(3) {
+  margin-left: auto;
+  text-align: right;
+}
+
+.accommodationSummaryItem strong {
+  font-weight: 700;
+}
+
+.accommodationGrid {
+  display: grid;
+  grid-template-columns: minmax(7.5rem, max-content) minmax(0, 1fr);
+  gap: 0.26rem 0.7rem;
+  margin: 0;
+  padding: 0 0.5rem 0.42rem;
+}
+
+.accommodationRow {
+  display: contents;
+}
+
+.accommodationGrid dt {
+  font-size: 0.84rem;
+  line-height: 1.42;
+  font-weight: 400;
+  color: var(--muted-foreground);
+}
+
+.accommodationGrid dd {
+  margin: 0;
+  font-size: 0.84rem;
+  line-height: 1.42;
+  font-weight: 400;
+  color: color-mix(in oklab, var(--foreground) 90%, var(--muted-foreground) 10%);
+  overflow-wrap: anywhere;
+}
+
+.metaGroup {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.28rem;
+}
+
+.metaGroupLocations {
+  width: 100%;
+  justify-content: flex-end;
+}
+
+.referenceThumbnails {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.3rem;
+  max-width: 100%;
+}
+
+.referenceThumbnailLink {
+  display: inline-block;
+  flex: 0 0 auto;
+  width: 6.3rem;
+  line-height: 0;
+  border-radius: 0.55rem;
+  overflow: hidden;
+  border: 1px solid rgba(13, 124, 102, 0.3);
+  background: rgba(13, 124, 102, 0.08);
+}
+
+.referenceThumbnailImage {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.metaPill {
+  max-width: 100%;
+}
+
+.metaPill span,
+.metaChip span,
+.moreChip,
+.metaLink span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.metaLink,
+.metaChip {
+  max-width: 100%;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.24rem;
+  border-radius: 999px;
+  padding: 0.3rem 0.42rem;
+  border: 1px solid rgba(127, 85, 29, 0.24);
+  font-size: 0.7rem;
+  line-height: 1.25;
+  color: color-mix(in oklab, var(--foreground) 88%, var(--muted-foreground) 12%);
+  background: rgba(245, 232, 210, 0.35);
+  overflow: hidden;
+}
+
+.metaLink {
+  text-decoration: none;
+}
+
+.metaLinkReferencePhoto {
+  background: rgba(67, 120, 170, 0.14);
+  border-color: rgba(54, 102, 148, 0.34);
+  color: #2f5578;
+}
+
+.metaLinkReferenceVideo {
+  background: rgba(125, 84, 150, 0.12);
+  border-color: rgba(98, 62, 120, 0.3);
+  color: #5f436f;
+}
+
+.metaLinkReferenceWebpage {
+  background: rgba(112, 103, 92, 0.12);
+  border-color: rgba(112, 103, 92, 0.32);
+  color: #5a534a;
+}
+
+.metaLinkReferenceNoType {
+  background: rgba(135, 129, 120, 0.12);
+  border-color: rgba(118, 112, 104, 0.28);
+  color: #696057;
+}
+
+.metaLinkLocation {
+  background: rgba(13, 124, 102, 0.1);
+  border-color: rgba(13, 124, 102, 0.3);
+  color: #1d5f55;
+}
+
+.metaLinkMappedLocation {
+  border-width: 1.5px;
+  border-color: rgba(13, 124, 102, 0.5);
+  background: rgba(13, 124, 102, 0.14);
+  font-weight: 600;
+}
+
+.metaLink:hover {
+  text-decoration: underline;
+}
+
+@media (min-width: 64rem) {
+  .daysGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 96rem) {
+  .daysGrid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 40rem) {
+  .fullBleedOnMobile {
+    margin-inline: -0.7rem;
+    gap: 0.55rem;
+  }
+
+  .fullBleedOnMobile .dayCard {
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    border-left: none;
+    border-right: none;
+    border-radius: 0;
+  }
+
+  .dayCard {
+    --day-card-padding: 0.68rem;
+    padding: var(--day-card-padding);
+  }
+
+  .dayHeader {
+    gap: 0.45rem;
+    flex-wrap: wrap;
+  }
+}

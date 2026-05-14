@@ -1,7 +1,10 @@
 import { apiRequest } from '@/services/api-client'
 import type {
+  ItineraryDetail,
   ItineraryListParams,
   ItineraryListResponse,
+  ShareTokenResponse,
+  SharedItineraryDetail,
 } from '@/services/contracts'
 
 function toQuery(params: ItineraryListParams = {}): string {
@@ -48,6 +51,41 @@ export async function createItineraryFromTemplate(): Promise<{ id: string }> {
   return apiRequest<{ id: string }>('/itineraries', {
     method: 'POST',
     body: {},
+    protected: true,
+  })
+}
+
+export async function getItinerary(itineraryId: string): Promise<ItineraryDetail> {
+  return apiRequest<ItineraryDetail>(`/itineraries/${itineraryId}`, {
+    method: 'GET',
+    protected: true,
+  })
+}
+
+export async function getSharedItinerary(shareToken: string): Promise<SharedItineraryDetail> {
+  return apiRequest<SharedItineraryDetail>(`/shared/${shareToken}`, {
+    method: 'GET',
+    protected: false,
+  })
+}
+
+export async function createShareLink(itineraryId: string): Promise<ShareTokenResponse> {
+  return apiRequest<ShareTokenResponse>(`/itineraries/${itineraryId}/share`, {
+    method: 'POST',
+    protected: true,
+  })
+}
+
+export async function getShareLink(itineraryId: string): Promise<ShareTokenResponse> {
+  return apiRequest<ShareTokenResponse>(`/itineraries/${itineraryId}/share`, {
+    method: 'GET',
+    protected: true,
+  })
+}
+
+export async function revokeShareLink(itineraryId: string): Promise<void> {
+  await apiRequest<void>(`/itineraries/${itineraryId}/share`, {
+    method: 'DELETE',
     protected: true,
   })
 }

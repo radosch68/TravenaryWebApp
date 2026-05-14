@@ -9,9 +9,14 @@ import { TopBanner } from '@/components/layout/TopBanner'
 import { DashboardHomePage } from '@/pages/DashboardHomePage'
 import { DashboardShellPage } from '@/pages/DashboardShellPage'
 import { GithubOAuthCallbackPage } from '@/pages/GithubOAuthCallbackPage'
+import { ItineraryEditPagePlaceholder } from '@/pages/ItineraryEditPagePlaceholder'
+import { ItineraryMapPage } from '@/pages/ItineraryMapPage'
+import { ItineraryViewPage } from '@/pages/ItineraryViewPage'
 import { LinkProviderPage } from '@/pages/LinkProviderPage'
 import { ProfilePage } from '@/pages/ProfilePage'
 import { SettingsPage } from '@/pages/SettingsPage'
+import { SharedItineraryMapPage } from '@/pages/SharedItineraryMapPage'
+import { SharedItineraryViewPage } from '@/pages/SharedItineraryViewPage'
 import { SignInPage } from '@/pages/SignInPage'
 import { SignUpPage } from '@/pages/SignUpPage'
 import { useAuthStore } from '@/store/auth-store'
@@ -56,6 +61,8 @@ export default function App(): ReactElement {
           }
         />
         <Route path="/oauth/github/callback" element={<GithubOAuthCallbackPage />} />
+        <Route path="/s/:shareToken" element={<SharedItineraryViewPage />} />
+        <Route path="/s/:shareToken/map" element={<SharedItineraryMapPage />} />
         <Route
           path="/"
           element={
@@ -69,6 +76,30 @@ export default function App(): ReactElement {
           element={
             <ProtectedRoute>
               <DashboardShellPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/itineraries/:itineraryId"
+          element={
+            <ProtectedRoute>
+              <ItineraryViewPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/itineraries/:itineraryId/map"
+          element={
+            <ProtectedRoute>
+              <ItineraryMapPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/itineraries/:itineraryId/edit"
+          element={
+            <ProtectedRoute>
+              <ItineraryEditPagePlaceholder />
             </ProtectedRoute>
           }
         />

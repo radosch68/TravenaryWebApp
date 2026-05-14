@@ -1,0 +1,223 @@
+.sharedPage {
+  width: 100%;
+  padding: 0.6rem 0 1rem;
+}
+
+.sharedContainer {
+  width: min(1200px, calc(100% - 1.4rem));
+  margin: 0 auto;
+}
+
+.page {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.headerCard {
+  position: relative;
+  border: 1px solid var(--border);
+  border-radius: calc(var(--radius) - 0.05rem);
+  background: color-mix(in oklab, var(--card) 90%, white 10%);
+  padding: 0.9rem;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 15rem);
+  gap: 0.9rem;
+  align-items: start;
+}
+
+.headerMain {
+  min-width: 0;
+}
+
+.kickerRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.headerTopActions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  margin-top: -0.08rem;
+}
+
+.kicker {
+  margin: 0;
+  font-size: 0.74rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted-foreground);
+}
+
+.title {
+  margin: 0.35rem 0 0;
+  font-family: var(--font-heading);
+  font-size: clamp(1.12rem, 2vw, 1.6rem);
+  line-height: 1.24;
+}
+
+.description {
+  margin: 0.52rem 0 0;
+  color: var(--foreground);
+  line-height: 1.45;
+}
+
+.metaRow {
+  margin-top: 0.58rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.36rem;
+}
+
+.metaPill {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid color-mix(in oklab, var(--border) 76%, transparent 24%);
+  border-radius: 999px;
+  background: color-mix(in oklab, var(--card) 92%, transparent 8%);
+  color: var(--muted-foreground);
+  padding: 0.12rem 0.5rem;
+  font-size: 0.74rem;
+  line-height: 1.2;
+}
+
+.tagsRow {
+  margin-top: 0.58rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.tagChip {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid rgba(13, 124, 102, 0.24);
+  background: rgba(13, 124, 102, 0.08);
+  color: #0b5f4e;
+  border-radius: 999px;
+  padding: 0.12rem 0.5rem;
+  font-size: 0.72rem;
+  line-height: 1.2;
+}
+
+.coverPhoto {
+  inline-size: 100%;
+  block-size: 100%;
+  max-height: 15rem;
+  object-fit: cover;
+  border-radius: calc(var(--radius) - 0.18rem);
+  border: 1px solid color-mix(in oklab, var(--border) 86%, transparent 14%);
+}
+
+.headerActions {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.headerMap {
+  grid-column: 1 / 2;
+  inline-size: min(100%, 44rem);
+}
+
+.helperText {
+  margin: 0;
+  grid-column: 1 / -1;
+  color: var(--muted-foreground);
+  font-size: 0.82rem;
+}
+
+.stateCard {
+  border: 1px solid var(--border);
+  border-radius: calc(var(--radius) - 0.05rem);
+  background: color-mix(in oklab, var(--card) 94%, white 6%);
+  padding: 0.95rem;
+  display: grid;
+  gap: 0.6rem;
+}
+
+.stateCard p {
+  margin: 0;
+}
+
+.errorText {
+  margin: 0;
+  color: var(--destructive);
+}
+
+.dangerZone {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.48rem;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.dangerButton {
+  min-height: 2.7rem;
+  min-inline-size: 12.5rem;
+  padding-inline: 1rem;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+@media (min-width: 64rem) {
+  .dangerZone {
+    width: calc((100% - 0.75rem) / 2);
+    justify-self: end;
+  }
+}
+
+@media (min-width: 96rem) {
+  .dangerZone {
+    width: calc((100% - 1.5rem) / 3);
+  }
+}
+
+@media (max-width: 70rem) {
+  .headerCard {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .headerMap {
+    grid-column: 1 / -1;
+    inline-size: 100%;
+  }
+
+  .coverPhoto {
+    max-height: 12.75rem;
+  }
+}
+
+@media (max-width: 40rem) {
+  .sharedContainer {
+    width: calc(100% - 1.4rem);
+  }
+
+  .headerCard,
+  .stateCard {
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
+    margin-inline: -0.7rem;
+    padding-inline: 0.7rem;
+  }
+
+  .dangerZone {
+    border-radius: 0;
+    width: auto;
+    justify-self: stretch;
+  }
+
+  .headerCard {
+    padding-block: 0.75rem;
+  }
+
+  .stateCard {
+    padding-block: 0.8rem;
+  }
+}

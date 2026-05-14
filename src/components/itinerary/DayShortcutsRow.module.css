@@ -1,0 +1,66 @@
+.dayShortcuts {
+  grid-column: 1 / -1;
+  margin-top: 0.1rem;
+  display: grid;
+  gap: 0.28rem;
+}
+
+.dayShortcutsLabel {
+  margin: 0;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--muted-foreground);
+}
+
+.dayShortcutsRow {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.34rem;
+}
+
+.dayShortcutChip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-start;
+  padding: 0.17rem 0.54rem;
+  border: 1px solid color-mix(in oklab, var(--border) 76%, transparent 24%);
+  border-radius: 999px;
+  background: color-mix(in oklab, var(--card) 92%, transparent 8%);
+  color: var(--muted-foreground);
+  font-size: 0.72rem;
+  line-height: 1.2;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.dayShortcutChip:hover,
+.dayShortcutChip:focus-visible {
+  border-color: color-mix(in oklab, var(--border) 56%, var(--foreground) 44%);
+  background: var(--muted);
+  color: var(--foreground);
+}
+
+.dayShortcutChipToday {
+  border-color: color-mix(in oklab, var(--primary) 58%, var(--border) 42%);
+  background: color-mix(in oklab, var(--primary) 16%, var(--card) 84%);
+  color: var(--foreground);
+  font-weight: 600;
+  box-shadow: 0 0 0 1px color-mix(in oklab, var(--primary) 28%, transparent 72%);
+}
+
+.dayShortcutChipToday:hover,
+.dayShortcutChipToday:focus-visible {
+  border-color: color-mix(in oklab, var(--primary) 76%, var(--border) 24%);
+  background: color-mix(in oklab, var(--primary) 24%, var(--card) 76%);
+}
+
+.dayShortcutChipPast {
+  opacity: 0.52;
+}
+
+.dayShortcutChipPast:hover,
+.dayShortcutChipPast:focus-visible {
+  opacity: 0.82;
+}

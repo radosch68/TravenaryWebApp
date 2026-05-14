@@ -2,7 +2,7 @@ import { Plus, RefreshCw } from 'lucide-react'
 import type { ReactElement } from 'react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useSearchParams } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 
 import { Button } from '@/components/ui/button'
 import { AppShell } from '@/components/layout/AppShell'
@@ -608,78 +608,86 @@ export function DashboardShellPage(): ReactElement {
                     isSingleColumnList ? styles.cardSingleColumn : styles.cardMultiColumn
                   } ${itemIsPast ? styles.cardPast : ''}`}
                 >
-                  {item.coverPhoto?.url ? (
-                    <img
-                      className={styles.cardCover}
-                      src={item.coverPhoto.url}
-                      alt={normalizeDisplayText(item.coverPhoto.caption ?? item.title)}
-                      title={normalizeDisplayText(item.coverPhoto.caption ?? item.title)}
-                      loading="lazy"
-                    />
-                  ) : (
-                    <div className={styles.cardCoverPlaceholder} aria-hidden="true">
-                      <svg className={styles.coverPlaceholderIcon} viewBox="0 0 24 24" fill="none">
-                        <path
-                          d="M3 18L9 12L13 16L17 12L21 16V20H3V18Z"
-                          stroke="currentColor"
-                          strokeWidth="1.6"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                        <path
-                          d="M3 20V6C3 4.9 3.9 4 5 4H19C20.1 4 21 4.9 21 6V20"
-                          stroke="currentColor"
-                          strokeWidth="1.6"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                        <circle cx="8" cy="8" r="1.8" stroke="currentColor" strokeWidth="1.6" />
-                      </svg>
-                    </div>
-                  )}
-
-                  <div className={styles.cardBody}>
-                    <div className={styles.cardTitleRow}>
-                      <h2 className={styles.cardTitle}>{normalizeDisplayText(item.title)}</h2>
-                      {itemIsPast ? <span className={styles.pastBadge}>{t('common:dashboard.pastBadge')}</span> : null}
-                    </div>
-
-                    <div className={styles.cardDatesRow}>
-                      <p className={styles.cardDates}>
-                        {formatDateRange(
-                          item.startDate,
-                          item.endDate,
-                          i18n.language,
-                          t('common:dashboard.noDate'),
-                        )}
-                      </p>
-                      <span className={styles.cardDays}>
-                        {t('common:dashboard.days', { count: item.dayCount })}
-                      </span>
-                    </div>
-
-                    {item.tags.length > 0 ? (
-                      <div className={styles.tagsRow}>
-                        <svg className={styles.tagsIcon} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <Link
+                    to={`/itineraries/${item.id}`}
+                    className={styles.cardLink}
+                    aria-label={t('common:dashboard.openItineraryAria', {
+                      title: normalizeDisplayText(item.title),
+                    })}
+                  >
+                    {item.coverPhoto?.url ? (
+                      <img
+                        className={styles.cardCover}
+                        src={item.coverPhoto.url}
+                        alt={normalizeDisplayText(item.coverPhoto.caption ?? item.title)}
+                        title={normalizeDisplayText(item.coverPhoto.caption ?? item.title)}
+                        loading="lazy"
+                      />
+                    ) : (
+                      <div className={styles.cardCoverPlaceholder} aria-hidden="true">
+                        <svg className={styles.coverPlaceholderIcon} viewBox="0 0 24 24" fill="none">
                           <path
-                            d="M20 10L13 3H6L3 6V13L10 20L20 10Z"
+                            d="M3 18L9 12L13 16L17 12L21 16V20H3V18Z"
                             stroke="currentColor"
-                            strokeWidth="1.7"
+                            strokeWidth="1.6"
                             strokeLinecap="round"
                             strokeLinejoin="round"
                           />
-                          <circle cx="7.8" cy="7.8" r="1.6" fill="currentColor" />
+                          <path
+                            d="M3 20V6C3 4.9 3.9 4 5 4H19C20.1 4 21 4.9 21 6V20"
+                            stroke="currentColor"
+                            strokeWidth="1.6"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
+                          <circle cx="8" cy="8" r="1.8" stroke="currentColor" strokeWidth="1.6" />
                         </svg>
-                        <div className={styles.tags}>
-                          {item.tags.map((tag) => (
-                            <span key={tag} className={styles.tag}>
-                              {normalizeDisplayText(tag)}
-                            </span>
-                          ))}
-                        </div>
                       </div>
-                    ) : null}
-                  </div>
+                    )}
+
+                    <div className={styles.cardBody}>
+                      <div className={styles.cardTitleRow}>
+                        <h2 className={styles.cardTitle}>{normalizeDisplayText(item.title)}</h2>
+                        {itemIsPast ? <span className={styles.pastBadge}>{t('common:dashboard.pastBadge')}</span> : null}
+                      </div>
+
+                      <div className={styles.cardDatesRow}>
+                        <p className={styles.cardDates}>
+                          {formatDateRange(
+                            item.startDate,
+                            item.endDate,
+                            i18n.language,
+                            t('common:dashboard.noDate'),
+                          )}
+                        </p>
+                        <span className={styles.cardDays}>
+                          {t('common:dashboard.days', { count: item.dayCount })}
+                        </span>
+                      </div>
+
+                      {item.tags.length > 0 ? (
+                        <div className={styles.tagsRow}>
+                          <svg className={styles.tagsIcon} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                            <path
+                              d="M20 10L13 3H6L3 6V13L10 20L20 10Z"
+                              stroke="currentColor"
+                              strokeWidth="1.7"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            />
+                            <circle cx="7.8" cy="7.8" r="1.6" fill="currentColor" />
+                          </svg>
+                          <div className={styles.tags}>
+                            {item.tags.map((tag) => (
+                              <span key={tag} className={styles.tag}>
+                                {normalizeDisplayText(tag)}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      ) : null}
+                    </div>
+                  </Link>
                 </article>
                 )
               })}

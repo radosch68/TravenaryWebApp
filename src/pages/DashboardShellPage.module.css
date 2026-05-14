@@ -180,8 +180,19 @@
   border: 1px solid var(--border);
   background: color-mix(in oklab, var(--card) 95%, white 5%);
   overflow: hidden;
+}
+
+.cardLink {
+  color: inherit;
+  text-decoration: none;
   display: flex;
   align-items: stretch;
+  width: 100%;
+  height: 100%;
+}
+
+.cardLink:hover {
+  background: color-mix(in oklab, var(--accent) 5%, transparent);
 }
 
 .cardSingleColumn {

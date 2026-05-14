@@ -1,0 +1,83 @@
+.page {
+  display: grid;
+  gap: 0.9rem;
+}
+
+.mapPanel {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--card);
+  color: var(--card-foreground);
+  padding: clamp(0.75rem, 1.8vw, 1rem);
+  display: grid;
+  gap: 0.72rem;
+}
+
+.header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.7rem;
+}
+
+.titleBlock {
+  display: grid;
+  gap: 0.24rem;
+  min-inline-size: 0;
+}
+
+.kicker {
+  margin: 0;
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+}
+
+.title {
+  margin: 0;
+  font-size: clamp(1.03rem, 1.8vw, 1.2rem);
+}
+
+.subtitle {
+  margin: 0;
+  color: var(--muted-foreground);
+  font-size: 0.82rem;
+}
+
+.stateCard {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--card);
+  color: var(--card-foreground);
+  padding: 1rem;
+  display: grid;
+  gap: 0.7rem;
+}
+
+.errorText {
+  margin: 0;
+  color: hsl(var(--destructive));
+}
+
+.sharedPage {
+  inline-size: min(70rem, calc(100% - 2rem));
+  margin: 1.25rem auto 2rem;
+  display: grid;
+  gap: 0.9rem;
+}
+
+.sharedState {
+  margin-top: 0.6rem;
+}
+
+@media (max-width: 54rem) {
+  .sharedPage {
+    inline-size: min(70rem, calc(100% - 1.1rem));
+  }
+
+  .header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}

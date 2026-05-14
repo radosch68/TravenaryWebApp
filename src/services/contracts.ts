@@ -34,6 +34,88 @@ export interface WebReference {
   type?: 'photo' | 'video' | 'webpage'
 }
 
+export type ActivityType =
+  | 'note'
+  | 'flight'
+  | 'accommodation'
+  | 'transfer'
+  | 'poi'
+  | 'carRental'
+  | 'custom'
+  | 'food'
+  | 'divider'
+  | 'shopping'
+  | 'tour'
+
+export type AccommodationPlatform = 'booking' | 'airbnb' | 'agoda' | 'direct' | 'other'
+
+export interface ActivityDetails {
+  cuisine?: string
+  guidanceMode?: 'selfGuided' | 'guided'
+  nights?: number
+  guests?: number
+  checkInFrom?: string
+  checkInUntil?: string
+  checkOutUntil?: string
+  platform?: AccommodationPlatform
+  contactPhone?: string
+  contactEmail?: string
+  bookingRef?: string
+}
+
+export interface ActivityLocation {
+  caption?: string
+  showOnMap?: boolean
+  coordinates?: number[]
+  address?: string
+}
+
+export interface ItineraryActivity {
+  id: string
+  type: ActivityType
+  title: string
+  text?: string
+  time?: string
+  timeEnd?: string
+  anchorDate?: string | null
+  details?: ActivityDetails
+  references?: WebReference[]
+  locations?: ActivityLocation[]
+}
+
+export interface ItineraryDay {
+  dayNumber: number
+  date?: string
+  summary?: string
+  activities: ItineraryActivity[]
+}
+
+export interface ItineraryDetail {
+  id: string
+  userId: string
+  templateId?: string
+  title: string
+  description?: string
+  tags: string[]
+  visibility: 'private' | 'shared' | 'public'
+  coverPhoto?: WebReference
+  startDate?: string
+  endDate?: string
+  schemaVer: number
+  hasShareLink: boolean
+  days: ItineraryDay[]
+  activityBench: ItineraryActivity[]
+  createdAt: string
+  updatedAt: string
+}
+
+export type SharedItineraryDetail = Omit<ItineraryDetail, 'userId' | 'hasShareLink'>
+
+export interface ShareTokenResponse {
+  shareToken: string
+  shareUrl: string
+}
+
 export interface ItinerarySummary {
   id: string
   title: string

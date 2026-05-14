@@ -43,8 +43,12 @@ export function TopBanner(): ReactElement | null {
     () => PUBLIC_AUTH_ROUTES.has(location.pathname),
     [location.pathname],
   )
+  const isSharedRoute = useMemo(
+    () => location.pathname.startsWith('/s/'),
+    [location.pathname],
+  )
 
-  const showAuthedActions = Boolean(accessToken) && !isPublicAuthRoute
+  const showAuthedActions = Boolean(accessToken) && !isPublicAuthRoute && !isSharedRoute
 
   useEffect(() => {
     if (!isHidden) {
@@ -137,7 +141,7 @@ export function TopBanner(): ReactElement | null {
     swipeHandledRef.current = false
   }
 
-  const brandTo = showAuthedActions ? '/' : '/signin'
+  const brandTo = accessToken ? '/' : '/signin'
   const logoSrc = resolvedTheme === 'dark' ? travenaryLogoDark : travenaryLogo
 
   return (
