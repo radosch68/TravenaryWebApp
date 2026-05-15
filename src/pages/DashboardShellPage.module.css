@@ -176,6 +176,21 @@
   margin-inline: 0;
 }
 
+.bucketHeader {
+  grid-column: 1 / -1;
+  margin: 0;
+  padding: 0.15rem 0 0.28rem;
+  border-bottom: 1px solid color-mix(in oklab, var(--border) 84%, transparent 16%);
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+}
+
+.listSingleColumn .bucketHeader {
+  padding-inline: 0.9rem;
+}
+
 .card {
   border: 1px solid var(--border);
   background: color-mix(in oklab, var(--card) 95%, white 5%);
@@ -382,6 +397,10 @@
 
   .listSingleColumn {
     margin-inline: -0.7rem;
+  }
+
+  .listSingleColumn .bucketHeader {
+    padding-inline: 0.7rem;
   }
 
   .cardBody {

@@ -94,6 +94,8 @@
     "showPastLabel": "Visibility",
     "showPast": "Show past",
     "pastBadge": "Past",
+    "upcomingTripsHeader": "Upcoming Trips",
+    "pastTripsHeader": "Past Trips",
     "sortAsc": "Ascending",
     "sortDesc": "Descending",
     "paginationAria": "Dashboard pagination",
