@@ -22,9 +22,10 @@ import maplibregl from 'maplibre-gl'
 import { formatLocalTime } from '@/utils/date-format'
 
 import { buildGoogleMapsSearchUrl, type LocationMapPin } from './location-map-pins'
+import { resolveMapProvider } from './map-provider'
 import styles from './LocationsMap.module.css'
 
-interface LocationsMapProps {
+export interface LocationsMapProps {
   pins: LocationMapPin[]
   variant?: 'inline' | 'page'
 }
@@ -44,6 +45,54 @@ interface RouteOverlayState {
   height: number
   points: string
 }
+
+type GoogleMapsApi = {
+  Map: new (container: HTMLElement, options: Record<string, unknown>) => GoogleMapInstance
+  InfoWindow: new (options: Record<string, unknown>) => GoogleInfoWindowInstance
+  Polyline: new (options: Record<string, unknown>) => GooglePolylineInstance
+  LatLngBounds: new () => GoogleLatLngBoundsInstance
+  importLibrary?: (libraryName: string) => Promise<unknown>
+  marker?: {
+    AdvancedMarkerElement: new (options: Record<string, unknown>) => GoogleAdvancedMarkerInstance
+  }
+  event: {
+    trigger: (instance: unknown, eventName: string) => void
+    clearInstanceListeners: (instance: unknown) => void
+  }
+}
+
+type GoogleMapInstance = {
+  fitBounds: (bounds: GoogleLatLngBoundsInstance, padding?: number) => void
+  setCenter: (position: { lat: number; lng: number }) => void
+  setZoom: (zoom: number) => void
+}
+
+type GoogleAdvancedMarkerInstance = {
+  addEventListener: (eventName: string, callback: () => void) => void
+  map: GoogleMapInstance | null
+}
+
+type GoogleInfoWindowInstance = {
+  open: (options: { map: GoogleMapInstance; anchor?: GoogleAdvancedMarkerInstance }) => void
+  close: () => void
+}
+
+type GooglePolylineInstance = {
+  setMap: (map: GoogleMapInstance | null) => void
+}
+
+type GoogleLatLngBoundsInstance = {
+  extend: (position: { lat: number; lng: number }) => void
+}
+
+interface GoogleWindow {
+  google?: {
+    maps?: GoogleMapsApi
+  }
+}
+
+const GOOGLE_MAPS_SCRIPT_ID = 'google-maps-javascript-api'
+const googleMapsScriptPromises = new Map<string, Promise<void>>()
 
 const MAP_STYLE: maplibregl.StyleSpecification = {
   version: 8,
@@ -92,6 +141,47 @@ const ACTIVITY_MARKER_ICONS: Record<LocationMapPin['activityType'], LucideIcon> 
   tour: Footprints,
 }
 
+function createPinBadgeElement(pin: LocationMapPin, markerNumber: number): {
+  markerElement: HTMLButtonElement
+  markerIconRoot: Root
+} {
+  const markerElement = document.createElement('button')
+  markerElement.type = 'button'
+  markerElement.className = styles.pin
+  markerElement.setAttribute('aria-label', pin.locationLabel || pin.activityTitle)
+  markerElement.style.setProperty('--day-map-pin-color', ACTIVITY_MARKER_COLORS[pin.activityType] ?? '#8a7a68')
+
+  const markerIconElement = document.createElement('span')
+  markerIconElement.className = styles.pinIcon
+  markerElement.appendChild(markerIconElement)
+  const MarkerIcon = ACTIVITY_MARKER_ICONS[pin.activityType] ?? Sparkles
+  const markerIconRoot = createRoot(markerIconElement)
+  markerIconRoot.render(<MarkerIcon size={12} strokeWidth={2.2} />)
+
+  const markerNumberElement = document.createElement('span')
+  markerNumberElement.className = styles.pinNumber
+  markerNumberElement.textContent = String(markerNumber)
+  markerElement.appendChild(markerNumberElement)
+
+  return {
+    markerElement,
+    markerIconRoot,
+  }
+}
+
+function unmountMarkerIconRootsDeferred(roots: Root[]): void {
+  if (roots.length === 0) {
+    return
+  }
+
+  const rootsToUnmount = [...roots]
+  window.setTimeout(() => {
+    rootsToUnmount.forEach((root) => {
+      root.unmount()
+    })
+  }, 0)
+}
+
 function escapeHtml(value: string): string {
   return value
     .replace(/&/g, '&amp;')
@@ -122,6 +212,127 @@ function refreshMapViewport(map: maplibregl.Map | null): void {
   map.setPixelRatio(resolveMapPixelRatio())
   map.resize()
   map.triggerRepaint()
+}
+
+function getGoogleMapsApi(): GoogleMapsApi | null {
+  const candidate = (window as unknown as GoogleWindow).google?.maps
+  return candidate ?? null
+}
+
+function isGoogleMapsApiReady(mapsApi: GoogleMapsApi | null): boolean {
+  if (!mapsApi) {
+    return false
+  }
+
+  return typeof mapsApi.Map === 'function'
+    && typeof mapsApi.marker?.AdvancedMarkerElement === 'function'
+    && typeof mapsApi.InfoWindow === 'function'
+    && typeof mapsApi.Polyline === 'function'
+    && typeof mapsApi.LatLngBounds === 'function'
+    && typeof mapsApi.event?.trigger === 'function'
+}
+
+async function waitForGoogleMapsApiReady(timeoutMs = 5000): Promise<GoogleMapsApi> {
+  const startedAt = Date.now()
+  let markerImportAttempted = false
+
+  while (Date.now() - startedAt <= timeoutMs) {
+    const mapsApi = getGoogleMapsApi()
+    if (mapsApi && isGoogleMapsApiReady(mapsApi)) {
+      return mapsApi
+    }
+
+    if (
+      !markerImportAttempted
+      && mapsApi
+      && typeof mapsApi.importLibrary === 'function'
+      && typeof mapsApi.marker?.AdvancedMarkerElement !== 'function'
+    ) {
+      markerImportAttempted = true
+      try {
+        await mapsApi.importLibrary('marker')
+      } catch {
+        // Keep polling in case the script has not finished hydrating yet.
+      }
+      continue
+    }
+
+    await new Promise<void>((resolve) => {
+      window.setTimeout(resolve, 50)
+    })
+  }
+
+  throw new Error('Google Maps API was loaded but constructors are not ready.')
+}
+
+function refreshGoogleMapViewport(map: GoogleMapInstance | null, mapsApi: GoogleMapsApi | null): void {
+  if (!map || !mapsApi) {
+    return
+  }
+
+  mapsApi.event.trigger(map, 'resize')
+}
+
+function ensureGoogleMapsScript(apiKey: string): Promise<void> {
+  const normalizedKey = apiKey.trim()
+  if (normalizedKey.length === 0) {
+    return Promise.reject(new Error('Google Maps API key is missing.'))
+  }
+
+  if (isGoogleMapsApiReady(getGoogleMapsApi())) {
+    return Promise.resolve()
+  }
+
+  const existingPromise = googleMapsScriptPromises.get(normalizedKey)
+  if (existingPromise) {
+    return existingPromise
+  }
+
+  const scriptPromise = new Promise<void>((resolve, reject) => {
+    const existing = document.getElementById(GOOGLE_MAPS_SCRIPT_ID) as HTMLScriptElement | null
+
+    const onLoad = (): void => {
+      void waitForGoogleMapsApiReady()
+        .then(() => {
+          resolve()
+        })
+        .catch(() => {
+          reject(new Error('Google Maps API loaded without ready constructors.'))
+        })
+    }
+
+    const onError = (): void => {
+      reject(new Error('Failed to load Google Maps API script.'))
+    }
+
+    if (existing) {
+      void waitForGoogleMapsApiReady()
+        .then(() => {
+          resolve()
+        })
+        .catch(() => {
+          reject(new Error('Google Maps API script exists but constructors are not ready.'))
+        })
+      return
+    }
+
+    const script = document.createElement('script')
+    script.id = GOOGLE_MAPS_SCRIPT_ID
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(normalizedKey)}&v=weekly&loading=async&libraries=marker`
+    script.async = true
+    script.defer = true
+    script.addEventListener('load', onLoad, { once: true })
+    script.addEventListener('error', onError, { once: true })
+    document.head.appendChild(script)
+  })
+
+  const managedPromise = scriptPromise.catch((error) => {
+    googleMapsScriptPromises.delete(normalizedKey)
+    throw error
+  })
+
+  googleMapsScriptPromises.set(normalizedKey, managedPromise)
+  return managedPromise
 }
 
 function buildRoutePointsAttribute(map: maplibregl.Map, pins: LocationMapPin[]): string {
@@ -257,7 +468,7 @@ function toPopupHtml({
   `
 }
 
-export function LocationsMap({ pins, variant = 'inline' }: LocationsMapProps): ReactElement {
+export function MapLibreLocationsMap({ pins, variant = 'inline' }: LocationsMapProps): ReactElement {
   const { t, i18n } = useTranslation('common')
   const mapWrapperRef = useRef<HTMLDivElement | null>(null)
   const mapContainerRef = useRef<HTMLDivElement | null>(null)
@@ -316,7 +527,7 @@ export function LocationsMap({ pins, variant = 'inline' }: LocationsMapProps): R
       style: MAP_STYLE,
       center: [14.4, 50.1],
       zoom: 8,
-      cooperativeGestures: true,
+      cooperativeGestures: false,
       attributionControl: { compact: true },
       pixelRatio: resolveMapPixelRatio(),
     })
@@ -350,7 +561,7 @@ export function LocationsMap({ pins, variant = 'inline' }: LocationsMapProps): R
         marker.remove()
       }
       markersRef.current = []
-      markerIconRootsRef.current.forEach((root) => root.unmount())
+      unmountMarkerIconRootsDeferred(markerIconRootsRef.current)
       markerIconRootsRef.current = []
       map.remove()
       mapRef.current = null
@@ -441,7 +652,7 @@ export function LocationsMap({ pins, variant = 'inline' }: LocationsMapProps): R
         marker.remove()
       }
       markersRef.current = []
-      markerIconRootsRef.current.forEach((root) => root.unmount())
+      unmountMarkerIconRootsDeferred(markerIconRootsRef.current)
       markerIconRootsRef.current = []
 
       if (orderedPins.length === 0) {
@@ -453,24 +664,8 @@ export function LocationsMap({ pins, variant = 'inline' }: LocationsMapProps): R
       orderedPins.forEach((pin, index) => {
         bounds.extend([pin.longitude, pin.latitude])
 
-        const markerEl = document.createElement('button')
-        markerEl.type = 'button'
-        markerEl.className = styles.pin
-        markerEl.setAttribute('aria-label', pin.locationLabel || pin.activityTitle)
-        markerEl.style.setProperty('--day-map-pin-color', ACTIVITY_MARKER_COLORS[pin.activityType] ?? '#8a7a68')
-
-        const markerIconEl = document.createElement('span')
-        markerIconEl.className = styles.pinIcon
-        markerEl.appendChild(markerIconEl)
-        const MarkerIcon = ACTIVITY_MARKER_ICONS[pin.activityType] ?? Sparkles
-        const markerIconRoot = createRoot(markerIconEl)
-        markerIconRoot.render(<MarkerIcon size={12} strokeWidth={2.2} />)
+        const { markerElement, markerIconRoot } = createPinBadgeElement(pin, index + 1)
         markerIconRootsRef.current.push(markerIconRoot)
-
-        const markerNumberEl = document.createElement('span')
-        markerNumberEl.className = styles.pinNumber
-        markerNumberEl.textContent = String(index + 1)
-        markerEl.appendChild(markerNumberEl)
 
         const popupHtml = toPopupHtml({
           pin,
@@ -484,7 +679,7 @@ export function LocationsMap({ pins, variant = 'inline' }: LocationsMapProps): R
         })
 
         const marker = new maplibregl.Marker({
-          element: markerEl,
+          element: markerElement,
           anchor: 'bottom',
           offset: [0, 2],
         })
@@ -648,4 +843,407 @@ export function LocationsMap({ pins, variant = 'inline' }: LocationsMapProps): R
       ) : null}
     </div>
   )
+}
+
+function GoogleLocationsMap({ pins, variant = 'inline' }: LocationsMapProps): ReactElement {
+  const { t, i18n } = useTranslation('common')
+  const mapWrapperRef = useRef<HTMLDivElement | null>(null)
+  const mapContainerRef = useRef<HTMLDivElement | null>(null)
+  const mapRef = useRef<GoogleMapInstance | null>(null)
+  const mapsApiRef = useRef<GoogleMapsApi | null>(null)
+  const markersRef = useRef<GoogleAdvancedMarkerInstance[]>([])
+  const markerIconRootsRef = useRef<Root[]>([])
+  const polylinesRef = useRef<GooglePolylineInstance[]>([])
+  const infoWindowRef = useRef<GoogleInfoWindowInstance | null>(null)
+  const fullscreenRefreshTimersRef = useRef<number[]>([])
+  const [loadFailed, setLoadFailed] = useState(false)
+  const [googleMapReady, setGoogleMapReady] = useState(false)
+  const [isNativeFullscreen, setIsNativeFullscreen] = useState(false)
+  const [isPseudoFullscreen, setIsPseudoFullscreen] = useState(false)
+
+  const orderedPins = useMemo(() => pins.map((pin) => ({ ...pin })), [pins])
+  const mapsApiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY?.trim() ?? ''
+  const googleMapId = import.meta.env.VITE_GOOGLE_MAP_ID?.trim() || 'DEMO_MAP_ID'
+  const isNativeFullscreenSupported = useMemo(
+    () => canRequestFullscreen(document) && canExitFullscreen(document),
+    [],
+  )
+  const isFullscreen = isNativeFullscreen || isPseudoFullscreen
+
+  useEffect(() => {
+    if (!mapContainerRef.current || mapRef.current) {
+      return
+    }
+
+    let cancelled = false
+
+    const initialize = async (): Promise<void> => {
+      if (mapsApiKey.length === 0) {
+        setLoadFailed(true)
+        return
+      }
+
+      try {
+        await ensureGoogleMapsScript(mapsApiKey)
+      } catch {
+        if (!cancelled) {
+          setLoadFailed(true)
+        }
+        return
+      }
+
+      if (cancelled) {
+        return
+      }
+
+      try {
+        const mapsApi = await waitForGoogleMapsApiReady()
+        if (cancelled || !mapContainerRef.current) {
+          return
+        }
+
+        mapsApiRef.current = mapsApi
+        mapRef.current = new mapsApi.Map(mapContainerRef.current, {
+          center: { lat: 50.1, lng: 14.4 },
+          zoom: 8,
+          mapId: googleMapId,
+          gestureHandling: 'greedy',
+          fullscreenControl: false,
+          mapTypeControl: false,
+          streetViewControl: false,
+        })
+        infoWindowRef.current = new mapsApi.InfoWindow({})
+        setGoogleMapReady(true)
+        setLoadFailed(false)
+      } catch {
+        if (!cancelled) {
+          setLoadFailed(true)
+        }
+      }
+    }
+
+    void initialize()
+
+    return () => {
+      cancelled = true
+      fullscreenRefreshTimersRef.current.forEach((timerId) => window.clearTimeout(timerId))
+      fullscreenRefreshTimersRef.current = []
+
+      if (infoWindowRef.current) {
+        infoWindowRef.current.close()
+      }
+      infoWindowRef.current = null
+
+      markersRef.current.forEach((marker) => {
+        marker.map = null
+      })
+      markersRef.current = []
+      unmountMarkerIconRootsDeferred(markerIconRootsRef.current)
+      markerIconRootsRef.current = []
+
+      polylinesRef.current.forEach((polyline) => {
+        polyline.setMap(null)
+      })
+      polylinesRef.current = []
+
+      mapRef.current = null
+      mapsApiRef.current = null
+      setGoogleMapReady(false)
+    }
+  }, [googleMapId, mapsApiKey])
+
+  useEffect(() => {
+    const mapWrapper = mapWrapperRef.current
+    if (!mapWrapper) {
+      return
+    }
+
+    const handleFullscreenChange = (): void => {
+      const fullscreenElement = getFullscreenElement(document)
+      setIsNativeFullscreen(Boolean(fullscreenElement && fullscreenElement === mapWrapperRef.current))
+      window.requestAnimationFrame(() => {
+        refreshGoogleMapViewport(mapRef.current, mapsApiRef.current)
+      })
+
+      fullscreenRefreshTimersRef.current.forEach((timerId) => window.clearTimeout(timerId))
+      fullscreenRefreshTimersRef.current = [
+        window.setTimeout(() => {
+          refreshGoogleMapViewport(mapRef.current, mapsApiRef.current)
+        }, 120),
+        window.setTimeout(() => {
+          refreshGoogleMapViewport(mapRef.current, mapsApiRef.current)
+        }, 420),
+      ]
+    }
+
+    document.addEventListener('fullscreenchange', handleFullscreenChange)
+    document.addEventListener('webkitfullscreenchange', handleFullscreenChange as EventListener)
+
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFullscreenChange)
+      document.removeEventListener('webkitfullscreenchange', handleFullscreenChange as EventListener)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!isPseudoFullscreen) {
+      return
+    }
+
+    const previousOverflow = document.body.style.overflow
+    const previousTouchAction = document.body.style.touchAction
+
+    document.body.style.overflow = 'hidden'
+    document.body.style.touchAction = 'none'
+
+    return () => {
+      document.body.style.overflow = previousOverflow
+      document.body.style.touchAction = previousTouchAction
+    }
+  }, [isPseudoFullscreen])
+
+  useEffect(() => {
+    if (!isPseudoFullscreen) {
+      return
+    }
+
+    const handleKeyDown = (event: KeyboardEvent): void => {
+      if (event.key === 'Escape') {
+        setIsPseudoFullscreen(false)
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [isPseudoFullscreen])
+
+  useEffect(() => {
+    if (!googleMapReady) {
+      return
+    }
+
+    const map = mapRef.current
+    const mapsApi = mapsApiRef.current
+    if (!map || !mapsApi) {
+      return
+    }
+
+    markersRef.current.forEach((marker) => {
+      marker.map = null
+      mapsApi.event.clearInstanceListeners(marker)
+    })
+    markersRef.current = []
+    unmountMarkerIconRootsDeferred(markerIconRootsRef.current)
+    markerIconRootsRef.current = []
+
+    polylinesRef.current.forEach((polyline) => {
+      polyline.setMap(null)
+      mapsApi.event.clearInstanceListeners(polyline)
+    })
+    polylinesRef.current = []
+
+    if (infoWindowRef.current) {
+      infoWindowRef.current.close()
+    }
+
+    if (orderedPins.length === 0) {
+      return
+    }
+
+    const AdvancedMarkerElement = mapsApi.marker?.AdvancedMarkerElement
+    if (typeof AdvancedMarkerElement !== 'function') {
+      setLoadFailed(true)
+      return
+    }
+
+    const bounds = new mapsApi.LatLngBounds()
+    orderedPins.forEach((pin, index) => {
+      const position = { lat: pin.latitude, lng: pin.longitude }
+      bounds.extend(position)
+
+      const popupHtml = toPopupHtml({
+        pin,
+        pinIndex: index,
+        locale: i18n.language,
+        dayLabel: Number.isFinite(pin.dayNumber)
+          ? t('itineraryView.dayNumber', { dayNumber: pin.dayNumber })
+          : '',
+        activityTypeLabel: t(`itineraryView.activityType.${pin.activityType}`),
+        openInGoogleMapsLabel: t('itineraryView.openInGoogleMaps'),
+      })
+
+      const { markerElement, markerIconRoot } = createPinBadgeElement(pin, index + 1)
+      markerIconRootsRef.current.push(markerIconRoot)
+
+      const marker = new AdvancedMarkerElement({
+        map,
+        position,
+        title: pin.locationLabel || pin.activityTitle,
+        content: markerElement,
+        gmpClickable: true,
+      })
+
+      let lastInfoWindowOpenAt = 0
+      const openInfoWindow = (): void => {
+        const now = Date.now()
+        if (now - lastInfoWindowOpenAt < 40) {
+          return
+        }
+        lastInfoWindowOpenAt = now
+
+        if (!infoWindowRef.current) {
+          return
+        }
+
+        infoWindowRef.current.close()
+        infoWindowRef.current = new mapsApi.InfoWindow({ content: popupHtml })
+        infoWindowRef.current.open({ map, anchor: marker })
+      }
+
+      markerElement.addEventListener('click', (event) => {
+        event.preventDefault()
+        event.stopPropagation()
+        openInfoWindow()
+      })
+
+      try {
+        marker.addEventListener('gmp-click', openInfoWindow)
+      } catch {
+        // Some channels/builds may not expose gmp-click; DOM click fallback remains active.
+      }
+
+      markersRef.current.push(marker)
+    })
+
+    if (orderedPins.length >= 2) {
+      const path = orderedPins.map((pin) => ({ lat: pin.latitude, lng: pin.longitude }))
+
+      const routeLine = new mapsApi.Polyline({
+        map,
+        path,
+        geodesic: true,
+        strokeOpacity: 0,
+        icons: [
+          {
+            icon: {
+              path: 'M 0,-1 0,1',
+              strokeOpacity: 1,
+              strokeColor: '#0b5bcc',
+              scale: 2.5,
+            },
+            offset: '0',
+            repeat: '13px',
+          },
+        ],
+      })
+
+      polylinesRef.current = [routeLine]
+    }
+
+    if (orderedPins.length === 1) {
+      map.setCenter({ lat: orderedPins[0].latitude, lng: orderedPins[0].longitude })
+      map.setZoom(13)
+      return
+    }
+
+    map.fitBounds(bounds, 56)
+  }, [googleMapReady, i18n.language, orderedPins, t])
+
+  useEffect(() => {
+    if (!googleMapReady) {
+      return
+    }
+
+    const map = mapRef.current
+    const mapsApi = mapsApiRef.current
+    if (!map || !mapsApi) {
+      return
+    }
+
+    window.requestAnimationFrame(() => {
+      refreshGoogleMapViewport(map, mapsApi)
+    })
+  }, [googleMapReady, isFullscreen])
+
+  const toggleFullscreen = async (): Promise<void> => {
+    const mapWrapper = mapWrapperRef.current
+    if (!mapWrapper) {
+      return
+    }
+
+    if (!isNativeFullscreenSupported) {
+      setIsPseudoFullscreen((value) => !value)
+      return
+    }
+
+    try {
+      if (getFullscreenElement(document) === mapWrapper) {
+        await exitElementFullscreen(document)
+      } else {
+        await requestElementFullscreen(mapWrapper)
+      }
+
+      fullscreenRefreshTimersRef.current.forEach((timerId) => window.clearTimeout(timerId))
+      fullscreenRefreshTimersRef.current = [
+        window.setTimeout(() => {
+          refreshGoogleMapViewport(mapRef.current, mapsApiRef.current)
+        }, 120),
+        window.setTimeout(() => {
+          refreshGoogleMapViewport(mapRef.current, mapsApiRef.current)
+        }, 420),
+      ]
+    } catch {
+      // Keep map usable when fullscreen is denied or unsupported at runtime.
+    }
+  }
+
+  const variantClass = variant === 'page' ? styles.pageVariant : styles.inlineVariant
+  const fullscreenClass = isFullscreen ? styles.fullscreen : ''
+  const pseudoFullscreenClass = isPseudoFullscreen ? styles.pseudoFullscreen : ''
+
+  return (
+    <div
+      ref={mapWrapperRef}
+      className={`${styles.mapRoot} ${styles.googleProvider} ${variantClass} ${fullscreenClass} ${pseudoFullscreenClass}`.trim()}
+    >
+      <button
+        type="button"
+        className={styles.fullscreenToggle}
+        onClick={() => {
+          void toggleFullscreen()
+        }}
+        aria-label={isFullscreen
+          ? t('itineraryView.collapseMap')
+          : t('itineraryView.expandMap')}
+        title={isFullscreen
+          ? t('itineraryView.collapseMap')
+          : t('itineraryView.expandMap')}
+      >
+        {isFullscreen ? <Minimize2 size={20} /> : <Maximize2 size={20} />}
+      </button>
+
+      <div className={styles.viewport}>
+        <div ref={mapContainerRef} className={styles.canvas} />
+      </div>
+
+      {loadFailed ? (
+        <p className={styles.error} role="alert">
+          {t('itineraryView.mapLoadFailed')}
+        </p>
+      ) : null}
+    </div>
+  )
+}
+
+export function LocationsMap(props: LocationsMapProps): ReactElement {
+  const provider = resolveMapProvider()
+
+  if (provider === 'google') {
+    return <GoogleLocationsMap {...props} />
+  }
+
+  return <MapLibreLocationsMap {...props} />
 }

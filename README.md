@@ -1,5 +1,16 @@
 # React + TypeScript + Vite
 
+## Map Provider Switch
+
+The itinerary map renderer is now provider-aware.
+
+- `VITE_MAP_PROVIDER=maplibre` (default) keeps the current MapLibre implementation.
+- `VITE_MAP_PROVIDER=google` enables the Google Maps JavaScript renderer.
+- `VITE_GOOGLE_MAPS_API_KEY=<your-key>` is required when `VITE_MAP_PROVIDER=google`.
+- `VITE_GOOGLE_MAP_ID=<your-map-id>` is recommended for production styling. If omitted, the app uses `DEMO_MAP_ID` so Advanced Markers remain enabled.
+
+If the Google script fails to load or the API key is missing, the map shows the existing map load failure message.
+
 ## Styling Policy
 
 The frontend uses CSS Modules from the beginning.

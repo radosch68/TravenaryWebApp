@@ -96,6 +96,10 @@
   cursor: pointer;
 }
 
+.googleProvider .fullscreenToggle {
+  right: 0.52rem;
+}
+
 .fullscreenToggle:hover {
   background: rgba(255, 255, 255, 1);
 }
