@@ -22,7 +22,9 @@
     "title": "Vítejte zpět",
     "titleWithName": "Vítejte zpět, {{name}}",
     "subtitle": "Otevřete Itineráře pro zobrazení a správu svých cestovních plánů.",
-    "openItineraries": "Otevřít itineráře"
+    "resume": "Pokračovat",
+    "openItineraries": "Otevřít itineráře",
+    "resumeLastItinerary": "Pokračovat v posledním itineráři"
   },
   "profile": {
     "title": "Profil",

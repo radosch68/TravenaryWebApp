@@ -22,7 +22,9 @@
     "title": "Welcome back",
     "titleWithName": "Welcome back, {{name}}",
     "subtitle": "Open Itineraries to view and manage your travel plans.",
-    "openItineraries": "Open itineraries"
+    "resume": "Resume",
+    "openItineraries": "Open itineraries",
+    "resumeLastItinerary": "Resume last itinerary"
   },
   "profile": {
     "title": "Profile",

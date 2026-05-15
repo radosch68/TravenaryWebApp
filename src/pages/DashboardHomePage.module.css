@@ -35,6 +35,40 @@
   color: var(--muted-foreground);
 }
 
+.resumeButton {
+  height: auto;
+  padding-block: 0.34rem;
+}
+
+.resumeLink {
+  display: grid;
+  gap: 0.05rem;
+  align-items: start;
+  text-align: left;
+  line-height: 1.2;
+}
+
+.singleLineLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.32rem;
+}
+
+.resumePrimary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.resumeSecondary {
+  font-size: 0.72rem;
+  max-width: 20rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: color-mix(in oklab, var(--primary-foreground) 84%, transparent 16%);
+}
+
 @media (max-width: 56.25rem) {
   .headerCard {
     display: grid;
