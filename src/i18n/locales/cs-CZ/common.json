@@ -173,6 +173,8 @@
     "openMapAria": "Otevřít mapu pro {{label}}",
     "dayShortcutsLabel": "Rychlý skok",
     "jumpToDayAria": "Přejít na den {{dayNumber}}",
+    "expandDayAria": "Rozbalit den {{dayNumber}}",
+    "collapseDayAria": "Sbalit den {{dayNumber}}",
     "createShareLink": "Vytvořit sdílený odkaz",
     "copyShareLink": "Kopírovat sdílený odkaz",
     "creatingShareLink": "Připravuji odkaz...",

@@ -3,6 +3,7 @@ import {
   BusFront,
   Camera,
   Car,
+  ChevronRight,
   ExternalLink,
   Film,
   Footprints,
@@ -19,7 +20,7 @@ import {
   type LucideIcon,
 } from 'lucide-react'
 import type { ReactElement } from 'react'
-import { useMemo } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 
@@ -78,6 +79,32 @@ export function ItineraryDaysGrid({
     () => getOvernightCoverageByGapDay(sortedDays),
     [sortedDays],
   )
+  const [collapsedDayNumbers, setCollapsedDayNumbers] = useState<Set<number>>(() => new Set())
+
+  useEffect(() => {
+    const dayNumbers = new Set(sortedDays.map((day) => day.dayNumber))
+    setCollapsedDayNumbers((previousValue) => {
+      const nextValue = new Set<number>()
+      previousValue.forEach((dayNumber) => {
+        if (dayNumbers.has(dayNumber)) {
+          nextValue.add(dayNumber)
+        }
+      })
+      return nextValue.size === previousValue.size ? previousValue : nextValue
+    })
+  }, [sortedDays])
+
+  const toggleDayCollapsed = useCallback((dayNumber: number): void => {
+    setCollapsedDayNumbers((previousValue) => {
+      const nextValue = new Set(previousValue)
+      if (nextValue.has(dayNumber)) {
+        nextValue.delete(dayNumber)
+      } else {
+        nextValue.add(dayNumber)
+      }
+      return nextValue
+    })
+  }, [])
 
   return (
     <section
@@ -85,6 +112,7 @@ export function ItineraryDaysGrid({
       aria-label={t('itineraryView.daysAriaLabel')}
     >
       {sortedDays.map((day, index) => {
+        const isCollapsed = collapsedDayNumbers.has(day.dayNumber)
         const coverage =
             index < sortedDays.length - 1
               ? overnightCoverageByGapDay.get(day.dayNumber) ?? { status: 'missing' }
@@ -104,12 +132,30 @@ export function ItineraryDaysGrid({
             aria-current={isToday ? 'date' : undefined}
           >
             <header className={styles.dayHeader}>
+              <button
+                type="button"
+                className={styles.dayToggleButton}
+                onClick={() => toggleDayCollapsed(day.dayNumber)}
+                aria-expanded={!isCollapsed}
+                aria-controls={`itinerary-day-content-${day.dayNumber}`}
+                aria-label={
+                  isCollapsed
+                    ? t('itineraryView.expandDayAria', { dayNumber: day.dayNumber })
+                    : t('itineraryView.collapseDayAria', { dayNumber: day.dayNumber })
+                }
+              >
+                <ChevronRight
+                  size={16}
+                  className={`${styles.dayToggleIcon}${!isCollapsed ? ` ${styles.dayToggleIconExpanded}` : ''}`}
+                  aria-hidden="true"
+                />
+              </button>
               <div className={styles.dayHeaderMain}>
                 <p className={styles.dayNumber}>{day.dayNumber}</p>
                 <div className={styles.dayDateStack}>
-                <p className={styles.dayWeekday}>
-                  {day.date ? formatWeekday(day.date, locale) : '—'}
-                </p>
+                  <p className={styles.dayWeekday}>
+                    {day.date ? formatWeekday(day.date, locale) : '—'}
+                  </p>
                   <p className={styles.dayDate}>
                     {day.date ? formatLocalDate(day.date, locale) : t('itineraryView.missingDate')}
                   </p>
@@ -129,11 +175,15 @@ export function ItineraryDaysGrid({
               ) : null}
             </header>
 
-            {day.summary ? <p className={styles.daySummary}>{day.summary}</p> : null}
+            {!isCollapsed ? (
+              <div id={`itinerary-day-content-${day.dayNumber}`}>
+                {day.summary ? <p className={styles.daySummary}>{day.summary}</p> : null}
 
-            <DayActivitySections activities={day.activities} locale={locale} />
+                <DayActivitySections activities={day.activities} locale={locale} />
 
-            {coverage ? <OvernightBanner coverage={coverage} /> : null}
+                {coverage ? <OvernightBanner coverage={coverage} /> : null}
+              </div>
+            ) : null}
           </article>
         )
       })}

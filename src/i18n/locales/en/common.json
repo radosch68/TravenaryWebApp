@@ -167,6 +167,8 @@
     "openMapAria": "Open map for {{label}}",
     "dayShortcutsLabel": "Quick jump",
     "jumpToDayAria": "Jump to day {{dayNumber}}",
+    "expandDayAria": "Expand day {{dayNumber}}",
+    "collapseDayAria": "Collapse day {{dayNumber}}",
     "createShareLink": "Create shared link",
     "copyShareLink": "Copy shared link",
     "creatingShareLink": "Preparing link...",
