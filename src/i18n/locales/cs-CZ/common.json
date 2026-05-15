@@ -24,7 +24,24 @@
     "subtitle": "Otevřete Itineráře pro zobrazení a správu svých cestovních plánů.",
     "resume": "Pokračovat",
     "openItineraries": "Otevřít itineráře",
-    "resumeLastItinerary": "Pokračovat v posledním itineráři"
+    "resumeLastItinerary": "Pokračovat v posledním itineráři",
+    "upcoming": {
+      "kicker": "Nadcházející",
+      "title": "Nejbližší nadcházející itinerář",
+      "empty": "Zatím nemáte žádný nadcházející itinerář.",
+      "noCover": "Bez úvodní fotografie",
+      "daysLeft": "Dnů zbývá",
+      "loadError": "Nadcházející itinerář se teď nepodařilo načíst."
+    },
+    "distribution": {
+      "kicker": "Přehled",
+      "title": "Rozložení cest",
+      "upcoming": "Nadcházející",
+      "ongoing": "Probíhající",
+      "completed": "Dokončené",
+      "undated": "Bez data",
+      "loadError": "Rozložení cest se teď nepodařilo načíst."
+    }
   },
   "profile": {
     "title": "Profil",

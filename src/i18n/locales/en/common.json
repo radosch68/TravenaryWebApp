@@ -24,7 +24,24 @@
     "subtitle": "Open Itineraries to view and manage your travel plans.",
     "resume": "Resume",
     "openItineraries": "Open itineraries",
-    "resumeLastItinerary": "Resume last itinerary"
+    "resumeLastItinerary": "Resume last itinerary",
+    "upcoming": {
+      "kicker": "Upcoming",
+      "title": "Nearest upcoming itinerary",
+      "empty": "No upcoming itinerary yet.",
+      "noCover": "No cover photo",
+      "daysLeft": "Days left",
+      "loadError": "Could not load upcoming itinerary right now."
+    },
+    "distribution": {
+      "kicker": "Snapshot",
+      "title": "Trip distribution",
+      "upcoming": "Upcoming",
+      "ongoing": "Ongoing",
+      "completed": "Completed",
+      "undated": "Undated",
+      "loadError": "Could not load trip distribution right now."
+    }
   },
   "profile": {
     "title": "Profile",
