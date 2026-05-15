@@ -27,6 +27,7 @@
 .mapLauncherDisabled:hover {
   background: #fff;
   border-color: color-mix(in oklab, var(--border) 78%, rgba(13, 124, 102, 0.22) 22%);
+  border-style: dashed;
   cursor: default;
 }
 
