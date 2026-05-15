@@ -1,13 +1,11 @@
 import { ArrowRight } from 'lucide-react'
 import type { ReactElement } from 'react'
-import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 
 import { AppShell } from '@/components/layout/AppShell'
 import { Button } from '@/components/ui/button'
 import { useProfileStore } from '@/store/profile-store'
-import { getRememberedLastItineraryForUser } from '@/utils/last-itinerary'
 
 import styles from './DashboardHomePage.module.css'
 
@@ -15,8 +13,14 @@ export function DashboardHomePage(): ReactElement {
   const { t } = useTranslation('common')
   const displayName = useProfileStore((state) => state.displayName)
   const email = useProfileStore((state) => state.email)
+  const backendLastOpenedItinerary = useProfileStore((state) => state.lastOpenedItinerary)
   const name = displayName || email
-  const rememberedItinerary = useMemo(() => getRememberedLastItineraryForUser(email), [email])
+  const rememberedItinerary = backendLastOpenedItinerary?.itineraryId
+    ? {
+        id: backendLastOpenedItinerary.itineraryId,
+        title: backendLastOpenedItinerary.itineraryTitle ?? null,
+      }
+    : null
   const openTarget = rememberedItinerary?.id ? `/itineraries/${rememberedItinerary.id}` : '/itineraries'
   const hasResumeTitle = Boolean(rememberedItinerary?.title)
 

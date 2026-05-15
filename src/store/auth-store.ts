@@ -17,8 +17,11 @@ async function applyProfileAfterAuthentication(profile: {
   displayName?: string
   email: string
   preferredLanguage: 'en' | 'cs-CZ'
+  lastOpenedItinerary?: { itineraryId: string; itineraryTitle?: string; openedAt: string }
 }): Promise<void> {
-  useProfileStore.getState().setProfile(profile.displayName ?? null, profile.email)
+  useProfileStore
+    .getState()
+    .setProfile(profile.displayName ?? null, profile.email, profile.lastOpenedItinerary ?? null)
   localStorage.setItem(LANGUAGE_KEY, profile.preferredLanguage)
   await i18n.changeLanguage(profile.preferredLanguage)
 }

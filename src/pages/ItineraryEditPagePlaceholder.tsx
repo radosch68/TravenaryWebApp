@@ -6,8 +6,8 @@ import { useNavigate, useParams } from 'react-router-dom'
 
 import { AppShell } from '@/components/layout/AppShell'
 import { Button } from '@/components/ui/button'
+import { updateLastOpenedItinerary } from '@/services/profile-service'
 import { useProfileStore } from '@/store/profile-store'
-import { rememberLastItineraryForUser } from '@/utils/last-itinerary'
 
 import styles from './ItineraryViewPage.module.css'
 
@@ -15,11 +15,30 @@ export function ItineraryEditPagePlaceholder(): ReactElement {
   const navigate = useNavigate()
   const { itineraryId } = useParams<{ itineraryId: string }>()
   const { t } = useTranslation('common')
-  const email = useProfileStore((state) => state.email)
+  const profileLastOpenedItineraryId = useProfileStore((state) => state.lastOpenedItinerary?.itineraryId ?? null)
+  const setProfileStore = useProfileStore((state) => state.setProfile)
 
   useEffect(() => {
-    rememberLastItineraryForUser(email, itineraryId)
-  }, [email, itineraryId])
+    if (!itineraryId) {
+      return
+    }
+
+    if (profileLastOpenedItineraryId === itineraryId) {
+      return
+    }
+
+    void updateLastOpenedItinerary(itineraryId)
+      .then((updatedProfile) => {
+        setProfileStore(
+          updatedProfile.displayName ?? null,
+          updatedProfile.email,
+          updatedProfile.lastOpenedItinerary ?? null,
+        )
+      })
+      .catch(() => {
+        // Non-fatal: profile refresh will eventually re-sync persisted resume target.
+      })
+  }, [itineraryId, profileLastOpenedItineraryId, setProfileStore])
 
   return (
     <AppShell>

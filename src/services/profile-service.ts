@@ -36,6 +36,16 @@ export async function updatePreferredLanguage(
   })
 }
 
+export async function updateLastOpenedItinerary(
+  lastOpenedItineraryId: string | null,
+): Promise<UserProfile> {
+  return apiRequest<UserProfile>('/users/me', {
+    method: 'PATCH',
+    protected: true,
+    body: { lastOpenedItineraryId },
+  })
+}
+
 export async function deleteAccount(password?: string): Promise<void> {
   await apiRequest<void>('/users/me', {
     method: 'DELETE',

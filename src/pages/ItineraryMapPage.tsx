@@ -10,8 +10,8 @@ import { AppShell } from '@/components/layout/AppShell'
 import { Button } from '@/components/ui/button'
 import { ApiError, type ItineraryDetail } from '@/services/contracts'
 import { getItinerary } from '@/services/itinerary-service'
+import { updateLastOpenedItinerary } from '@/services/profile-service'
 import { useProfileStore } from '@/store/profile-store'
-import { rememberLastItineraryForUser } from '@/utils/last-itinerary'
 
 import styles from './ItineraryMapPage.module.css'
 
@@ -21,7 +21,8 @@ export function ItineraryMapPage(): ReactElement {
   const { itineraryId } = useParams<{ itineraryId: string }>()
   const [searchParams] = useSearchParams()
   const { t } = useTranslation(['common', 'errors'])
-  const email = useProfileStore((state) => state.email)
+  const profileLastOpenedItineraryId = useProfileStore((state) => state.lastOpenedItinerary?.itineraryId ?? null)
+  const setProfileStore = useProfileStore((state) => state.setProfile)
 
   const [loadState, setLoadState] = useState<LoadState>('loading')
   const [itinerary, setItinerary] = useState<ItineraryDetail | null>(null)
@@ -84,8 +85,22 @@ export function ItineraryMapPage(): ReactElement {
       return
     }
 
-    rememberLastItineraryForUser(email, itinerary.id, itinerary.title)
-  }, [email, itinerary?.id, itinerary?.title])
+    if (profileLastOpenedItineraryId === itinerary.id) {
+      return
+    }
+
+    void updateLastOpenedItinerary(itinerary.id)
+      .then((updatedProfile) => {
+        setProfileStore(
+          updatedProfile.displayName ?? null,
+          updatedProfile.email,
+          updatedProfile.lastOpenedItinerary ?? null,
+        )
+      })
+      .catch(() => {
+        // Non-fatal: profile refresh will eventually re-sync persisted resume target.
+      })
+  }, [itinerary?.id, profileLastOpenedItineraryId, setProfileStore])
 
   const requestedDayNumber = useMemo(() => {
     const rawDayNumber = searchParams.get('dayNumber')

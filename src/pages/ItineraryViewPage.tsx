@@ -12,10 +12,10 @@ import { buildLocationMapPinsFromDays } from '@/components/itinerary/location-ma
 import { AppShell } from '@/components/layout/AppShell'
 import { Button } from '@/components/ui/button'
 import { ApiError, type ItineraryDetail } from '@/services/contracts'
+import { updateLastOpenedItinerary } from '@/services/profile-service'
 import { deleteItinerary, getItinerary } from '@/services/itinerary-service'
 import { useProfileStore } from '@/store/profile-store'
 import { formatLocalDate } from '@/utils/date-format'
-import { rememberLastItineraryForUser } from '@/utils/last-itinerary'
 
 import styles from './ItineraryViewPage.module.css'
 
@@ -25,7 +25,8 @@ export function ItineraryViewPage(): ReactElement {
   const { itineraryId } = useParams<{ itineraryId: string }>()
   const navigate = useNavigate()
   const { t, i18n } = useTranslation(['common', 'errors'])
-  const email = useProfileStore((state) => state.email)
+  const profileLastOpenedItineraryId = useProfileStore((state) => state.lastOpenedItinerary?.itineraryId ?? null)
+  const setProfileStore = useProfileStore((state) => state.setProfile)
 
   const [loadState, setLoadState] = useState<LoadState>('loading')
   const [itinerary, setItinerary] = useState<ItineraryDetail | null>(null)
@@ -91,8 +92,22 @@ export function ItineraryViewPage(): ReactElement {
       return
     }
 
-    rememberLastItineraryForUser(email, itinerary.id, itinerary.title)
-  }, [email, itinerary?.id, itinerary?.title])
+    if (profileLastOpenedItineraryId === itinerary.id) {
+      return
+    }
+
+    void updateLastOpenedItinerary(itinerary.id)
+      .then((updatedProfile) => {
+        setProfileStore(
+          updatedProfile.displayName ?? null,
+          updatedProfile.email,
+          updatedProfile.lastOpenedItinerary ?? null,
+        )
+      })
+      .catch(() => {
+        // Non-fatal: profile refresh will eventually re-sync persisted resume target.
+      })
+  }, [itinerary?.id, profileLastOpenedItineraryId, setProfileStore])
 
   const dateRangeLabel = useMemo(() => {
     if (!itinerary) {

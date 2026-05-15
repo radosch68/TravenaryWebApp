@@ -17,6 +17,12 @@ export interface AuthTokens {
 
 export type SupportedLanguage = 'en' | 'cs-CZ'
 
+export interface LastOpenedItinerary {
+  itineraryId: string
+  itineraryTitle?: string
+  openedAt: string
+}
+
 export interface UserProfile {
   id: string
   email: string
@@ -24,6 +30,7 @@ export interface UserProfile {
   avatarUrl?: string
   preferredLanguage: SupportedLanguage
   authProviders: Array<'password' | 'google' | 'apple' | 'github'>
+  lastOpenedItinerary?: LastOpenedItinerary
   createdAt: string
   updatedAt: string
 }

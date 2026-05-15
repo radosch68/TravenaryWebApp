@@ -58,7 +58,11 @@ export function ProfilePage() {
 
         setProfile(loadedProfile)
         setDisplayNameValue(loadedProfile.displayName || '')
-        setProfileStore(loadedProfile.displayName ?? null, loadedProfile.email)
+        setProfileStore(
+          loadedProfile.displayName ?? null,
+          loadedProfile.email,
+          loadedProfile.lastOpenedItinerary ?? null,
+        )
       } catch {
         if (!isMounted) {
           return
@@ -128,7 +132,11 @@ export function ProfilePage() {
       const updatedProfile = await updateDisplayName(trimmedDisplayName)
       setProfile(updatedProfile)
       setDisplayNameValue(updatedProfile.displayName || '')
-      setProfileStore(updatedProfile.displayName ?? null, updatedProfile.email)
+      setProfileStore(
+        updatedProfile.displayName ?? null,
+        updatedProfile.email,
+        updatedProfile.lastOpenedItinerary ?? null,
+      )
       setDisplayNameStatus(t('profile:messages.saved'))
     } catch {
       setDisplayNameStatus(t('profile:messages.displayNameSaveError'))
@@ -147,6 +155,11 @@ export function ProfilePage() {
     try {
       const updatedProfile = await updatePreferredLanguage(nextLanguage)
       setProfile(updatedProfile)
+      setProfileStore(
+        updatedProfile.displayName ?? null,
+        updatedProfile.email,
+        updatedProfile.lastOpenedItinerary ?? null,
+      )
       localStorage.setItem('preferredLanguage', updatedProfile.preferredLanguage)
       await i18n.changeLanguage(updatedProfile.preferredLanguage)
     } catch {
@@ -186,6 +199,11 @@ export function ProfilePage() {
         newPasswordValue,
       )
       setProfile(updatedProfile)
+      setProfileStore(
+        updatedProfile.displayName ?? null,
+        updatedProfile.email,
+        updatedProfile.lastOpenedItinerary ?? null,
+      )
       setCurrentPasswordValue('')
       setNewPasswordValue('')
       setConfirmNewPasswordValue('')
