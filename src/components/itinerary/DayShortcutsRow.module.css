@@ -5,6 +5,33 @@
   gap: 0.28rem;
 }
 
+.dayShortcutsToggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.34rem;
+  width: fit-content;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+
+.dayShortcutsToggle:focus-visible {
+  outline: 2px solid color-mix(in oklab, var(--ring) 70%, transparent 30%);
+  outline-offset: 2px;
+  border-radius: calc(var(--radius) - 0.3rem);
+}
+
+.dayShortcutsToggleIcon {
+  color: var(--muted-foreground);
+  transition: transform 0.14s ease;
+}
+
+.dayShortcutsToggleIconExpanded {
+  transform: rotate(90deg);
+}
+
 .dayShortcutsLabel {
   margin: 0;
   font-size: 0.72rem;

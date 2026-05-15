@@ -28,6 +28,9 @@ export function ItineraryViewPage(): ReactElement {
   const [itinerary, setItinerary] = useState<ItineraryDetail | null>(null)
   const [isDeleting, setIsDeleting] = useState(false)
   const [deleteError, setDeleteError] = useState(false)
+  const [dayCollapseCommandToken, setDayCollapseCommandToken] = useState(0)
+  const [dayCollapseCommandMode, setDayCollapseCommandMode] = useState<'collapse-all' | 'expand-all' | undefined>(undefined)
+  const [dayCollapseState, setDayCollapseState] = useState({ allCollapsed: false, allExpanded: true })
   const loadRequestSequenceRef = useRef(0)
 
   const loadItinerary = useCallback(async (): Promise<void> => {
@@ -109,6 +112,16 @@ export function ItineraryViewPage(): ReactElement {
   }, [itinerary])
 
   const itineraryMapRoute = itinerary ? `/itineraries/${itinerary.id}/map` : null
+
+  const handleCollapseAllDays = useCallback((): void => {
+    setDayCollapseCommandMode('collapse-all')
+    setDayCollapseCommandToken((previousValue) => previousValue + 1)
+  }, [])
+
+  const handleExpandAllDays = useCallback((): void => {
+    setDayCollapseCommandMode('expand-all')
+    setDayCollapseCommandToken((previousValue) => previousValue + 1)
+  }, [])
 
   async function onDelete(): Promise<void> {
     if (!itinerary || isDeleting) {
@@ -245,6 +258,32 @@ export function ItineraryViewPage(): ReactElement {
           />
 
           <DayShortcutsRow days={itinerary.days} locale={i18n.language} />
+
+          {!dayCollapseState.allExpanded || !dayCollapseState.allCollapsed ? (
+            <div className={styles.headerDayControls}>
+              {!dayCollapseState.allExpanded ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleExpandAllDays}
+                >
+                  {t('itineraryView.expandAllDays')}
+                </Button>
+              ) : null}
+
+              {!dayCollapseState.allCollapsed ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleCollapseAllDays}
+                >
+                  {t('itineraryView.collapseAllDays')}
+                </Button>
+              ) : null}
+            </div>
+          ) : null}
         </section>
 
         <ItineraryDaysGrid
@@ -252,6 +291,9 @@ export function ItineraryViewPage(): ReactElement {
           locale={i18n.language}
           fullBleedOnMobile
           buildDayMapRoute={(dayNumber) => `/itineraries/${itinerary.id}/map?dayNumber=${dayNumber}`}
+          collapseCommandToken={dayCollapseCommandToken}
+          collapseCommandMode={dayCollapseCommandMode}
+          onCollapseStateChange={setDayCollapseState}
         />
 
         <section className={styles.dangerZone}>

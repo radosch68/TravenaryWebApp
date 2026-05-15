@@ -37,6 +37,9 @@ interface ItineraryDaysGridProps {
   locale: string
   fullBleedOnMobile?: boolean
   buildDayMapRoute?: (dayNumber: number) => string | null
+  collapseCommandToken?: number
+  collapseCommandMode?: 'collapse-all' | 'expand-all'
+  onCollapseStateChange?: (state: { allCollapsed: boolean; allExpanded: boolean }) => void
 }
 
 const ACTIVITY_ICONS: Record<ActivityType, LucideIcon> = {
@@ -61,6 +64,9 @@ export function ItineraryDaysGrid({
   locale,
   fullBleedOnMobile = false,
   buildDayMapRoute,
+  collapseCommandToken,
+  collapseCommandMode,
+  onCollapseStateChange,
 }: ItineraryDaysGridProps): ReactElement {
   const { t } = useTranslation('common')
   const todayIsoDate = useMemo(() => {
@@ -93,6 +99,28 @@ export function ItineraryDaysGrid({
       return nextValue.size === previousValue.size ? previousValue : nextValue
     })
   }, [sortedDays])
+
+  useEffect(() => {
+    if (!collapseCommandToken || !collapseCommandMode) {
+      return
+    }
+
+    if (collapseCommandMode === 'collapse-all') {
+      setCollapsedDayNumbers(new Set(sortedDays.map((day) => day.dayNumber)))
+      return
+    }
+
+    setCollapsedDayNumbers(new Set())
+  }, [collapseCommandMode, collapseCommandToken, sortedDays])
+
+  useEffect(() => {
+    const totalDays = sortedDays.length
+    const collapsedCount = collapsedDayNumbers.size
+    const allExpanded = collapsedCount === 0
+    const allCollapsed = totalDays > 0 && collapsedCount === totalDays
+
+    onCollapseStateChange?.({ allCollapsed, allExpanded })
+  }, [collapsedDayNumbers, onCollapseStateChange, sortedDays])
 
   const toggleDayCollapsed = useCallback((dayNumber: number): void => {
     setCollapsedDayNumbers((previousValue) => {
@@ -145,7 +173,7 @@ export function ItineraryDaysGrid({
                 }
               >
                 <ChevronRight
-                  size={16}
+                  size={19}
                   className={`${styles.dayToggleIcon}${!isCollapsed ? ` ${styles.dayToggleIconExpanded}` : ''}`}
                   aria-hidden="true"
                 />

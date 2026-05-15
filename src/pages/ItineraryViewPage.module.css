@@ -118,6 +118,15 @@
   gap: 0.45rem;
 }
 
+.headerDayControls {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 0.36rem;
+  margin-top: -0.02rem;
+}
+
 .headerMap {
   grid-column: 1 / 2;
   inline-size: min(100%, 44rem);

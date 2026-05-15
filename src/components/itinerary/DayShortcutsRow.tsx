@@ -1,5 +1,6 @@
+import { ChevronRight } from 'lucide-react'
 import type { ReactElement } from 'react'
-import { useMemo } from 'react'
+import { useId, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import type { ItineraryDay } from '@/services/contracts'
@@ -60,6 +61,8 @@ function buildDayShortcutItems(days: ItineraryDay[], locale: string, todayIsoDat
 export function DayShortcutsRow({ days, locale }: DayShortcutsRowProps): ReactElement | null {
   const { t } = useTranslation('common')
   const todayIsoDate = useMemo(() => getTodayIsoDate(), [])
+  const [isCollapsed, setIsCollapsed] = useState(false)
+  const shortcutsRegionId = useId()
   const dayShortcutItems = useMemo(
     () => buildDayShortcutItems(days, locale, todayIsoDate),
     [days, locale, todayIsoDate],
@@ -71,27 +74,48 @@ export function DayShortcutsRow({ days, locale }: DayShortcutsRowProps): ReactEl
 
   return (
     <div className={styles.dayShortcuts}>
-      <p className={styles.dayShortcutsLabel}>{t('itineraryView.dayShortcutsLabel')}</p>
-      <div className={styles.dayShortcutsRow}>
-        {dayShortcutItems.map((day) => (
-          <a
-            key={`shortcut-day-${day.dayNumber}`}
-            className={[
-              styles.dayShortcutChip,
-              day.isToday ? styles.dayShortcutChipToday : '',
-              day.isPast ? styles.dayShortcutChipPast : '',
-            ]
-              .filter(Boolean)
-              .join(' ')}
-            href={`#itinerary-day-${day.dayNumber}`}
-            aria-label={t('itineraryView.jumpToDayAria', { dayNumber: day.dayNumber })}
-            title={t('itineraryView.jumpToDayAria', { dayNumber: day.dayNumber })}
-            aria-current={day.isToday ? 'date' : undefined}
-          >
-            {day.label}
-          </a>
-        ))}
-      </div>
+      <button
+        type="button"
+        className={styles.dayShortcutsToggle}
+        onClick={() => setIsCollapsed((previousValue) => !previousValue)}
+        aria-expanded={!isCollapsed}
+        aria-controls={shortcutsRegionId}
+        aria-label={
+          isCollapsed
+            ? t('itineraryView.expandDayShortcutsAria')
+            : t('itineraryView.collapseDayShortcutsAria')
+        }
+      >
+        <ChevronRight
+          size={15}
+          className={`${styles.dayShortcutsToggleIcon}${!isCollapsed ? ` ${styles.dayShortcutsToggleIconExpanded}` : ''}`}
+          aria-hidden="true"
+        />
+        <span className={styles.dayShortcutsLabel}>{t('itineraryView.dayShortcutsLabel')}</span>
+      </button>
+
+      {!isCollapsed ? (
+        <div id={shortcutsRegionId} className={styles.dayShortcutsRow}>
+          {dayShortcutItems.map((day) => (
+            <a
+              key={`shortcut-day-${day.dayNumber}`}
+              className={[
+                styles.dayShortcutChip,
+                day.isToday ? styles.dayShortcutChipToday : '',
+                day.isPast ? styles.dayShortcutChipPast : '',
+              ]
+                .filter(Boolean)
+                .join(' ')}
+              href={`#itinerary-day-${day.dayNumber}`}
+              aria-label={t('itineraryView.jumpToDayAria', { dayNumber: day.dayNumber })}
+              title={t('itineraryView.jumpToDayAria', { dayNumber: day.dayNumber })}
+              aria-current={day.isToday ? 'date' : undefined}
+            >
+              {day.label}
+            </a>
+          ))}
+        </div>
+      ) : null}
     </div>
   )
 }

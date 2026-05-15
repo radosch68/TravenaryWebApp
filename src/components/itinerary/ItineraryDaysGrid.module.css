@@ -79,8 +79,8 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 1.45rem;
-  height: 1.45rem;
+  width: 1.74rem;
+  height: 1.74rem;
   flex: 0 0 auto;
   border: 1px solid color-mix(in oklab, var(--border) 82%, transparent 18%);
   border-radius: calc(var(--radius) - 0.22rem);
