@@ -1,0 +1,63 @@
+.tile {
+  border: 1px solid var(--input);
+  border-radius: calc(var(--radius) - 0.08rem);
+  padding: 0.42rem 0.5rem;
+  background: var(--background);
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-areas:
+    'icon label'
+    'icon actions';
+  column-gap: 0.42rem;
+  row-gap: 0.24rem;
+  align-items: center;
+  width: max-content;
+  min-width: max-content;
+  max-width: none;
+}
+
+.plusWrap {
+  grid-area: icon;
+  align-self: stretch;
+  display: grid;
+  place-items: center;
+  justify-self: start;
+}
+
+.plusCircle {
+  inline-size: 2.1rem;
+  block-size: 2.1rem;
+  border-radius: 999px;
+  border: 2px solid color-mix(in oklab, var(--foreground) 78%, transparent 22%);
+  display: grid;
+  place-items: center;
+  color: color-mix(in oklab, var(--foreground) 78%, transparent 22%);
+}
+
+.plusIcon {
+  width: 1.2rem;
+  height: 1.2rem;
+  stroke-width: 1.8;
+}
+
+.newItineraryLabel {
+  grid-area: label;
+  margin: 0;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--foreground);
+  justify-self: center;
+  text-align: center;
+}
+
+.modeActions {
+  grid-area: actions;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.28rem;
+  justify-self: center;
+}
+
+.modeAction {
+  min-width: 3.9rem;
+}

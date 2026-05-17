@@ -83,6 +83,52 @@
   line-height: 1.2;
 }
 
+.metaPillUpcoming {
+  border-color: color-mix(in oklab, var(--border) 70%, var(--accent) 30%);
+  background: color-mix(in oklab, var(--accent) 10%, transparent 90%);
+  color: color-mix(in oklab, var(--foreground) 88%, #0f6f5a 12%);
+  font-weight: 600;
+}
+
+.ongoingProgressHeader {
+  margin-top: 0.46rem;
+  display: grid;
+  gap: 0.26rem;
+  width: min(100%, 24rem);
+}
+
+.ongoingProgressMeta {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.ongoingProgressLabel {
+  font-size: 0.68rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+}
+
+.ongoingProgressTrack {
+  position: relative;
+  block-size: 0.42rem;
+  border-radius: 999px;
+  overflow: hidden;
+  background: color-mix(in oklab, var(--border) 70%, transparent 30%);
+}
+
+.ongoingProgressFill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: linear-gradient(
+    90deg,
+    color-mix(in oklab, var(--accent) 70%, #0f6f5a 30%) 0%,
+    color-mix(in oklab, var(--accent) 45%, #0f6f5a 55%) 100%
+  );
+}
+
 .tagsRow {
   margin-top: 0.58rem;
   display: flex;

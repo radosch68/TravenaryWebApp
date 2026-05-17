@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 
 import { AppShell } from '@/components/layout/AppShell'
+import { NewItineraryTile } from '@/components/common/NewItineraryTile'
 import { Button } from '@/components/ui/button'
 import type { ItinerarySummary } from '@/services/contracts'
 import { listItineraries } from '@/services/itinerary-service'
@@ -15,6 +16,12 @@ import { unsplashUrl } from '@/utils/unsplash-url'
 import styles from './DashboardHomePage.module.css'
 
 type TilesLoadState = 'loading' | 'ready' | 'error'
+
+type OngoingProgress = {
+  totalHours: number
+  hoursLeft: number
+  elapsedPercent: number
+}
 
 function toValidLocalDate(value?: string): Date | null {
   if (!value) {
@@ -30,6 +37,44 @@ function toValidLocalDate(value?: string): Date | null {
   return parsedDate
 }
 
+function getOngoingProgress(
+  startDate: string | undefined,
+  endDate: string | undefined,
+  dayCount: number,
+  nowDate: Date,
+): OngoingProgress | null {
+  if (!startDate || !endDate || dayCount <= 0) {
+    return null
+  }
+
+  const start = parseIsoDate(startDate)
+  const endExclusive = parseIsoDate(endDate)
+  start.setHours(0, 0, 0, 0)
+  endExclusive.setHours(0, 0, 0, 0)
+  endExclusive.setDate(endExclusive.getDate() + 1)
+
+  if (Number.isNaN(start.getTime()) || Number.isNaN(endExclusive.getTime())) {
+    return null
+  }
+
+  if (nowDate < start || nowDate >= endExclusive) {
+    return null
+  }
+
+  const totalHours = dayCount * 24
+  const millisecondsPerHour = 60 * 60 * 1000
+  const rawHoursLeft = (endExclusive.getTime() - nowDate.getTime()) / millisecondsPerHour
+  const hoursLeft = Math.max(0, Math.min(totalHours, Math.ceil(rawHoursLeft)))
+  const elapsedHours = Math.max(0, totalHours - hoursLeft)
+  const elapsedPercent = totalHours > 0 ? (elapsedHours / totalHours) * 100 : 0
+
+  return {
+    totalHours,
+    hoursLeft,
+    elapsedPercent,
+  }
+}
+
 export function DashboardHomePage(): ReactElement {
   const { t, i18n } = useTranslation('common')
   const displayName = useProfileStore((state) => state.displayName)
@@ -37,6 +82,7 @@ export function DashboardHomePage(): ReactElement {
   const backendLastOpenedItinerary = useProfileStore((state) => state.lastOpenedItinerary)
   const [itineraries, setItineraries] = useState<ItinerarySummary[]>([])
   const [tilesLoadState, setTilesLoadState] = useState<TilesLoadState>('loading')
+  const [nowDate, setNowDate] = useState(() => new Date())
 
   useEffect(() => {
     let isMounted = true
@@ -106,6 +152,50 @@ export function DashboardHomePage(): ReactElement {
     return now
   }, [])
 
+  const ongoingItinerary = useMemo(() => {
+    const candidates = itineraries
+      .filter((itinerary) => {
+        const startDate = toValidLocalDate(itinerary.startDate)
+        const endDate = toValidLocalDate(itinerary.endDate)
+
+        if (!startDate || startDate > today) {
+          return false
+        }
+
+        if (endDate && endDate < today) {
+          return false
+        }
+
+        return true
+      })
+      .sort((left, right) => {
+        const leftEnd = toValidLocalDate(left.endDate)
+        const rightEnd = toValidLocalDate(right.endDate)
+
+        if (leftEnd && rightEnd) {
+          return leftEnd.getTime() - rightEnd.getTime()
+        }
+
+        if (leftEnd) {
+          return -1
+        }
+
+        if (rightEnd) {
+          return 1
+        }
+
+        const leftStart = toValidLocalDate(left.startDate)
+        const rightStart = toValidLocalDate(right.startDate)
+        if (!leftStart || !rightStart) {
+          return 0
+        }
+
+        return rightStart.getTime() - leftStart.getTime()
+      })
+
+    return candidates[0] ?? null
+  }, [itineraries, today])
+
   const upcomingItinerary = useMemo(() => {
     const candidates = itineraries
       .filter((itinerary) => {
@@ -125,6 +215,13 @@ export function DashboardHomePage(): ReactElement {
 
     return candidates[0] ?? null
   }, [itineraries, today])
+
+  const featuredMode: 'ongoing' | 'upcoming' | 'none' = ongoingItinerary
+    ? 'ongoing'
+    : upcomingItinerary
+      ? 'upcoming'
+      : 'none'
+  const featuredItinerary = ongoingItinerary ?? upcomingItinerary
 
   const tripDistribution = useMemo(() => {
     let upcoming = 0
@@ -162,25 +259,25 @@ export function DashboardHomePage(): ReactElement {
     }
   }, [itineraries, today])
 
-  const upcomingDateLabel = useMemo(() => {
-    if (!upcomingItinerary?.startDate) {
+  const featuredDateLabel = useMemo(() => {
+    if (!featuredItinerary?.startDate) {
       return null
     }
 
-    const startDateLabel = formatLocalDate(upcomingItinerary.startDate, i18n.language)
-    if (!upcomingItinerary.endDate) {
+    const startDateLabel = formatLocalDate(featuredItinerary.startDate, i18n.language)
+    if (!featuredItinerary.endDate) {
       return startDateLabel
     }
 
-    return `${startDateLabel} - ${formatLocalDate(upcomingItinerary.endDate, i18n.language)}`
-  }, [i18n.language, upcomingItinerary?.endDate, upcomingItinerary?.startDate])
+    return `${startDateLabel} - ${formatLocalDate(featuredItinerary.endDate, i18n.language)}`
+  }, [featuredItinerary?.endDate, featuredItinerary?.startDate, i18n.language])
 
   const upcomingDaysLeft = useMemo(() => {
-    if (!upcomingItinerary?.startDate) {
+    if (featuredMode !== 'upcoming' || !featuredItinerary?.startDate) {
       return null
     }
 
-    const startDate = toValidLocalDate(upcomingItinerary.startDate)
+    const startDate = toValidLocalDate(featuredItinerary.startDate)
     if (!startDate) {
       return null
     }
@@ -188,7 +285,34 @@ export function DashboardHomePage(): ReactElement {
     const millisecondsPerDay = 24 * 60 * 60 * 1000
     const difference = Math.round((startDate.getTime() - today.getTime()) / millisecondsPerDay)
     return difference > 0 ? difference : null
-  }, [today, upcomingItinerary?.startDate])
+  }, [featuredItinerary?.startDate, featuredMode, today])
+
+  useEffect(() => {
+    if (featuredMode !== 'ongoing') {
+      return
+    }
+
+    const interval = window.setInterval(() => {
+      setNowDate(new Date())
+    }, 60_000)
+
+    return () => {
+      window.clearInterval(interval)
+    }
+  }, [featuredMode])
+
+  const featuredOngoingProgress = useMemo(() => {
+    if (featuredMode !== 'ongoing' || !featuredItinerary) {
+      return null
+    }
+
+    return getOngoingProgress(
+      featuredItinerary.startDate,
+      featuredItinerary.endDate,
+      featuredItinerary.dayCount,
+      nowDate,
+    )
+  }, [featuredItinerary, featuredMode, nowDate])
 
   return (
     <AppShell>
@@ -202,40 +326,61 @@ export function DashboardHomePage(): ReactElement {
             <p className={styles.subtitle}>{t('dashboardHome.subtitle')}</p>
           </div>
 
-          <Button
-            type="button"
-            asChild
-            size="sm"
-            className={hasResumeTitle ? styles.resumeButton : undefined}
-          >
-            <Link
-              to={openTarget}
-              className={hasResumeTitle ? styles.resumeLink : styles.singleLineLink}
+          <div className={styles.headerDivider} />
+
+          <div className={styles.headerActionsRow}>
+            <Button
+              type="button"
+              asChild
+              size="sm"
+              className={`${styles.resumeButton} ${hasResumeTitle ? styles.resumeButtonDetailed : ''}`}
             >
-              {hasResumeTitle ? (
-                <>
-                  <span className={styles.resumePrimary}>
-                    {t('dashboardHome.resume')}
+              <Link
+                to={openTarget}
+                className={hasResumeTitle ? styles.resumeLink : styles.singleLineLink}
+              >
+                {hasResumeTitle ? (
+                  <>
+                    <span className={styles.resumePrimary}>
+                      {t('dashboardHome.resume')}
+                      <ArrowRight aria-hidden="true" />
+                    </span>
+                    <span className={styles.resumeSecondary}>({rememberedItinerary?.title})</span>
+                  </>
+                ) : (
+                  <>
+                    {t('dashboardHome.openItineraries')}
                     <ArrowRight aria-hidden="true" />
-                  </span>
-                  <span className={styles.resumeSecondary}>({rememberedItinerary?.title})</span>
-                </>
-              ) : (
-                <>
-                  {t('dashboardHome.openItineraries')}
-                  <ArrowRight aria-hidden="true" />
-                </>
-              )}
-            </Link>
-          </Button>
+                  </>
+                )}
+              </Link>
+            </Button>
+
+            <NewItineraryTile
+              className={styles.newItineraryTile}
+              newItineraryLabel={t('dashboardHome.newItineraryTile.newItinerary')}
+              aiHref="/ai-drafts/new"
+              aiLabel={t('dashboardHome.newItineraryTile.ai')}
+              manualHref="/itineraries/new/manual"
+              manualLabel={t('dashboardHome.newItineraryTile.manual')}
+            />
+          </div>
         </section>
 
         <section className={styles.widgetsGrid}>
           <article className={styles.widgetCard}>
             <div className={styles.upcomingHeader}>
               <div className={styles.upcomingHeading}>
-                <p className={styles.widgetKicker}>{t('dashboardHome.upcoming.kicker')}</p>
-                <h2 className={styles.widgetTitle}>{t('dashboardHome.upcoming.title')}</h2>
+                <p className={styles.widgetKicker}>
+                  {featuredMode === 'ongoing'
+                    ? t('dashboardHome.upcoming.ongoingKicker')
+                    : t('dashboardHome.upcoming.kicker')}
+                </p>
+                <h2 className={styles.widgetTitle}>
+                  {featuredMode === 'ongoing'
+                    ? t('dashboardHome.upcoming.ongoingTitle')
+                    : t('dashboardHome.upcoming.title')}
+                </h2>
               </div>
 
               {tilesLoadState === 'ready' && upcomingDaysLeft ? (
@@ -251,13 +396,13 @@ export function DashboardHomePage(): ReactElement {
               <p className={styles.widgetMuted}>{t('dashboardHome.upcoming.loadError')}</p>
             ) : null}
 
-            {tilesLoadState === 'ready' && upcomingItinerary ? (
-              <Link to={`/itineraries/${upcomingItinerary.id}`} className={styles.upcomingLink}>
-                {upcomingItinerary.coverPhoto?.url ? (
+            {tilesLoadState === 'ready' && featuredItinerary ? (
+              <Link to={`/itineraries/${featuredItinerary.id}`} className={styles.upcomingLink}>
+                {featuredItinerary.coverPhoto?.url ? (
                   <img
                     className={styles.upcomingCover}
-                    src={unsplashUrl(upcomingItinerary.coverPhoto.url, 640, 78)}
-                    alt={upcomingItinerary.coverPhoto.caption || upcomingItinerary.title}
+                    src={unsplashUrl(featuredItinerary.coverPhoto.url, 640, 78)}
+                    alt={featuredItinerary.coverPhoto.caption || featuredItinerary.title}
                     loading="lazy"
                   />
                 ) : (
@@ -265,13 +410,35 @@ export function DashboardHomePage(): ReactElement {
                 )}
 
                 <div className={styles.upcomingMeta}>
-                  <p className={styles.upcomingName}>{upcomingItinerary.title}</p>
-                  {upcomingDateLabel ? <p className={styles.upcomingDate}>{upcomingDateLabel}</p> : null}
+                  <p className={styles.upcomingName}>{featuredItinerary.title}</p>
+                  {featuredDateLabel ? <p className={styles.upcomingDate}>{featuredDateLabel}</p> : null}
+
+                  {featuredOngoingProgress ? (
+                    <div className={styles.ongoingProgress}>
+                      <div className={styles.ongoingProgressMeta}>
+                        <span className={styles.ongoingProgressLabel}>{t('dashboard.ongoingProgress')}</span>
+                      </div>
+                      <div
+                        className={styles.ongoingProgressTrack}
+                        role="progressbar"
+                        aria-label={t('dashboard.ongoingProgress')}
+                        aria-valuemin={0}
+                        aria-valuemax={featuredOngoingProgress.totalHours}
+                        aria-valuenow={featuredOngoingProgress.hoursLeft}
+                        aria-valuetext={t('dashboard.hoursLeft', { count: featuredOngoingProgress.hoursLeft })}
+                      >
+                        <div
+                          className={styles.ongoingProgressFill}
+                          style={{ width: `${featuredOngoingProgress.elapsedPercent}%` }}
+                        />
+                      </div>
+                    </div>
+                  ) : null}
                 </div>
               </Link>
             ) : null}
 
-            {tilesLoadState === 'ready' && !upcomingItinerary ? (
+            {tilesLoadState === 'ready' && !featuredItinerary ? (
               <p className={styles.widgetMuted}>{t('dashboardHome.upcoming.empty')}</p>
             ) : null}
           </article>

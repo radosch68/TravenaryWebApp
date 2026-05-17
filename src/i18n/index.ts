@@ -2,10 +2,12 @@ import i18n from 'i18next'
 import { initReactI18next } from 'react-i18next'
 
 import enAuth from '@/i18n/locales/en/auth.json'
+import enAiGeneration from '@/i18n/locales/en/ai-generation.json'
 import enCommon from '@/i18n/locales/en/common.json'
 import enErrors from '@/i18n/locales/en/errors.json'
 import enProfile from '@/i18n/locales/en/profile.json'
 import csAuth from '@/i18n/locales/cs-CZ/auth.json'
+import csAiGeneration from '@/i18n/locales/cs-CZ/ai-generation.json'
 import csCommon from '@/i18n/locales/cs-CZ/common.json'
 import csErrors from '@/i18n/locales/cs-CZ/errors.json'
 import csProfile from '@/i18n/locales/cs-CZ/profile.json'
@@ -23,19 +25,21 @@ void i18n.use(initReactI18next).init({
   lng: preferredLanguage,
   fallbackLng: 'en',
   defaultNS: 'common',
-  ns: ['auth', 'common', 'errors', 'profile'],
+  ns: ['auth', 'ai-generation', 'common', 'errors', 'profile'],
   interpolation: {
     escapeValue: false,
   },
   resources: {
     en: {
       auth: enAuth,
+      'ai-generation': enAiGeneration,
       common: enCommon,
       errors: enErrors,
       profile: enProfile,
     },
     'cs-CZ': {
       auth: csAuth,
+      'ai-generation': csAiGeneration,
       common: csCommon,
       errors: csErrors,
       profile: csProfile,

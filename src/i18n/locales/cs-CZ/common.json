@@ -14,6 +14,7 @@
     "goToDashboard": "Přejít na dashboard",
     "dashboard": "Dashboard",
     "itineraries": "Itineráře",
+    "aiDrafts": "Historie AI návrhů",
     "profile": "Profil",
     "settings": "Nastavení"
   },
@@ -25,13 +26,21 @@
     "resume": "Pokračovat",
     "openItineraries": "Otevřít itineráře",
     "resumeLastItinerary": "Pokračovat v posledním itineráři",
+    "newItineraryTile": {
+      "title": "Spustit nový itinerář",
+      "newItinerary": "Nový itinerář",
+      "ai": "AI",
+      "manual": "Manuálně"
+    },
     "upcoming": {
       "kicker": "Nadcházející",
+      "ongoingKicker": "Probíhající",
       "title": "Nejbližší nadcházející itinerář",
-      "empty": "Zatím nemáte žádný nadcházející itinerář.",
+      "ongoingTitle": "Aktuální cesta",
+      "empty": "Zatím nemáte žádný probíhající ani nadcházející itinerář.",
       "noCover": "Bez úvodní fotografie",
       "daysLeft": "Dnů zbývá",
-      "loadError": "Nadcházející itinerář se teď nepodařilo načíst."
+      "loadError": "Přehled itineráře se teď nepodařilo načíst."
     },
     "distribution": {
       "kicker": "Přehled",
@@ -42,6 +51,27 @@
       "undated": "Bez data",
       "loadError": "Rozložení cest se teď nepodařilo načíst."
     }
+  },
+  "dashboardManualStart": {
+    "kicker": "Itineráře",
+    "title": "Nový itinerář",
+    "subtitle": "Nastavte název a termín cesty pro vytvoření prázdného itineráře, který pak doplníte.",
+    "backToItineraries": "Zpět na itineráře",
+    "titleLabel": "Název (volitelné)",
+    "titlePlaceholder": "Nový itinerář",
+    "titleFallback": "Nový itinerář",
+    "dateFromLabel": "Datum od",
+    "dateToLabel": "Datum do",
+    "dateRequired": "Datum od i datum do jsou povinné.",
+    "dateRangeError": "Datum do musí být stejné nebo pozdější než datum od.",
+    "dayCountLimitError": "Manuální itinerář může mít maximálně {{count}} dní.",
+    "dayCount_one": "Vytvoří se {{count}} prázdný den.",
+    "dayCount_few": "Vytvoří se {{count}} prázdné dny.",
+    "dayCount_many": "Vytvoří se {{count}} prázdného dne.",
+    "dayCount_other": "Vytvoří se {{count}} prázdných dní.",
+    "create": "Vytvořit",
+    "creating": "Vytváření...",
+    "submitError": "Itinerář se teď nepodařilo vytvořit."
   },
   "profile": {
     "title": "Profil",
@@ -115,6 +145,16 @@
     "showPastLabel": "Viditelnost",
     "showPast": "Zobrazit minulé",
     "pastBadge": "Minulé",
+    "daysLeft_one": "{{count}} den zbývá",
+    "daysLeft_few": "{{count}} dny zbývají",
+    "daysLeft_many": "{{count}} dní zbývá",
+    "daysLeft_other": "{{count}} dní zbývá",
+    "hoursLeft_one": "{{count}} hodina zbývá",
+    "hoursLeft_few": "{{count}} hodiny zbývají",
+    "hoursLeft_many": "{{count}} hodin zbývá",
+    "hoursLeft_other": "{{count}} hodin zbývá",
+    "ongoingProgress": "Průběh",
+    "ongoingTripsHeader": "Probíhající itineráře",
     "upcomingTripsHeader": "Nadcházející itineráře",
     "pastTripsHeader": "Minulé itineráře",
     "sortAsc": "Vzestupně",

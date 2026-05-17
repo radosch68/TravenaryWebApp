@@ -55,6 +55,25 @@ export async function createItineraryFromTemplate(): Promise<{ id: string }> {
   })
 }
 
+export interface CreateManualItineraryRequest {
+  title: string
+  startDate?: string
+  days?: Array<{
+    dayNumber: number
+    activities: Array<never>
+  }>
+}
+
+export async function createManualItinerary(
+  payload: CreateManualItineraryRequest,
+): Promise<{ id: string }> {
+  return apiRequest<{ id: string }>('/itineraries', {
+    method: 'POST',
+    body: payload,
+    protected: true,
+  })
+}
+
 export async function getItinerary(itineraryId: string): Promise<ItineraryDetail> {
   return apiRequest<ItineraryDetail>(`/itineraries/${itineraryId}`, {
     method: 'GET',

@@ -6,6 +6,9 @@ import { CollisionGuardRoute } from '@/app/guards/CollisionGuardRoute'
 import { ProtectedRoute } from '@/app/guards/ProtectedRoute'
 import { PublicOnlyRoute } from '@/app/guards/PublicOnlyRoute'
 import { TopBanner } from '@/components/layout/TopBanner'
+import { AiDraftDetailPage } from '@/pages/AiDraftDetailPage'
+import { AiDraftsListPage } from '@/pages/AiDraftsListPage'
+import { AiGenerationStartPage } from '@/pages/AiGenerationStartPage'
 import { DashboardHomePage } from '@/pages/DashboardHomePage'
 import { DashboardShellPage } from '@/pages/DashboardShellPage'
 import { GithubOAuthCallbackPage } from '@/pages/GithubOAuthCallbackPage'
@@ -13,6 +16,7 @@ import { ItineraryEditPagePlaceholder } from '@/pages/ItineraryEditPagePlacehold
 import { ItineraryMapPage } from '@/pages/ItineraryMapPage'
 import { ItineraryViewPage } from '@/pages/ItineraryViewPage'
 import { LinkProviderPage } from '@/pages/LinkProviderPage'
+import { ManualItineraryStartPage } from '@/pages/ManualItineraryStartPage'
 import { ProfilePage } from '@/pages/ProfilePage'
 import { SettingsPage } from '@/pages/SettingsPage'
 import { SharedItineraryMapPage } from '@/pages/SharedItineraryMapPage'
@@ -72,10 +76,42 @@ export default function App(): ReactElement {
           }
         />
         <Route
+          path="/ai-drafts"
+          element={
+            <ProtectedRoute>
+              <AiDraftsListPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/ai-drafts/new"
+          element={
+            <ProtectedRoute>
+              <AiGenerationStartPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/ai-drafts/:requestId"
+          element={
+            <ProtectedRoute>
+              <AiDraftDetailPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
           path="/itineraries"
           element={
             <ProtectedRoute>
               <DashboardShellPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/itineraries/new/manual"
+          element={
+            <ProtectedRoute>
+              <ManualItineraryStartPage />
             </ProtectedRoute>
           }
         />

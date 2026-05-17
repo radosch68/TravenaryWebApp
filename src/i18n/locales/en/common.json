@@ -14,6 +14,7 @@
     "goToDashboard": "Go to dashboard",
     "dashboard": "Dashboard",
     "itineraries": "Itineraries",
+    "aiDrafts": "AI Draft History",
     "profile": "Profile",
     "settings": "Settings"
   },
@@ -25,13 +26,21 @@
     "resume": "Resume",
     "openItineraries": "Open itineraries",
     "resumeLastItinerary": "Resume last itinerary",
+    "newItineraryTile": {
+      "title": "Start a new itinerary",
+      "newItinerary": "New itinerary",
+      "ai": "AI",
+      "manual": "Manual"
+    },
     "upcoming": {
       "kicker": "Upcoming",
+      "ongoingKicker": "Ongoing",
       "title": "Nearest upcoming itinerary",
-      "empty": "No upcoming itinerary yet.",
+      "ongoingTitle": "Current trip",
+      "empty": "No ongoing or upcoming itinerary yet.",
       "noCover": "No cover photo",
       "daysLeft": "Days left",
-      "loadError": "Could not load upcoming itinerary right now."
+      "loadError": "Could not load itinerary overview right now."
     },
     "distribution": {
       "kicker": "Snapshot",
@@ -42,6 +51,25 @@
       "undated": "Undated",
       "loadError": "Could not load trip distribution right now."
     }
+  },
+  "dashboardManualStart": {
+    "kicker": "Itineraries",
+    "title": "New Itinerary",
+    "subtitle": "Set title and travel dates to create an empty itinerary you can fill in.",
+    "backToItineraries": "Back to itineraries",
+    "titleLabel": "Title (optional)",
+    "titlePlaceholder": "New itinerary",
+    "titleFallback": "New itinerary",
+    "dateFromLabel": "Date from",
+    "dateToLabel": "Date to",
+    "dateRequired": "Date from and Date to are required.",
+    "dateRangeError": "Date to must be the same as or later than Date from.",
+    "dayCountLimitError": "Manual itineraries can be up to {{count}} days.",
+    "dayCount_one": "This will create {{count}} empty day.",
+    "dayCount_other": "This will create {{count}} empty days.",
+    "create": "Create",
+    "creating": "Creating...",
+    "submitError": "Unable to create itinerary right now."
   },
   "profile": {
     "title": "Profile",
@@ -113,6 +141,12 @@
     "showPastLabel": "Visibility",
     "showPast": "Show past",
     "pastBadge": "Past",
+    "daysLeft_one": "{{count}} day left",
+    "daysLeft_other": "{{count}} days left",
+    "hoursLeft_one": "{{count}} hour left",
+    "hoursLeft_other": "{{count}} hours left",
+    "ongoingProgress": "Progress",
+    "ongoingTripsHeader": "Ongoing Trips",
     "upcomingTripsHeader": "Upcoming Trips",
     "pastTripsHeader": "Past Trips",
     "sortAsc": "Ascending",

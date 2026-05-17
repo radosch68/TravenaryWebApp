@@ -15,11 +15,74 @@ import { ApiError, type ItineraryDetail } from '@/services/contracts'
 import { updateLastOpenedItinerary } from '@/services/profile-service'
 import { deleteItinerary, getItinerary } from '@/services/itinerary-service'
 import { useProfileStore } from '@/store/profile-store'
-import { formatLocalDate } from '@/utils/date-format'
+import { formatLocalDate, parseIsoDate } from '@/utils/date-format'
 
 import styles from './ItineraryViewPage.module.css'
 
 type LoadState = 'loading' | 'ready' | 'error' | 'not-found'
+
+function getTodayIsoDate(): string {
+  return new Date().toISOString().slice(0, 10)
+}
+
+function getUpcomingDaysLeft(startDate: string | undefined, todayIsoDate: string): number | null {
+  if (!startDate || startDate <= todayIsoDate) {
+    return null
+  }
+
+  const [todayYear, todayMonth, todayDay] = todayIsoDate.split('-').map(Number)
+  const [startYear, startMonth, startDay] = startDate.split('-').map(Number)
+  const todayUtc = Date.UTC(todayYear, todayMonth - 1, todayDay)
+  const startUtc = Date.UTC(startYear, startMonth - 1, startDay)
+  const millisecondsPerDay = 24 * 60 * 60 * 1000
+
+  const difference = Math.floor((startUtc - todayUtc) / millisecondsPerDay)
+  return difference > 0 ? difference : null
+}
+
+type OngoingProgress = {
+  totalHours: number
+  hoursLeft: number
+  elapsedPercent: number
+}
+
+function getOngoingProgress(
+  startDate: string | undefined,
+  endDate: string | undefined,
+  dayCount: number,
+  nowDate: Date,
+): OngoingProgress | null {
+  if (!startDate || !endDate || dayCount <= 0) {
+    return null
+  }
+
+  const start = parseIsoDate(startDate)
+  const endExclusive = parseIsoDate(endDate)
+  start.setHours(0, 0, 0, 0)
+  endExclusive.setHours(0, 0, 0, 0)
+  endExclusive.setDate(endExclusive.getDate() + 1)
+
+  if (Number.isNaN(start.getTime()) || Number.isNaN(endExclusive.getTime())) {
+    return null
+  }
+
+  if (nowDate < start || nowDate >= endExclusive) {
+    return null
+  }
+
+  const totalHours = dayCount * 24
+  const millisecondsPerHour = 60 * 60 * 1000
+  const rawHoursLeft = (endExclusive.getTime() - nowDate.getTime()) / millisecondsPerHour
+  const hoursLeft = Math.max(0, Math.min(totalHours, Math.ceil(rawHoursLeft)))
+  const elapsedHours = Math.max(0, totalHours - hoursLeft)
+  const elapsedPercent = totalHours > 0 ? (elapsedHours / totalHours) * 100 : 0
+
+  return {
+    totalHours,
+    hoursLeft,
+    elapsedPercent,
+  }
+}
 
 export function ItineraryViewPage(): ReactElement {
   const { itineraryId } = useParams<{ itineraryId: string }>()
@@ -36,6 +99,8 @@ export function ItineraryViewPage(): ReactElement {
   const [dayCollapseCommandMode, setDayCollapseCommandMode] = useState<'collapse-all' | 'expand-all' | undefined>(undefined)
   const [dayCollapseState, setDayCollapseState] = useState({ allCollapsed: false, allExpanded: true })
   const loadRequestSequenceRef = useRef(0)
+  const todayIsoDate = useMemo(() => getTodayIsoDate(), [])
+  const nowDate = useMemo(() => new Date(), [])
 
   const loadItinerary = useCallback(async (): Promise<void> => {
     const requestSequence = loadRequestSequenceRef.current + 1
@@ -136,6 +201,16 @@ export function ItineraryViewPage(): ReactElement {
 
     return buildLocationMapPinsFromDays(itinerary.days)
   }, [itinerary])
+
+  const upcomingDaysLeft = useMemo(
+    () => getUpcomingDaysLeft(itinerary?.startDate, todayIsoDate),
+    [itinerary?.startDate, todayIsoDate],
+  )
+
+  const ongoingProgress = useMemo(
+    () => getOngoingProgress(itinerary?.startDate, itinerary?.endDate, itinerary?.days.length ?? 0, nowDate),
+    [itinerary?.days.length, itinerary?.endDate, itinerary?.startDate, nowDate],
+  )
 
   const itineraryMapRoute = itinerary ? `/itineraries/${itinerary.id}/map` : null
 
@@ -239,7 +314,34 @@ export function ItineraryViewPage(): ReactElement {
               <span className={styles.metaPill}>
                 {t('itineraryView.dayCount', { count: itinerary.days.length })}
               </span>
+              {upcomingDaysLeft ? (
+                <span className={`${styles.metaPill} ${styles.metaPillUpcoming}`}>
+                  {t('dashboard.daysLeft', { count: upcomingDaysLeft })}
+                </span>
+              ) : null}
             </div>
+
+            {ongoingProgress ? (
+              <div className={styles.ongoingProgressHeader}>
+                <div className={styles.ongoingProgressMeta}>
+                  <span className={styles.ongoingProgressLabel}>{t('dashboard.ongoingProgress')}</span>
+                </div>
+                <div
+                  className={styles.ongoingProgressTrack}
+                  role="progressbar"
+                  aria-label={t('dashboard.ongoingProgress')}
+                  aria-valuemin={0}
+                  aria-valuemax={ongoingProgress.totalHours}
+                  aria-valuenow={ongoingProgress.hoursLeft}
+                  aria-valuetext={t('dashboard.hoursLeft', { count: ongoingProgress.hoursLeft })}
+                >
+                  <div
+                    className={styles.ongoingProgressFill}
+                    style={{ width: `${ongoingProgress.elapsedPercent}%` }}
+                  />
+                </div>
+              </div>
+            ) : null}
 
             {itinerary.tags.length > 0 ? (
               <div className={styles.tagsRow}>

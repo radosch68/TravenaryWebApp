@@ -152,6 +152,130 @@ export interface ItineraryListParams {
   includePast?: boolean
 }
 
+export type OutputDepth = 'fast' | 'balanced' | 'detailed'
+
+export type GenerationRequestStatus = 'pending' | 'completed' | 'failed'
+
+export interface DraftActivityObject {
+  title: string
+  type: 'note' | 'poi' | 'food' | 'custom' | 'accommodation' | 'transfer' | 'flight' | 'carRental'
+  time?: string | null
+  timeEnd?: string | null
+  description?: string | null
+}
+
+export type DraftBlockActivity = string | DraftActivityObject
+
+export interface DraftBlock {
+  label: string
+  activities: DraftBlockActivity[]
+}
+
+export interface DraftDay {
+  date: string
+  blocks: DraftBlock[]
+  notesForDay?: string | null
+}
+
+export interface AiCoverPhotoOption {
+  url: string
+  caption?: string | null
+  source?: 'unsplash'
+  authorName?: string
+  authorUrl?: string
+  sourceUrl?: string
+  downloadLocation?: string
+  thumbnailUrl?: string
+}
+
+export interface AiDraftItinerary {
+  _id: string
+  title: string
+  startDate: string
+  endDate: string
+  activities: string[]
+  activityBench?: DraftBlockActivity[]
+  tags: string[]
+  destinationKeywords?: string
+  coverPhotoOptions?: AiCoverPhotoOption[]
+  description?: string | null
+  language: string
+  days?: DraftDay[] | null
+}
+
+export interface AiGenerationContext {
+  languageMode: 'auto' | 'curated' | 'other' | null
+  languageCode: 'en' | 'cs-CZ' | 'de' | 'fr' | 'es' | 'it' | 'pt-BR' | null
+  languageOther: string | null
+  departureFrom: string | null
+  timing:
+    | 'thisWeekend'
+    | 'nextWeek'
+    | 'nextMonth'
+    | 'summerHoliday'
+    | 'winterHoliday'
+    | 'customDates'
+    | 'flexible'
+    | 'other'
+    | null
+  timingOther: string | null
+  travelerProfile: 'solo' | 'couple' | 'familyWithKids' | 'friendsGroup' | 'business' | 'other' | null
+  travelerProfileOther: string | null
+  budgetProfile: 'budget' | 'midRange' | 'premium' | 'luxury' | 'other' | null
+  budgetProfileOther: string | null
+}
+
+export interface AiGenerationHistoryItem {
+  id: string
+  prompt: string
+  status: GenerationRequestStatus
+  selectedModel: string
+  requestedDraftCount: number
+  generatedDraftCount: number
+  outputDepth: OutputDepth
+  dayCount: number
+  createdAt: string
+  updatedAt: string
+  generationStartedAt?: string
+  generationCompletedAt?: string
+}
+
+export interface AiGenerationHistoryListResponse {
+  items: AiGenerationHistoryItem[]
+  page: number
+  limit: number
+  total: number
+  retentionDays: number
+}
+
+export interface AiGenerationHistoryDetail {
+  id: string
+  prompt: string
+  status: GenerationRequestStatus
+  selectedModel: string
+  requestedDraftCount: number
+  generatedDraftCount: number
+  outputDepth: OutputDepth
+  context: AiGenerationContext
+  dayCount: number
+  errorMessage?: string
+  aiModel?: string
+  aiResponseTimeMs?: number
+  generationStartedAt?: string
+  generationCompletedAt?: string
+  createdAt: string
+  updatedAt: string
+  drafts: AiDraftItinerary[]
+}
+
+export interface AiGenerationHistoryListParams {
+  page?: number
+  limit?: number
+  sortBy?: 'createdAt' | 'updatedAt' | 'generationCompletedAt' | 'draftCount'
+  sortOrder?: 'asc' | 'desc'
+  status?: GenerationRequestStatus
+}
+
 export class ApiError extends Error {
   status: number
   code: string

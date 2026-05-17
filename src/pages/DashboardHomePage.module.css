@@ -134,6 +134,44 @@
   color: var(--muted-foreground);
 }
 
+.ongoingProgress {
+  display: grid;
+  gap: 0.24rem;
+  margin-top: 0.12rem;
+}
+
+.ongoingProgressMeta {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.ongoingProgressLabel {
+  font-size: 0.68rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+}
+
+.ongoingProgressTrack {
+  position: relative;
+  block-size: 0.4rem;
+  border-radius: 999px;
+  overflow: hidden;
+  background: color-mix(in oklab, var(--border) 70%, transparent 30%);
+}
+
+.ongoingProgressFill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: linear-gradient(
+    90deg,
+    color-mix(in oklab, var(--accent) 70%, #0f6f5a 30%) 0%,
+    color-mix(in oklab, var(--accent) 45%, #0f6f5a 55%) 100%
+  );
+}
+
 .snapshotGrid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -166,10 +204,28 @@
   border-radius: calc(var(--radius) - 0.05rem);
   padding: 0.95rem;
   background: color-mix(in oklab, var(--card) 90%, white 10%);
+  display: grid;
+  gap: 0.72rem;
+}
+
+.headerText {
+  display: grid;
+}
+
+.headerDivider {
+  height: 1px;
+  background: color-mix(in oklab, var(--border) 84%, transparent 16%);
+}
+
+.headerActionsRow {
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
-  gap: 0.9rem;
+  align-items: center;
+  gap: 0.72rem;
+}
+
+.newItineraryTile {
+  margin-left: auto;
 }
 
 .kicker {
@@ -196,6 +252,10 @@
 .resumeButton {
   height: auto;
   padding-block: 0.34rem;
+}
+
+.resumeButtonDetailed {
+  max-width: min(39rem, 56vw);
 }
 
 .resumeLink {
@@ -228,8 +288,20 @@
 }
 
 @media (max-width: 56.25rem) {
-  .headerCard {
-    display: grid;
+  .headerActionsRow {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .newItineraryTile {
+    margin-left: 0;
+    align-self: flex-end;
+  }
+
+  .resumeButton,
+  .resumeButtonDetailed {
+    max-width: 100%;
+    justify-content: flex-start;
   }
 
   .widgetsGrid {

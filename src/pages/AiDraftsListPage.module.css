@@ -1,0 +1,290 @@
+.page {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.headerActions {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.45rem;
+}
+
+.headerIconButton {
+  min-width: 1.95rem;
+  height: 1.95rem;
+  padding: 0;
+}
+
+.headerIconButton :global(svg) {
+  width: 0.9rem;
+  height: 0.9rem;
+}
+
+.controlsRowContent {
+  width: 100%;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 0.72rem;
+}
+
+.controlsCompact {
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.ttlNotice {
+  margin: 0;
+  font-size: 0.78rem;
+  line-height: 1.35;
+  color: var(--muted-foreground);
+}
+
+.controlGroup {
+  display: grid;
+  gap: 0.15rem;
+}
+
+.controlLabel {
+  margin: 0;
+  font-size: 0.63rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted-foreground);
+}
+
+.controlSelect {
+  min-height: 1.78rem;
+  border: 1px solid var(--input);
+  border-radius: calc(var(--radius) - 0.26rem);
+  background: var(--card);
+  color: var(--foreground);
+  padding: 0.16rem 0.4rem;
+  font: inherit;
+  font-size: 0.82rem;
+}
+
+.pageSizeSelect {
+  width: 4.35rem;
+}
+
+.sortBySelect {
+  width: min(10.25rem, 46vw);
+}
+
+.statusSelect {
+  width: min(10.25rem, 46vw);
+}
+
+.sortOrderButton {
+  height: 1.78rem;
+  min-width: 1.78rem;
+  padding: 0;
+}
+
+.sortGlyph {
+  width: 1rem;
+  height: 1rem;
+}
+
+.controlSelect:disabled {
+  opacity: 0.72;
+}
+
+.list {
+  --status-rail-width: 8.75rem;
+  --card-min-column-width: calc(var(--status-rail-width) * 3);
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(var(--card-min-column-width), 1fr));
+  gap: 0.75rem;
+}
+
+.listSingleColumn {
+  margin-inline: 0;
+  column-gap: 0.75rem;
+  row-gap: 0.75rem;
+}
+
+.listMultiColumn {
+  margin-inline: 0;
+}
+
+.card {
+  border: 1px solid var(--border);
+  background: color-mix(in oklab, var(--card) 95%, white 5%);
+  overflow: hidden;
+}
+
+.cardSingleColumn {
+  border-radius: calc(var(--radius) - 0.05rem);
+}
+
+.cardMultiColumn {
+  border-radius: calc(var(--radius) - 0.05rem);
+}
+
+.cardLink {
+  text-decoration: none;
+  color: inherit;
+  display: flex;
+  align-items: stretch;
+  width: 100%;
+  height: 100%;
+}
+
+.cardLink:hover {
+  background: color-mix(in oklab, var(--accent) 5%, transparent);
+}
+
+.statusRail {
+  width: var(--status-rail-width);
+  flex-shrink: 0;
+  border-right: 1px solid color-mix(in oklab, var(--border) 85%, transparent 15%);
+  padding: 0.72rem;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  align-items: start;
+  gap: 0.32rem;
+}
+
+.statusText {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.statusRail_pending {
+  background: color-mix(in oklab, var(--accent) 12%, transparent 88%);
+  color: color-mix(in oklab, var(--accent-foreground) 70%, var(--foreground) 30%);
+}
+
+.statusRail_completed {
+  background: color-mix(in oklab, var(--primary) 12%, transparent 88%);
+  color: color-mix(in oklab, var(--primary-foreground) 70%, var(--foreground) 30%);
+}
+
+.statusRail_failed {
+  background: color-mix(in oklab, var(--destructive) 10%, transparent 90%);
+  color: var(--destructive);
+}
+
+.statusIcon {
+  align-self: center;
+  justify-self: center;
+  width: 4.8rem;
+  height: 4.8rem;
+}
+
+.runningSecondsValue {
+  justify-self: center;
+  align-self: end;
+  font-size: clamp(1.2rem, 2.1vw, 1.9rem);
+  line-height: 1;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.statusIconSpinning {
+  animation: aiStatusSpin 1.2s linear infinite;
+}
+
+@keyframes aiStatusSpin {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.cardBody {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  gap: 0.5rem;
+  padding: 0.9rem;
+}
+
+.prompt {
+  margin: 0;
+  font-weight: 600;
+  line-height: 1.35;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.metrics {
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.46rem;
+}
+
+.metrics div {
+  display: grid;
+  gap: 0.1rem;
+}
+
+.metrics dt {
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted-foreground);
+}
+
+.metrics dd {
+  margin: 0;
+  font-size: 0.86rem;
+}
+
+@media (max-width: 56.25rem) {
+  .headerActions {
+    justify-content: flex-end;
+  }
+
+  .controlsRowContent,
+  .controlsCompact {
+    justify-content: flex-end;
+  }
+
+  .list {
+    --status-rail-width: 9rem;
+  }
+
+  .metrics {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 40rem) {
+  .list {
+    --status-rail-width: 7.75rem;
+  }
+
+  .listSingleColumn {
+    margin-inline: -0.7rem;
+    row-gap: 0;
+  }
+
+  .cardSingleColumn {
+    border-radius: 0;
+  }
+
+  .cardSingleColumn + .cardSingleColumn {
+    border-top: none;
+  }
+
+  .cardBody {
+    padding: 0.75rem;
+  }
+}
