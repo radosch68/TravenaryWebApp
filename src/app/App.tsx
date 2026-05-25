@@ -12,7 +12,6 @@ import { AiGenerationStartPage } from '@/pages/AiGenerationStartPage'
 import { DashboardHomePage } from '@/pages/DashboardHomePage'
 import { DashboardShellPage } from '@/pages/DashboardShellPage'
 import { GithubOAuthCallbackPage } from '@/pages/GithubOAuthCallbackPage'
-import { ItineraryEditPagePlaceholder } from '@/pages/ItineraryEditPagePlaceholder'
 import { ItineraryMapPage } from '@/pages/ItineraryMapPage'
 import { ItineraryViewPage } from '@/pages/ItineraryViewPage'
 import { LinkProviderPage } from '@/pages/LinkProviderPage'
@@ -128,14 +127,6 @@ export default function App(): ReactElement {
           element={
             <ProtectedRoute>
               <ItineraryMapPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/itineraries/:itineraryId/edit"
-          element={
-            <ProtectedRoute>
-              <ItineraryEditPagePlaceholder />
             </ProtectedRoute>
           }
         />

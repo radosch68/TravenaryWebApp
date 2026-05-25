@@ -17,6 +17,7 @@ import styles from './TopBanner.module.css'
 const HIDDEN_STORAGE_KEY = 'travenary.topBannerHidden'
 const SWIPE_UP_HIDE_THRESHOLD_PX = 30
 const SWIPE_AXIS_TOLERANCE_PX = 8
+const TOP_BANNER_OFFSET_PROPERTY = '--travenary-top-banner-offset'
 
 const PUBLIC_AUTH_ROUTES = new Set(['/signin', '/signup', '/link-provider'])
 
@@ -34,6 +35,7 @@ export function TopBanner(): ReactElement | null {
 
   const [isHidden, setIsHidden] = useState<boolean>(isBannerInitiallyHidden)
   const [isSigningOut, setIsSigningOut] = useState(false)
+  const bannerRef = useRef<HTMLElement | null>(null)
   const hiddenRevealArmedRef = useRef(false)
   const swipeStartXRef = useRef<number | null>(null)
   const swipeStartYRef = useRef<number | null>(null)
@@ -49,6 +51,31 @@ export function TopBanner(): ReactElement | null {
   )
 
   const showAuthedActions = Boolean(accessToken) && !isPublicAuthRoute && !isSharedRoute
+
+  useEffect(() => {
+    const bannerElement = bannerRef.current
+
+    function updateTopBannerOffset(): void {
+      const offset = !isHidden && bannerElement ? bannerElement.getBoundingClientRect().height : 0
+      document.documentElement.style.setProperty(TOP_BANNER_OFFSET_PROPERTY, `${offset}px`)
+    }
+
+    updateTopBannerOffset()
+
+    const resizeObserver =
+      bannerElement && typeof ResizeObserver !== 'undefined'
+        ? new ResizeObserver(updateTopBannerOffset)
+        : null
+    if (resizeObserver && bannerElement) {
+      resizeObserver.observe(bannerElement)
+    }
+    window.addEventListener('resize', updateTopBannerOffset)
+
+    return () => {
+      resizeObserver?.disconnect()
+      window.removeEventListener('resize', updateTopBannerOffset)
+    }
+  }, [isHidden])
 
   useEffect(() => {
     if (!isHidden) {
@@ -146,6 +173,7 @@ export function TopBanner(): ReactElement | null {
 
   return (
     <header
+      ref={bannerRef}
       className={styles.banner}
       data-hidden={isHidden ? 'true' : 'false'}
       aria-hidden={isHidden}

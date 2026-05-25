@@ -81,7 +81,7 @@ export function ProfilePage() {
     return () => {
       isMounted = false
     }
-  }, [t])
+  }, [setProfileStore, t])
 
   const hasPasswordProvider = profile?.authProviders?.includes('password') ?? true
   const hasSocialProvider = profile?.authProviders?.some((provider) => provider !== 'password') ?? false
@@ -96,7 +96,7 @@ export function ProfilePage() {
     }
 
     return profile.authProviders.map((provider) => t(`profile:providers.${provider}`)).join(', ')
-  }, [profile?.authProviders, t])
+  }, [profile, t])
 
   function formatDateTime(value?: string): string {
     if (!value) {

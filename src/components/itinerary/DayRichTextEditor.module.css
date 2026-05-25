@@ -1,0 +1,337 @@
+.richEditor {
+  display: grid;
+  gap: 0;
+  margin-top: 0;
+}
+
+.statusText {
+  margin: 0;
+  color: var(--muted-foreground);
+  font-size: 0.74rem;
+  line-height: 1.3;
+}
+
+.editorWrap {
+  position: relative;
+}
+
+.editorSurface {
+  min-height: 11rem;
+  padding-block-start: 0.32rem;
+  outline: none;
+  color: var(--foreground);
+  line-height: 1.56;
+}
+
+.editorSurface > *:first-child {
+  margin-top: 0;
+}
+
+.editorSurface > *:last-child {
+  margin-bottom: 0;
+}
+
+.editorSurface > * + * {
+  margin-top: 0.78rem;
+}
+
+.editorSurface h1,
+.editorSurface h2,
+.editorSurface h3 {
+  margin-bottom: 0;
+  color: var(--foreground);
+  line-height: 1.18;
+  letter-spacing: 0;
+}
+
+.editorSurface h1 {
+  font-size: 1.34rem;
+}
+
+.editorSurface h2 {
+  font-size: 1.12rem;
+}
+
+.editorSurface h3 {
+  font-size: 1rem;
+}
+
+.editorSurface p,
+.editorSurface li {
+  color: color-mix(in oklab, var(--foreground) 86%, var(--muted-foreground) 14%);
+  font-size: 0.94rem;
+}
+
+.editorSurface ul,
+.editorSurface ol {
+  padding-left: 1.25rem;
+}
+
+.editorSurface ul {
+  list-style: disc;
+}
+
+.editorSurface ol {
+  list-style: decimal;
+}
+
+.editorSurface li > p {
+  margin: 0;
+}
+
+.editorSurface blockquote {
+  margin-inline: 0;
+  padding: 0.08rem 0 0.08rem 0.9rem;
+  border-left: 0.18rem solid color-mix(in oklab, var(--primary) 42%, var(--border) 58%);
+  color: color-mix(in oklab, var(--foreground) 72%, var(--muted-foreground) 28%);
+  font-style: italic;
+}
+
+.editorSurface blockquote p {
+  margin: 0;
+  color: inherit;
+}
+
+.sectionBreak {
+  margin: 0.95rem 0 0.35rem;
+  color: var(--muted-foreground);
+  font-size: 0.78rem;
+  font-weight: 650;
+  line-height: 1.2;
+}
+
+.editorSurface > .sectionBreak + * {
+  margin-top: 0.45rem;
+}
+
+.editorSurface a {
+  color: color-mix(in oklab, var(--primary) 72%, #1b68a5 28%);
+  text-decoration: underline;
+  text-underline-offset: 0.12em;
+}
+
+.editorSurface a::after {
+  content: '';
+  display: inline-block;
+  width: 0.72em;
+  height: 0.72em;
+  margin-left: 0.12em;
+  background: currentColor;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M15 3h6v6'/%3E%3Cpath d='M10 14 21 3'/%3E%3Cpath d='M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6'/%3E%3C/svg%3E") center / contain no-repeat;
+}
+
+.editorSurface :global(.is-empty)::before {
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  color: var(--muted-foreground);
+  pointer-events: none;
+}
+
+.formatToolbar {
+  --toolbar-shadow: 0 0.32rem 0.62rem color-mix(in oklab, var(--foreground) 12%, transparent 88%);
+  position: sticky;
+  top: calc(var(--travenary-top-banner-offset, 0px) + var(--day-header-sticky-height, 4.25rem));
+  z-index: 9;
+  height: 0;
+  overflow: visible;
+  margin-inline: calc(-1 * var(--day-card-padding, 0.75rem));
+  pointer-events: none;
+}
+
+.formatToolbarInner {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.36rem;
+  padding: 0.45rem var(--day-card-padding, 0.75rem);
+  border: 1px solid transparent;
+  border-inline: 0;
+  border-top: 0;
+  background: var(--card);
+  box-shadow: none;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(0.2rem);
+  transition:
+    opacity var(--banner-motion-ms, 500ms) ease,
+    transform var(--banner-motion-ms, 500ms) ease,
+    border-color var(--banner-motion-ms, 500ms) ease,
+    box-shadow var(--banner-motion-ms, 500ms) ease;
+}
+
+.formatToolbar[data-visible='true'] .formatToolbarInner {
+  border-color: var(--border);
+  box-shadow: var(--toolbar-shadow);
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(-100%);
+}
+
+.formatToolbar button,
+.slashMenu button {
+  min-height: 2rem;
+  border: 1px solid transparent;
+  border-radius: calc(var(--radius) - 0.26rem);
+  background: transparent;
+  color: var(--foreground);
+  cursor: pointer;
+  font: inherit;
+}
+
+.formatToolbar button {
+  min-width: 2rem;
+  padding: 0 0.5rem;
+  font-weight: 500;
+}
+
+.formatToolbar .normalCommand {
+  font-weight: 400;
+}
+
+.formatToolbar .headingOneCommand {
+  font-size: 1.34rem;
+  font-weight: 400;
+  line-height: 1.18;
+}
+
+.formatToolbar .headingTwoCommand {
+  font-size: 1.12rem;
+  font-weight: 400;
+  line-height: 1.18;
+}
+
+.listCommand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.28rem;
+}
+
+.listCommand span:first-child {
+  font-size: 1.1em;
+  line-height: 1;
+}
+
+.formatToolbar .boldCommand {
+  font-weight: 750;
+}
+
+.formatToolbar .italicCommand {
+  font-style: italic;
+  font-weight: 400;
+}
+
+.formatToolbar .underlineCommand {
+  text-decoration: underline;
+  text-underline-offset: 0.14em;
+}
+
+.linkCommand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.26rem;
+}
+
+.linkCommand span {
+  text-decoration: underline;
+  text-underline-offset: 0.14em;
+}
+
+.formatToolbar button:hover,
+.slashMenu button:hover,
+.activeCommand {
+  border-color: color-mix(in oklab, var(--primary) 28%, var(--border) 72%);
+  background: color-mix(in oklab, var(--primary) 10%, transparent 90%);
+}
+
+.toolbarStatus {
+  display: inline-flex;
+  align-items: center;
+  margin-left: auto;
+  color: var(--muted-foreground);
+  font-size: 0.74rem;
+  line-height: 1.3;
+  white-space: nowrap;
+}
+
+.slashMenu {
+  position: fixed;
+  z-index: 20;
+  display: grid;
+  width: min(18rem, calc(100% - 0.4rem));
+  max-height: min(19rem, 45vh);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 0.34rem;
+  border: 1px solid var(--border);
+  border-radius: calc(var(--radius) - 0.14rem);
+  background: var(--card);
+  box-shadow: 0 1.2rem 2.6rem color-mix(in oklab, var(--foreground) 16%, transparent 84%);
+}
+
+.slashMenu button {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 0.5rem;
+  padding: 0 0.64rem;
+  text-align: left;
+}
+
+.slashMenu button > span:first-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.slashMenu button > span:last-child:not(:first-child) {
+  margin-left: auto;
+  color: var(--muted-foreground);
+}
+
+.slashMenuHeader {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.1rem 0 0.34rem;
+  color: var(--muted-foreground);
+  font-size: 0.74rem;
+  line-height: 1.2;
+}
+
+.slashMenuHeader button {
+  min-width: 2rem;
+  padding: 0;
+  justify-content: center;
+  font-size: 1.2rem;
+  line-height: 1;
+}
+
+.slashMenu button:hover {
+  border-color: color-mix(in oklab, var(--primary) 34%, var(--border) 66%);
+  background: color-mix(in oklab, var(--primary) 14%, transparent 86%);
+}
+
+.slashMenu button[aria-selected='true'] {
+  border-color: color-mix(in oklab, var(--primary) 42%, var(--border) 58%);
+  background: color-mix(in oklab, var(--primary) 18%, transparent 82%);
+}
+
+.slashMenu button:active {
+  border-color: color-mix(in oklab, var(--primary) 42%, var(--border) 58%);
+  background: color-mix(in oklab, var(--primary) 20%, transparent 80%);
+}
+
+.slashMenu button:focus-visible {
+  outline: 2px solid color-mix(in oklab, var(--primary) 56%, transparent 44%);
+  outline-offset: 2px;
+}
+
+@media (max-width: 640px) {
+  .editorSurface {
+    min-height: 10rem;
+  }
+
+  .formatToolbar button,
+  .slashMenu button {
+    min-height: 2.55rem;
+  }
+}

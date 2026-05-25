@@ -20,14 +20,16 @@ import {
   type LucideIcon,
 } from 'lucide-react'
 import type { ReactElement } from 'react'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 
+import { DayRichTextEditor, type DayRichTextSaveState } from '@/components/itinerary/DayRichTextEditor'
 import type { ActivityType, ItineraryActivity, ItineraryDay, WebReference } from '@/services/contracts'
 import { hasCoordinates } from '@/components/itinerary/location-map-pins'
 import { formatLocalDate, formatLocalTime, formatLocalTimeRange, formatWeekday } from '@/utils/date-format'
-import { getOvernightCoverageByGapDay, groupActivitiesForView, type OvernightCoverage } from '@/utils/itinerary-grouping'
+import { getOvernightCoverageByGapDay, groupDayForView, type OvernightCoverage } from '@/utils/itinerary-grouping'
+import { toDayActivities } from '@/utils/tiptap-compatibility'
 import { unsplashUrl } from '@/utils/unsplash-url'
 
 import styles from './ItineraryDaysGrid.module.css'
@@ -35,11 +37,13 @@ import styles from './ItineraryDaysGrid.module.css'
 interface ItineraryDaysGridProps {
   days: ItineraryDay[]
   locale: string
+  editable?: boolean
   fullBleedOnMobile?: boolean
   buildDayMapRoute?: (dayNumber: number) => string | null
   collapseCommandToken?: number
   collapseCommandMode?: 'collapse-all' | 'expand-all'
   onCollapseStateChange?: (state: { allCollapsed: boolean; allExpanded: boolean }) => void
+  onDaySave?: (day: Omit<ItineraryDay, 'date'>) => Promise<void>
 }
 
 const ACTIVITY_ICONS: Record<ActivityType, LucideIcon> = {
@@ -58,15 +62,20 @@ const ACTIVITY_ICONS: Record<ActivityType, LucideIcon> = {
 
 const MAX_VISIBLE_REFERENCES = 3
 const MAX_VISIBLE_LOCATIONS = 3
+const DAY_SAVE_SUCCESS_FLASH_MS = 1000
+
+type DaySaveVisualState = 'success' | 'error'
 
 export function ItineraryDaysGrid({
   days,
   locale,
+  editable = false,
   fullBleedOnMobile = false,
   buildDayMapRoute,
   collapseCommandToken,
   collapseCommandMode,
   onCollapseStateChange,
+  onDaySave,
 }: ItineraryDaysGridProps): ReactElement {
   const { t } = useTranslation('common')
   const todayIsoDate = useMemo(() => {
@@ -86,9 +95,17 @@ export function ItineraryDaysGrid({
     [sortedDays],
   )
   const [collapsedDayNumbers, setCollapsedDayNumbers] = useState<Set<number>>(() => new Set())
+  const [daySaveVisualStates, setDaySaveVisualStates] = useState<globalThis.Map<number, DaySaveVisualState>>(
+    () => new globalThis.Map(),
+  )
+  const dayHeaderObserversRef = useRef<globalThis.Map<number, ResizeObserver>>(
+    new globalThis.Map<number, ResizeObserver>(),
+  )
+  const saveSuccessTimersRef = useRef<globalThis.Map<number, number>>(new globalThis.Map())
 
   useEffect(() => {
     const dayNumbers = new Set(sortedDays.map((day) => day.dayNumber))
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setCollapsedDayNumbers((previousValue) => {
       const nextValue = new Set<number>()
       previousValue.forEach((dayNumber) => {
@@ -101,11 +118,28 @@ export function ItineraryDaysGrid({
   }, [sortedDays])
 
   useEffect(() => {
+    const dayHeaderObservers = dayHeaderObserversRef.current
+    const saveSuccessTimers = saveSuccessTimersRef.current
+    return () => {
+      dayHeaderObservers.forEach((observer) => {
+        observer.disconnect()
+      })
+      dayHeaderObservers.clear()
+
+      saveSuccessTimers.forEach((timerId) => {
+        window.clearTimeout(timerId)
+      })
+      saveSuccessTimers.clear()
+    }
+  }, [])
+
+  useEffect(() => {
     if (!collapseCommandToken || !collapseCommandMode) {
       return
     }
 
     if (collapseCommandMode === 'collapse-all') {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setCollapsedDayNumbers(new Set(sortedDays.map((day) => day.dayNumber)))
       return
     }
@@ -134,6 +168,94 @@ export function ItineraryDaysGrid({
     })
   }, [])
 
+  const setDayHeaderElement = useCallback((dayNumber: number, headerElement: HTMLElement | null): void => {
+    const previousObserver = dayHeaderObserversRef.current.get(dayNumber)
+    previousObserver?.disconnect()
+    dayHeaderObserversRef.current.delete(dayNumber)
+
+    if (!headerElement) {
+      return
+    }
+
+    const header = headerElement
+    const dayCardElement = header.closest('article') as HTMLElement | null
+    if (!dayCardElement) {
+      return
+    }
+
+    function updateHeaderHeight(): void {
+      dayCardElement?.style.setProperty(
+        '--day-header-sticky-height',
+        `${header.getBoundingClientRect().height}px`,
+      )
+    }
+
+    updateHeaderHeight()
+
+    if (typeof ResizeObserver === 'undefined') {
+      return
+    }
+
+    const observer = new ResizeObserver(updateHeaderHeight)
+    observer.observe(header)
+    dayHeaderObserversRef.current.set(dayNumber, observer)
+  }, [])
+
+  const setDaySaveVisualState = useCallback((dayNumber: number, state: DayRichTextSaveState): void => {
+    if (state !== 'saved' && state !== 'error' && state !== 'dirty' && state !== 'saving') {
+      return
+    }
+
+    const existingTimer = saveSuccessTimersRef.current.get(dayNumber)
+    if (existingTimer !== undefined) {
+      window.clearTimeout(existingTimer)
+      saveSuccessTimersRef.current.delete(dayNumber)
+    }
+
+    if (state === 'error') {
+      setDaySaveVisualStates((previousValue) => {
+        const nextValue = new globalThis.Map(previousValue)
+        nextValue.set(dayNumber, 'error')
+        return nextValue
+      })
+      return
+    }
+
+    if (state === 'dirty' || state === 'saving') {
+      setDaySaveVisualStates((previousValue) => {
+        if (previousValue.get(dayNumber) !== 'error') {
+          return previousValue
+        }
+
+        const nextValue = new globalThis.Map(previousValue)
+        nextValue.delete(dayNumber)
+        return nextValue
+      })
+      return
+    }
+
+    setDaySaveVisualStates((previousValue) => {
+      const nextValue = new globalThis.Map(previousValue)
+      nextValue.set(dayNumber, 'success')
+      return nextValue
+    })
+
+    const timerId = window.setTimeout(() => {
+      saveSuccessTimersRef.current.delete(dayNumber)
+      setDaySaveVisualStates((previousValue) => {
+        if (previousValue.get(dayNumber) !== 'success') {
+          return previousValue
+        }
+
+        const nextValue = new globalThis.Map(previousValue)
+        nextValue.delete(dayNumber)
+        return nextValue
+      })
+    }, DAY_SAVE_SUCCESS_FLASH_MS)
+
+    saveSuccessTimersRef.current.set(dayNumber, timerId)
+  }, [])
+
   return (
     <section
       className={`${styles.daysGrid}${fullBleedOnMobile ? ` ${styles.fullBleedOnMobile}` : ''}`}
@@ -146,11 +268,16 @@ export function ItineraryDaysGrid({
               ? overnightCoverageByGapDay.get(day.dayNumber) ?? { status: 'missing' }
             : null
         const dayMapRoute = buildDayMapRoute?.(day.dayNumber) ?? null
-        const hasDayMapLocations = hasMappableLocations(day.activities)
+        const dayActivities = toDayActivities(day)
+        const hasDayMapLocations = hasMappableLocations(dayActivities)
         const isToday = day.date === todayIsoDate
-        const dayCardClassName = isToday
-          ? `${styles.dayCard} ${styles.dayCardToday}`
-          : styles.dayCard
+        const saveVisualState = daySaveVisualStates.get(day.dayNumber)
+        const dayCardClassName = [
+          styles.dayCard,
+          isToday ? styles.dayCardToday : '',
+          saveVisualState === 'success' ? styles.dayCardSaveSuccess : '',
+          saveVisualState === 'error' ? styles.dayCardSaveError : '',
+        ].filter(Boolean).join(' ')
 
         return (
           <article
@@ -159,7 +286,10 @@ export function ItineraryDaysGrid({
             className={dayCardClassName}
             aria-current={isToday ? 'date' : undefined}
           >
-            <header className={styles.dayHeader}>
+            <header
+              ref={(element) => setDayHeaderElement(day.dayNumber, element)}
+              className={styles.dayHeader}
+            >
               <button
                 type="button"
                 className={styles.dayToggleButton}
@@ -191,23 +321,35 @@ export function ItineraryDaysGrid({
               </div>
 
               {hasDayMapLocations && dayMapRoute ? (
-                <Link
-                  className={styles.dayMapLauncher}
-                  to={dayMapRoute}
-                  aria-label={t('itineraryView.openDailyMapAria', { dayNumber: day.dayNumber })}
-                  title={t('itineraryView.openDailyMapAria', { dayNumber: day.dayNumber })}
-                >
-                  <Map size={17} aria-hidden="true" />
-                  <span>{t('itineraryView.dailyMap')}</span>
-                </Link>
+                <div className={styles.dayHeaderActions}>
+                  <Link
+                    className={styles.dayMapLauncher}
+                    to={dayMapRoute}
+                    aria-label={t('itineraryView.openDailyMapAria', { dayNumber: day.dayNumber })}
+                    title={t('itineraryView.openDailyMapAria', { dayNumber: day.dayNumber })}
+                  >
+                    <Map size={17} aria-hidden="true" />
+                    <span>{t('itineraryView.dailyMap')}</span>
+                  </Link>
+                </div>
               ) : null}
             </header>
 
             {!isCollapsed ? (
               <div id={`itinerary-day-content-${day.dayNumber}`}>
-                {day.summary ? <p className={styles.daySummary}>{day.summary}</p> : null}
-
-                <DayActivitySections activities={day.activities} locale={locale} />
+                {editable && onDaySave ? (
+                  <DayRichTextEditor
+                    day={day}
+                    locale={locale}
+                    onDaySave={onDaySave}
+                    onSaveStateChange={(state) => setDaySaveVisualState(day.dayNumber, state)}
+                  />
+                ) : (
+                  <>
+                    {day.summary ? <p className={styles.daySummary}>{day.summary}</p> : null}
+                    <DayActivitySections day={day} locale={locale} />
+                  </>
+                )}
 
                 {coverage ? <OvernightBanner coverage={coverage} /> : null}
               </div>
@@ -249,17 +391,17 @@ function OvernightBanner({ coverage }: { coverage: OvernightCoverage }): ReactEl
 }
 
 function DayActivitySections({
-  activities,
+  day,
   locale,
 }: {
-  activities: ItineraryActivity[]
+  day: Pick<ItineraryDay, 'document'>
   locale: string
 }): ReactElement {
   const { t } = useTranslation('common')
 
   const sections = useMemo(
-    () => groupActivitiesForView(activities),
-    [activities],
+    () => groupDayForView(day),
+    [day],
   )
 
   if (sections.length === 0) {

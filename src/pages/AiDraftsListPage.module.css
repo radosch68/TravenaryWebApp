@@ -166,8 +166,8 @@
 }
 
 .statusRail_completed {
-  background: color-mix(in oklab, var(--primary) 12%, transparent 88%);
-  color: color-mix(in oklab, var(--primary-foreground) 70%, var(--foreground) 30%);
+  background: color-mix(in oklab, #1f7a61 12%, transparent 88%);
+  color: color-mix(in oklab, #1f7a61 82%, #0f6f5a 18%);
 }
 
 .statusRail_failed {

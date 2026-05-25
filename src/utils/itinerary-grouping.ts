@@ -1,4 +1,5 @@
 import type { ItineraryActivity, ItineraryDay } from '@/services/contracts'
+import { toDayActivities } from '@/utils/tiptap-compatibility'
 
 export interface ItineraryActivitySection {
   blockIndex: number
@@ -54,11 +55,107 @@ export function groupActivitiesForView(activities: ItineraryActivity[]): Itinera
   return sections
 }
 
+type DayDocumentToken =
+  | { kind: 'sectionBreak'; label?: string }
+  | { kind: 'activityTile'; activity: ItineraryActivity }
+
+function getTextContent(nodes: ItineraryDay['document'] | undefined): string {
+  if (!Array.isArray(nodes)) {
+    return ''
+  }
+
+  return nodes
+    .map((node) => {
+      if (typeof node.text === 'string') {
+        return node.text
+      }
+
+      return getTextContent(node.content)
+    })
+    .join('')
+}
+
+function collectDayDocumentTokens(
+  nodes: ItineraryDay['document'],
+  tokens: DayDocumentToken[] = [],
+): DayDocumentToken[] {
+  nodes.forEach((node) => {
+    if (node.type === 'sectionBreak') {
+      const label = getTextContent(node.content).trim()
+      tokens.push({
+        kind: 'sectionBreak',
+        label: label.length > 0 ? label : undefined,
+      })
+      return
+    }
+
+    if (node.type === 'activityTile') {
+      const activity = node.attrs?.activity as ItineraryActivity | undefined
+      if (activity?.id && activity.type !== 'divider') {
+        tokens.push({
+          kind: 'activityTile',
+          activity,
+        })
+      }
+    }
+
+    if (Array.isArray(node.content) && node.content.length > 0) {
+      collectDayDocumentTokens(node.content, tokens)
+    }
+  })
+
+  return tokens
+}
+
+export function groupDayForView(
+  day: Pick<ItineraryDay, 'document'>,
+): ItineraryActivitySection[] {
+  const sections: ItineraryActivitySection[] = []
+  let blockIndex = 0
+  let currentDividerLabel: string | undefined
+  let currentActivities: ItineraryActivity[] = []
+
+  function flushSection(): void {
+    if (currentActivities.length === 0) {
+      return
+    }
+
+    sections.push({
+      blockIndex,
+      dividerLabel: currentDividerLabel,
+      activities: currentActivities,
+    })
+
+    blockIndex += 1
+    currentDividerLabel = undefined
+    currentActivities = []
+  }
+
+  const tokens = collectDayDocumentTokens(day.document ?? [])
+  tokens.forEach((token) => {
+    if (token.kind === 'sectionBreak') {
+      flushSection()
+      currentDividerLabel = token.label
+      return
+    }
+
+    currentActivities.push({
+      ...token.activity,
+      references: token.activity.references ? [...token.activity.references] : [],
+      locations: token.activity.locations ? [...token.activity.locations] : [],
+      details: token.activity.details ? { ...token.activity.details } : undefined,
+    })
+  })
+
+  flushSection()
+  return sections
+}
+
 export function getOvernightCoverageByGapDay(days: ItineraryDay[]): Map<number, OvernightCoverage> {
   const coverage = new Map<number, OvernightAccommodation[]>()
 
   days.forEach((day) => {
-    day.activities.forEach((activity) => {
+    toDayActivities(day).forEach((activity) => {
       if (activity.type !== 'accommodation') {
         return
       }

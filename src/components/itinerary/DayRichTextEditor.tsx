@@ -1,0 +1,1236 @@
+import { Extension, Node, mergeAttributes, type JSONContent, type Range } from '@tiptap/core'
+import Link from '@tiptap/extension-link'
+import Placeholder from '@tiptap/extension-placeholder'
+import Underline from '@tiptap/extension-underline'
+import { TextSelection } from '@tiptap/pm/state'
+import { EditorContent, useEditor } from '@tiptap/react'
+import StarterKit from '@tiptap/starter-kit'
+import { Suggestion } from '@tiptap/suggestion'
+import { computePosition, flip, offset, shift } from '@floating-ui/dom'
+import { Link2 } from 'lucide-react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import type { ReactElement } from 'react'
+import { useTranslation } from 'react-i18next'
+
+import type { ActivityType, DayDocumentNode, ItineraryActivity, ItineraryDay } from '@/services/contracts'
+import {
+  ActivityTile,
+  createActivityTileNode,
+  type ActivityTileLabels,
+} from '@/tiptap/activity-tile-extension'
+import { formatLocalTimeRange } from '@/utils/date-format'
+
+import styles from './DayRichTextEditor.module.css'
+
+type DaySavePayload = Omit<ItineraryDay, 'date'>
+
+interface DayRichTextEditorProps {
+  day: ItineraryDay
+  locale: string
+  onDaySave: (day: DaySavePayload) => Promise<void>
+  onSaveStateChange?: (state: DayRichTextSaveState) => void
+}
+
+export type DayRichTextSaveState = 'idle' | 'dirty' | 'saving' | 'saved' | 'error'
+
+type SlashMenuPath = 'root' | 'activity' | 'format'
+
+type SlashCommandKind = 'group' | 'command'
+
+type SlashCommand = {
+  id: string
+  label: string
+  kind: SlashCommandKind
+  searchTerms: string[]
+  menuPath?: Exclude<SlashMenuPath, 'root'>
+  parentPath?: Exclude<SlashMenuPath, 'root'>
+  run?: (range: Range) => void
+}
+
+type SlashMenuPosition = {
+  left: number
+  top: number
+}
+
+const AUTOSAVE_DELAY_MS = 2000
+const TOP_DROP_ZONE_PX = 36
+const TOOLBAR_SUPPRESSION_MS = 180
+const DROP_TOOLBAR_SUPPRESSION_MS = 1400
+const SLASH_MENU_CURSOR_GAP_PX = 6
+const SLASH_MENU_EDGE_GAP_PX = 6
+const THROWAWAY_SAVE_ERROR_TRIGGER = '[[error]]'
+
+const SectionBreak = Node.create({
+  name: 'sectionBreak',
+  group: 'block',
+  content: 'inline*',
+  selectable: false,
+  draggable: false,
+
+  parseHTML() {
+    return [
+      {
+        tag: 'div[data-type="section-break"]',
+      },
+    ]
+  },
+
+  renderHTML({ HTMLAttributes }) {
+    return [
+      'div',
+      mergeAttributes(HTMLAttributes, {
+        class: styles.sectionBreak,
+        'data-type': 'section-break',
+      }),
+      0,
+    ]
+  },
+})
+
+function isNonTextEditorTarget(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) {
+    return false
+  }
+
+  return Boolean(target.closest('[data-activity-id], a[href]'))
+}
+
+function tokenizeSlashText(value: string): string[] {
+  return value
+    .toLowerCase()
+    .split(/[\s-]+/)
+    .filter(Boolean)
+}
+
+function getSlashCommandMatchRank(command: SlashCommand, query: string): number | null {
+  const primaryTokens = [command.label, command.id].flatMap(tokenizeSlashText)
+  const aliasTokens = command.searchTerms.flatMap(tokenizeSlashText)
+
+  if (primaryTokens.some((token) => token.startsWith(query))) {
+    return 0
+  }
+
+  if (query.length > 1 && aliasTokens.some((token) => token.startsWith(query))) {
+    return 1
+  }
+
+  return null
+}
+
+function cloneDocument(nodes: DayDocumentNode[]): DayDocumentNode[] {
+  return JSON.parse(JSON.stringify(nodes)) as DayDocumentNode[]
+}
+
+function toEditorContent(document: DayDocumentNode[]): JSONContent {
+  return {
+    type: 'doc',
+    content: document.length > 0 ? (cloneDocument(document) as JSONContent[]) : [{ type: 'paragraph' }],
+  }
+}
+
+function fromEditorContent(content: JSONContent): DayDocumentNode[] {
+  return ((content.content ?? []) as DayDocumentNode[]).filter((node) => node.type !== 'doc')
+}
+
+function createClientActivityId(): string {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return `activity-${crypto.randomUUID()}`
+  }
+
+  return `activity-${Date.now()}-${Math.random().toString(16).slice(2)}`
+}
+
+function toNewActivity(type: Exclude<ActivityType, 'divider'>, title: string): ItineraryActivity {
+  const activity: ItineraryActivity = {
+    id: createClientActivityId(),
+    type,
+    title,
+    anchorDate: null,
+    references: [],
+    locations: [],
+  }
+
+  if (type === 'accommodation') {
+    activity.details = { nights: 1 }
+  }
+
+  return activity
+}
+
+export function DayRichTextEditor({
+  day,
+  locale,
+  onDaySave,
+  onSaveStateChange,
+}: DayRichTextEditorProps): ReactElement {
+  const { t } = useTranslation('common')
+  const [documentNodes, setDocumentNodes] = useState<DayDocumentNode[]>(() => cloneDocument(day.document ?? []))
+  const [saveState, setSaveState] = useState<DayRichTextSaveState>('idle')
+  const [isToolbarVisible, setIsToolbarVisible] = useState(false)
+  const [slashMenuOpen, setSlashMenuOpen] = useState(false)
+  const [slashMenuPosition, setSlashMenuPosition] = useState<SlashMenuPosition | null>(null)
+  const [slashMenuItems, setSlashMenuItems] = useState<SlashCommand[]>([])
+  const [slashMenuPath, setSlashMenuPath] = useState<SlashMenuPath>('root')
+  const [slashQuery, setSlashQuery] = useState('')
+  const [slashActiveIndex, setSlashActiveIndex] = useState(0)
+  const [editVersion, setEditVersion] = useState(0)
+  const activityTileLabels = useMemo<ActivityTileLabels>(
+    () => ({
+      locale,
+      activityEditorLabel: t('itineraryView.richEditor.activityEditorLabel'),
+      deleteActivity: t('itineraryView.richEditor.deleteActivity'),
+      titleFallback: t('itineraryView.richEditor.titleFallback'),
+      fields: {
+        title: t('itineraryView.richEditor.fields.title'),
+        time: t('itineraryView.richEditor.fields.time'),
+        notes: t('itineraryView.richEditor.fields.notes'),
+      },
+      display: {
+        anchored: t('itineraryView.anchored'),
+        nights: (count) => t('itineraryView.nights', { count }),
+        guidanceGuided: t('itineraryView.guidanceGuided'),
+        guidanceSelfGuided: t('itineraryView.guidanceSelfGuided'),
+        cuisineLabel: (cuisine) => t('itineraryView.cuisineLabel', { cuisine }),
+        accommodationSummaryNights: t('itineraryView.accommodationSummaryNights'),
+        accommodationSummaryCheckIn: t('itineraryView.accommodationSummaryCheckIn'),
+        accommodationSummaryCheckOut: t('itineraryView.accommodationSummaryCheckOut'),
+        accommodationSummaryEmpty: t('itineraryView.accommodationSummaryEmpty'),
+        accommodationFieldGuests: t('itineraryView.accommodationFieldGuests'),
+        accommodationFieldPlatform: t('itineraryView.accommodationFieldPlatform'),
+        accommodationFieldContactPhone: t('itineraryView.accommodationFieldContactPhone'),
+        accommodationFieldContactEmail: t('itineraryView.accommodationFieldContactEmail'),
+        accommodationFieldBookingRef: t('itineraryView.accommodationFieldBookingRef'),
+        platformOptions: {
+          booking: t('itineraryView.platformOptions.booking'),
+          airbnb: t('itineraryView.platformOptions.airbnb'),
+          agoda: t('itineraryView.platformOptions.agoda'),
+          direct: t('itineraryView.platformOptions.direct'),
+          other: t('itineraryView.platformOptions.other'),
+        },
+        locationFallback: t('itineraryView.locationFallback'),
+        openReferenceAria: (label) => t('itineraryView.openReferenceAria', { label }),
+        openMapAria: (label) => t('itineraryView.openMapAria', { label }),
+      },
+    }),
+    [locale, t],
+  )
+  const documentNodesRef = useRef(documentNodes)
+  const labelsRef = useRef<ActivityTileLabels>(activityTileLabels)
+  const saveSequenceRef = useRef(0)
+  const slashCommandsRef = useRef<SlashCommand[]>([])
+  const slashMenuItemsRef = useRef<SlashCommand[]>([])
+  const slashMenuPathRef = useRef<SlashMenuPath>('root')
+  const slashQueryRef = useRef('')
+  const slashActiveIndexRef = useRef(0)
+  const slashClientRectRef = useRef<(() => DOMRect | null) | null>(null)
+  const slashCommandRunnerRef = useRef<((command: SlashCommand) => void) | null>(null)
+  const slashItemRefs = useRef<Array<HTMLButtonElement | null>>([])
+  const slashMenuRef = useRef<HTMLDivElement | null>(null)
+  const editorRootRef = useRef<HTMLDivElement | null>(null)
+  const saveStateChangeRef = useRef(onSaveStateChange)
+  const toolbarSuppressedRef = useRef(false)
+  const toolbarSuppressionTimeoutRef = useRef<number | null>(null)
+
+  useEffect(() => {
+    documentNodesRef.current = documentNodes
+  }, [documentNodes])
+
+  useEffect(() => {
+    labelsRef.current = activityTileLabels
+  }, [activityTileLabels])
+
+  useEffect(() => {
+    saveStateChangeRef.current = onSaveStateChange
+  }, [onSaveStateChange])
+
+  useEffect(() => {
+    saveStateChangeRef.current?.(saveState)
+  }, [saveState])
+
+  useEffect(() => {
+    slashMenuItemsRef.current = slashMenuItems
+  }, [slashMenuItems])
+
+  useEffect(() => {
+    slashMenuPathRef.current = slashMenuPath
+  }, [slashMenuPath])
+
+  useEffect(() => {
+    slashActiveIndexRef.current = slashActiveIndex
+  }, [slashActiveIndex])
+
+  useEffect(
+    () => () => {
+      if (toolbarSuppressionTimeoutRef.current !== null) {
+        window.clearTimeout(toolbarSuppressionTimeoutRef.current)
+      }
+    },
+    [],
+  )
+
+  const markDirty = useCallback((): void => {
+    setSaveState('dirty')
+    setEditVersion((previousValue) => previousValue + 1)
+  }, [])
+
+  const closeSlashMenu = useCallback((): void => {
+    setSlashMenuOpen(false)
+    setSlashMenuPosition(null)
+    setSlashMenuItems([])
+    setSlashMenuPath('root')
+    setSlashQuery('')
+    setSlashActiveIndex(0)
+    slashActiveIndexRef.current = 0
+    slashMenuPathRef.current = 'root'
+    slashQueryRef.current = ''
+    slashClientRectRef.current = null
+    slashCommandRunnerRef.current = null
+  }, [])
+
+  const setSlashActiveCommandIndex = useCallback((index: number): void => {
+    slashActiveIndexRef.current = index
+    setSlashActiveIndex(index)
+  }, [])
+
+  const resolveSlashMenuItems = useCallback((query: string): SlashCommand[] => {
+    const normalizedQuery = query.trim().toLowerCase()
+    const commands = slashCommandsRef.current
+
+    if (normalizedQuery.length > 0) {
+      return commands
+        .flatMap((command) => {
+          if (command.kind !== 'command') {
+            return []
+          }
+
+          const rank = getSlashCommandMatchRank(command, normalizedQuery)
+          return rank === null ? [] : [{ command, rank }]
+        })
+        .sort((first, second) => first.rank - second.rank || first.command.label.localeCompare(second.command.label))
+        .map((match) => match.command)
+    }
+
+    if (slashMenuPathRef.current === 'root') {
+      return commands.filter((command) => command.kind === 'group')
+    }
+
+    return commands.filter((command) => command.parentPath === slashMenuPathRef.current)
+  }, [])
+
+  const updateSlashMenuPosition = useCallback((): void => {
+    const menuElement = slashMenuRef.current
+    const getClientRect = slashClientRectRef.current
+    const referenceRect = getClientRect?.()
+
+    if (!menuElement || !referenceRect) {
+      return
+    }
+
+    const referenceElement = {
+      getBoundingClientRect: () => referenceRect,
+    }
+
+    void computePosition(referenceElement, menuElement, {
+      placement: 'bottom-start',
+      strategy: 'fixed',
+      middleware: [
+        offset(SLASH_MENU_CURSOR_GAP_PX),
+        flip({ padding: SLASH_MENU_EDGE_GAP_PX }),
+        shift({ padding: SLASH_MENU_EDGE_GAP_PX }),
+      ],
+    }).then(({ x, y }) => {
+      setSlashMenuPosition({ left: x, top: y })
+    })
+  }, [])
+
+  const openSlashSubmenu = useCallback(
+    (path: Exclude<SlashMenuPath, 'root'>): void => {
+      slashQueryRef.current = ''
+      setSlashQuery('')
+      const items = slashCommandsRef.current.filter((command) => command.parentPath === path)
+      slashMenuPathRef.current = path
+      setSlashMenuPath(path)
+      setSlashMenuItems(items)
+      setSlashMenuOpen(items.length > 0)
+      setSlashActiveCommandIndex(0)
+      window.requestAnimationFrame(updateSlashMenuPosition)
+    },
+    [setSlashActiveCommandIndex, updateSlashMenuPosition],
+  )
+
+  const openSlashRootMenu = useCallback((): void => {
+    slashQueryRef.current = ''
+    setSlashQuery('')
+    const items = slashCommandsRef.current.filter((command) => command.kind === 'group')
+    slashMenuPathRef.current = 'root'
+    setSlashMenuPath('root')
+    setSlashMenuItems(items)
+    setSlashMenuOpen(items.length > 0)
+    setSlashActiveCommandIndex(0)
+    window.requestAnimationFrame(updateSlashMenuPosition)
+  }, [setSlashActiveCommandIndex, updateSlashMenuPosition])
+
+  const suppressToolbarForNonTextInteraction = useCallback((durationMs = TOOLBAR_SUPPRESSION_MS): void => {
+    toolbarSuppressedRef.current = true
+    setIsToolbarVisible(false)
+
+    if (toolbarSuppressionTimeoutRef.current !== null) {
+      window.clearTimeout(toolbarSuppressionTimeoutRef.current)
+    }
+
+    toolbarSuppressionTimeoutRef.current = window.setTimeout(() => {
+      toolbarSuppressedRef.current = false
+      toolbarSuppressionTimeoutRef.current = null
+    }, durationMs)
+  }, [])
+
+  const saveStateLabel = useMemo(() => {
+    if (saveState === 'saving') {
+      return t('itineraryView.richEditor.saving')
+    }
+
+    if (saveState === 'saved') {
+      return t('itineraryView.richEditor.saved')
+    }
+
+    if (saveState === 'error') {
+      return t('itineraryView.richEditor.saveError')
+    }
+
+    if (saveState === 'dirty') {
+      return t('itineraryView.richEditor.unsaved')
+    }
+
+    return t('itineraryView.richEditor.ready')
+  }, [saveState, t])
+
+  const buildSavePayload = useCallback((): DaySavePayload => {
+    return {
+      dayNumber: day.dayNumber,
+      summary: day.summary,
+      document: cloneDocument(documentNodesRef.current),
+    }
+  }, [day.dayNumber, day.summary])
+
+  const shouldSimulateSaveError = useCallback((): boolean => {
+    return JSON.stringify(documentNodesRef.current).includes(THROWAWAY_SAVE_ERROR_TRIGGER)
+  }, [])
+
+  const slashCommandExtension = useMemo(
+    () =>
+      // TipTap Suggestion callbacks run outside React render, so refs bridge
+      // current command state into the ProseMirror plugin lifecycle.
+      // eslint-disable-next-line react-hooks/refs
+      Extension.create({
+        name: 'slashCommand',
+
+        addProseMirrorPlugins() {
+          return [
+            Suggestion<SlashCommand, SlashCommand>({
+              editor: this.editor,
+              char: '/',
+              allowedPrefixes: null,
+              items: ({ query }) => {
+                const normalizedQuery = query.trim().toLowerCase()
+                slashQueryRef.current = normalizedQuery
+                return resolveSlashMenuItems(normalizedQuery)
+              },
+              command: ({ range, props }) => {
+                if (props.kind === 'group' && props.menuPath) {
+                  openSlashSubmenu(props.menuPath)
+                  return
+                }
+
+                props.run?.(range)
+              },
+              render: () => ({
+                onStart: (props) => {
+                  slashClientRectRef.current = props.clientRect ?? null
+                  slashCommandRunnerRef.current = props.command
+                  const normalizedQuery = props.query.trim().toLowerCase()
+                  slashQueryRef.current = normalizedQuery
+                  setSlashQuery(normalizedQuery)
+                  if (normalizedQuery.length === 0) {
+                    slashMenuPathRef.current = 'root'
+                    setSlashMenuPath('root')
+                  }
+                  setSlashMenuItems(props.items)
+                  setSlashActiveCommandIndex(0)
+                  setSlashMenuOpen(props.items.length > 0)
+                  window.requestAnimationFrame(updateSlashMenuPosition)
+                },
+                onUpdate: (props) => {
+                  slashClientRectRef.current = props.clientRect ?? null
+                  slashCommandRunnerRef.current = props.command
+                  const normalizedQuery = props.query.trim().toLowerCase()
+                  const previousQuery = slashQueryRef.current
+                  slashQueryRef.current = normalizedQuery
+                  setSlashQuery(normalizedQuery)
+                  if (normalizedQuery.length > 0 && slashMenuPathRef.current !== 'root') {
+                    slashMenuPathRef.current = 'root'
+                    setSlashMenuPath('root')
+                  }
+                  setSlashMenuItems(props.items)
+                  setSlashMenuOpen(props.items.length > 0)
+                  setSlashActiveCommandIndex(
+                    normalizedQuery !== previousQuery
+                      ? 0
+                      : Math.min(slashActiveIndexRef.current, Math.max(0, props.items.length - 1)),
+                  )
+                  window.requestAnimationFrame(updateSlashMenuPosition)
+                },
+                onKeyDown: ({ event }) => {
+                  const items = slashMenuItemsRef.current
+
+                  if (event.key === 'Escape') {
+                    if (slashMenuPathRef.current !== 'root' && slashQueryRef.current.length === 0) {
+                      openSlashRootMenu()
+                    } else {
+                      closeSlashMenu()
+                    }
+                    return true
+                  }
+
+                  if (items.length === 0) {
+                    return false
+                  }
+
+                  if (event.key === 'ArrowDown') {
+                    setSlashActiveCommandIndex((slashActiveIndexRef.current + 1) % items.length)
+                    return true
+                  }
+
+                  if (event.key === 'ArrowUp') {
+                    setSlashActiveCommandIndex((slashActiveIndexRef.current - 1 + items.length) % items.length)
+                    return true
+                  }
+
+                  if (event.key === 'Home') {
+                    setSlashActiveCommandIndex(0)
+                    return true
+                  }
+
+                  if (event.key === 'End') {
+                    setSlashActiveCommandIndex(items.length - 1)
+                    return true
+                  }
+
+                  if (event.key === 'ArrowLeft' && slashMenuPathRef.current !== 'root' && slashQueryRef.current.length === 0) {
+                    openSlashRootMenu()
+                    return true
+                  }
+
+                  if (event.key === 'ArrowRight') {
+                    const selectedCommand = items[slashActiveIndexRef.current]
+                    if (selectedCommand?.kind === 'group' && selectedCommand.menuPath) {
+                      openSlashSubmenu(selectedCommand.menuPath)
+                      return true
+                    }
+                  }
+
+                  if (event.key === 'Enter' || event.key === 'Tab') {
+                    const selectedCommand = items[slashActiveIndexRef.current]
+                    if (selectedCommand) {
+                      slashCommandRunnerRef.current?.(selectedCommand)
+                    }
+                    return true
+                  }
+
+                  return false
+                },
+                onExit: () => {
+                  closeSlashMenu()
+                },
+              }),
+            }),
+          ]
+        },
+      }),
+    [
+      closeSlashMenu,
+      openSlashRootMenu,
+      openSlashSubmenu,
+      resolveSlashMenuItems,
+      setSlashActiveCommandIndex,
+      updateSlashMenuPosition,
+    ],
+  )
+
+  const editor = useEditor({
+    extensions: [
+      StarterKit.configure({
+        heading: { levels: [1, 2, 3] },
+      }),
+      Underline,
+      Link.configure({
+        openOnClick: false,
+        autolink: true,
+        HTMLAttributes: {
+          rel: 'noopener noreferrer',
+          target: '_blank',
+        },
+      }),
+      Placeholder.configure({
+        placeholder: ({ node }) =>
+          node.type.name === 'heading'
+            ? t('itineraryView.richEditor.headingPlaceholder')
+            : t('itineraryView.richEditor.placeholder'),
+      }),
+      SectionBreak,
+      slashCommandExtension,
+      // TipTap node views are not React descendants of this component, so refs bridge
+      // current day state into the extension callbacks without recreating the editor.
+      // eslint-disable-next-line react-hooks/refs
+      ActivityTile.configure({
+        dayNumber: day.dayNumber,
+        getActivityTypeLabel: (activity) => t(`itineraryView.activityType.${activity.type}`),
+        getActivityMeta: (activity) => {
+          const timeRange = formatLocalTimeRange(activity.time, activity.timeEnd, locale)
+          return timeRange ? [timeRange] : []
+        },
+        getLabels: () => labelsRef.current,
+        onActivityOpen: () => undefined,
+        onActivityDelete: () => undefined,
+      }),
+    ],
+    content: toEditorContent(day.document ?? []),
+    immediatelyRender: false,
+    editorProps: {
+      attributes: {
+        class: styles.editorSurface,
+        'aria-label': t('itineraryView.richEditor.editorAria', { dayNumber: day.dayNumber }),
+      },
+      handleDOMEvents: {
+        pointerdown: (_view, event) => {
+          if (isNonTextEditorTarget(event.target)) {
+            suppressToolbarForNonTextInteraction()
+          } else {
+            toolbarSuppressedRef.current = false
+            setIsToolbarVisible(true)
+          }
+
+          return false
+        },
+        click: (_view, event) => {
+          if (isNonTextEditorTarget(event.target)) {
+            suppressToolbarForNonTextInteraction()
+          }
+
+          return false
+        },
+        dragstart: () => {
+          suppressToolbarForNonTextInteraction(DROP_TOOLBAR_SUPPRESSION_MS)
+          return false
+        },
+        dragenter: () => {
+          suppressToolbarForNonTextInteraction(DROP_TOOLBAR_SUPPRESSION_MS)
+          return false
+        },
+        dragover: (view, event) => {
+          suppressToolbarForNonTextInteraction(DROP_TOOLBAR_SUPPRESSION_MS)
+
+          const editorElement = view.dom as HTMLElement
+          const editorRect = editorElement.getBoundingClientRect()
+          const isTopDropZone =
+            event.clientY >= editorRect.top && event.clientY <= editorRect.top + TOP_DROP_ZONE_PX
+
+          if (isTopDropZone && view.state.selection.from !== 1) {
+            const transaction = view.state.tr.setSelection(
+              // Bias near-top drags to the document start so the drop cursor remains
+              // available before the first visible line.
+              TextSelection.atStart(view.state.doc),
+            )
+            view.dispatch(transaction)
+          }
+
+          return false
+        },
+        drop: () => {
+          suppressToolbarForNonTextInteraction(DROP_TOOLBAR_SUPPRESSION_MS)
+          return false
+        },
+      },
+      handleKeyDown: (_view, event) => {
+        if (event.key === 'Escape') {
+          closeSlashMenu()
+          return false
+        }
+
+        return false
+      },
+    },
+    onUpdate: ({ editor: activeEditor }) => {
+      const editorDocument = fromEditorContent(activeEditor.getJSON())
+      setDocumentNodes(editorDocument)
+      markDirty()
+    },
+    onFocus: ({ event }) => {
+      if (toolbarSuppressedRef.current || isNonTextEditorTarget(event.target)) {
+        return
+      }
+
+      setIsToolbarVisible(true)
+    },
+  })
+
+  useEffect(() => {
+    if (editVersion === 0) {
+      return undefined
+    }
+
+    const saveVersion = editVersion
+    const handle = window.setTimeout(() => {
+      const sequence = saveSequenceRef.current + 1
+      saveSequenceRef.current = sequence
+      setSaveState('saving')
+
+      const savePromise =
+        shouldSimulateSaveError()
+          ? Promise.reject(new Error('THROWAWAY simulated day save error'))
+          : onDaySave(buildSavePayload())
+
+      void savePromise
+        .then(() => {
+          if (saveSequenceRef.current === sequence && saveVersion === editVersion) {
+            setSaveState('saved')
+          }
+        })
+        .catch(() => {
+          if (saveSequenceRef.current === sequence) {
+            setSaveState('error')
+          }
+        })
+    }, AUTOSAVE_DELAY_MS)
+
+    return () => {
+      window.clearTimeout(handle)
+    }
+  }, [buildSavePayload, editVersion, onDaySave, shouldSimulateSaveError])
+
+  const setLink = useCallback((range?: Range): void => {
+    if (!editor) {
+      return
+    }
+
+    const previousUrl = editor.getAttributes('link').href as string | undefined
+    const url = window.prompt(t('itineraryView.richEditor.linkPrompt'), previousUrl ?? 'https://')
+
+    if (url === null) {
+      return
+    }
+
+    const command = editor.chain().focus()
+    if (range) {
+      command.deleteRange(range)
+    }
+
+    if (url.trim().length === 0) {
+      command.extendMarkRange('link').unsetLink().run()
+      return
+    }
+
+    command.extendMarkRange('link').setLink({ href: url.trim() }).run()
+  }, [editor, t])
+
+  const insertActivity = useCallback(
+    (type: Exclude<ActivityType, 'divider'>, range?: Range): void => {
+      if (!editor) {
+        return
+      }
+
+      const activity = toNewActivity(type, t(`itineraryView.richEditor.newActivityTitle.${type}`))
+      const command = editor.chain().focus()
+
+      if (range) {
+        command.deleteRange(range)
+      }
+
+      command
+        .insertContent([createActivityTileNode(activity), { type: 'paragraph' }])
+        .run()
+
+      setSlashMenuOpen(false)
+      setSlashMenuPosition(null)
+      setSlashActiveIndex(0)
+      markDirty()
+    },
+    [editor, markDirty, t],
+  )
+
+  const runDocumentCommand = useCallback(
+    (command: 'heading' | 'list', range?: Range): void => {
+      if (!editor) {
+        return
+      }
+
+      const chain = editor.chain().focus()
+
+      if (range) {
+        chain.deleteRange(range)
+      }
+
+      if (command === 'heading') {
+        chain.toggleHeading({ level: 2 }).run()
+      } else {
+        chain.toggleBulletList().run()
+      }
+
+      closeSlashMenu()
+    },
+    [closeSlashMenu, editor],
+  )
+
+  const runFormatCommand = useCallback(
+    (
+      command:
+        | 'normal'
+        | 'headingOne'
+        | 'headingTwo'
+        | 'bold'
+        | 'italic'
+        | 'underline'
+        | 'bulletList'
+        | 'orderedList'
+        | 'blockquote'
+        | 'link',
+      range: Range,
+    ): void => {
+      if (!editor) {
+        return
+      }
+
+      if (command === 'link') {
+        setLink(range)
+        closeSlashMenu()
+        return
+      }
+
+      const chain = editor.chain().focus().deleteRange(range)
+
+      if (command === 'normal') {
+        chain
+          .unsetBold()
+          .unsetItalic()
+          .unsetUnderline()
+          .unsetLink()
+          .unsetAllMarks()
+          .setParagraph()
+          .command(({ tr }) => {
+            tr.setStoredMarks([])
+            return true
+          })
+          .run()
+      } else if (command === 'headingOne') {
+        chain.toggleHeading({ level: 1 }).run()
+      } else if (command === 'headingTwo') {
+        chain.toggleHeading({ level: 2 }).run()
+      } else if (command === 'bold') {
+        chain.toggleBold().run()
+      } else if (command === 'italic') {
+        chain.toggleItalic().run()
+      } else if (command === 'underline') {
+        chain.toggleUnderline().run()
+      } else if (command === 'bulletList') {
+        chain.toggleBulletList().run()
+      } else if (command === 'orderedList') {
+        chain.toggleOrderedList().run()
+      } else {
+        chain.toggleBlockquote().run()
+      }
+
+      closeSlashMenu()
+    },
+    [closeSlashMenu, editor, setLink],
+  )
+
+  const slashCommands = useMemo<SlashCommand[]>(
+    () => [
+      {
+        id: 'activity-group',
+        label: t('itineraryView.richEditor.slash.activityGroup'),
+        kind: 'group',
+        menuPath: 'activity',
+        searchTerms: ['activities', 'aa'],
+      },
+      {
+        id: 'format-group',
+        label: t('itineraryView.richEditor.slash.formatGroup'),
+        kind: 'group',
+        menuPath: 'format',
+        searchTerms: ['text', 'style'],
+      },
+      {
+        id: 'accommodation',
+        label: t('itineraryView.richEditor.slash.accommodation'),
+        kind: 'command',
+        parentPath: 'activity',
+        searchTerms: ['hotel', 'stay'],
+        run: (range) => {
+          insertActivity('accommodation', range)
+        },
+      },
+      {
+        id: 'flight',
+        label: t('itineraryView.richEditor.slash.flight'),
+        kind: 'command',
+        parentPath: 'activity',
+        searchTerms: ['plane', 'airport'],
+        run: (range) => {
+          insertActivity('flight', range)
+        },
+      },
+      {
+        id: 'food',
+        label: t('itineraryView.richEditor.slash.food'),
+        kind: 'command',
+        parentPath: 'activity',
+        searchTerms: ['restaurant', 'meal'],
+        run: (range) => {
+          insertActivity('food', range)
+        },
+      },
+      {
+        id: 'note',
+        label: t('itineraryView.richEditor.slash.note'),
+        kind: 'command',
+        parentPath: 'activity',
+        searchTerms: ['text'],
+        run: (range) => {
+          insertActivity('note', range)
+        },
+      },
+      {
+        id: 'place',
+        label: t('itineraryView.richEditor.slash.place'),
+        kind: 'command',
+        parentPath: 'activity',
+        searchTerms: ['poi', 'location'],
+        run: (range) => {
+          insertActivity('poi', range)
+        },
+      },
+      {
+        id: 'transfer',
+        label: t('itineraryView.richEditor.slash.transfer'),
+        kind: 'command',
+        parentPath: 'activity',
+        searchTerms: ['transport', 'taxi', 'train'],
+        run: (range) => {
+          insertActivity('transfer', range)
+        },
+      },
+      {
+        id: 'normal',
+        label: t('itineraryView.richEditor.normalText'),
+        kind: 'command',
+        parentPath: 'format',
+        searchTerms: ['paragraph', 'regular', 'text'],
+        run: (range) => {
+          runFormatCommand('normal', range)
+        },
+      },
+      {
+        id: 'heading-one',
+        label: t('itineraryView.richEditor.headingOne'),
+        kind: 'command',
+        parentPath: 'format',
+        searchTerms: ['h1', 'title'],
+        run: (range) => {
+          runFormatCommand('headingOne', range)
+        },
+      },
+      {
+        id: 'heading',
+        label: t('itineraryView.richEditor.slash.heading'),
+        kind: 'command',
+        parentPath: 'format',
+        searchTerms: ['title', 'h2'],
+        run: (range) => {
+          runDocumentCommand('heading', range)
+        },
+      },
+      {
+        id: 'list',
+        label: t('itineraryView.richEditor.slash.list'),
+        kind: 'command',
+        parentPath: 'format',
+        searchTerms: ['bullet', 'bullets'],
+        run: (range) => {
+          runDocumentCommand('list', range)
+        },
+      },
+      {
+        id: 'numbered-list',
+        label: t('itineraryView.richEditor.slash.numberedList'),
+        kind: 'command',
+        parentPath: 'format',
+        searchTerms: ['ordered', 'number', 'numbers'],
+        run: (range) => {
+          runFormatCommand('orderedList', range)
+        },
+      },
+      {
+        id: 'quote',
+        label: t('itineraryView.richEditor.slash.quote'),
+        kind: 'command',
+        parentPath: 'format',
+        searchTerms: ['blockquote', 'citation'],
+        run: (range) => {
+          runFormatCommand('blockquote', range)
+        },
+      },
+      {
+        id: 'bold',
+        label: t('itineraryView.richEditor.bold'),
+        kind: 'command',
+        parentPath: 'format',
+        searchTerms: ['strong'],
+        run: (range) => {
+          runFormatCommand('bold', range)
+        },
+      },
+      {
+        id: 'italic',
+        label: t('itineraryView.richEditor.italic'),
+        kind: 'command',
+        parentPath: 'format',
+        searchTerms: ['italics', 'emphasis'],
+        run: (range) => {
+          runFormatCommand('italic', range)
+        },
+      },
+      {
+        id: 'underline',
+        label: t('itineraryView.richEditor.underline'),
+        kind: 'command',
+        parentPath: 'format',
+        searchTerms: ['underlined'],
+        run: (range) => {
+          runFormatCommand('underline', range)
+        },
+      },
+      {
+        id: 'link',
+        label: t('itineraryView.richEditor.link'),
+        kind: 'command',
+        parentPath: 'format',
+        searchTerms: ['url', 'href'],
+        run: (range) => {
+          runFormatCommand('link', range)
+        },
+      },
+    ],
+    [insertActivity, runDocumentCommand, runFormatCommand, t],
+  )
+
+  useEffect(() => {
+    slashCommandsRef.current = slashCommands
+  }, [slashCommands])
+
+  useEffect(() => {
+    if (!slashMenuOpen) {
+      return
+    }
+
+    slashItemRefs.current[slashActiveIndex]?.scrollIntoView({ block: 'nearest' })
+  }, [slashActiveIndex, slashMenuOpen])
+
+  useEffect(() => {
+    if (!slashMenuOpen) {
+      return undefined
+    }
+
+    updateSlashMenuPosition()
+    window.addEventListener('resize', updateSlashMenuPosition)
+    window.addEventListener('scroll', updateSlashMenuPosition, true)
+
+    return () => {
+      window.removeEventListener('resize', updateSlashMenuPosition)
+      window.removeEventListener('scroll', updateSlashMenuPosition, true)
+    }
+  }, [slashMenuItems, slashMenuOpen, updateSlashMenuPosition])
+
+  if (!editor) {
+    return <p className={styles.statusText}>{t('loading')}</p>
+  }
+
+  const toolbarTabIndex = isToolbarVisible ? 0 : -1
+
+  return (
+    <div
+      ref={editorRootRef}
+      className={styles.richEditor}
+      onBlurCapture={(event) => {
+        const nextTarget = event.relatedTarget
+        if (nextTarget instanceof Node && event.currentTarget.contains(nextTarget)) {
+          return
+        }
+
+        window.setTimeout(() => {
+          const rootElement = editorRootRef.current
+          const activeElement = document.activeElement
+          if (activeElement && rootElement?.contains(activeElement)) {
+            return
+          }
+
+          if (!editor.isFocused) {
+            setIsToolbarVisible(false)
+          }
+        }, 0)
+      }}
+    >
+      <div
+        className={styles.formatToolbar}
+        data-visible={isToolbarVisible ? 'true' : 'false'}
+        role="toolbar"
+        aria-label={t('itineraryView.richEditor.toolbarAria')}
+        aria-hidden={!isToolbarVisible}
+      >
+        <div className={styles.formatToolbarInner}>
+          <button
+            type="button"
+            tabIndex={toolbarTabIndex}
+            onClick={() => editor.chain().focus().setParagraph().run()}
+            className={`${styles.normalCommand}${editor.isActive('paragraph') ? ` ${styles.activeCommand}` : ''}`}
+            aria-label={t('itineraryView.richEditor.normalText')}
+          >
+            N
+          </button>
+          <button
+            type="button"
+            tabIndex={toolbarTabIndex}
+            onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
+            className={`${styles.headingOneCommand}${
+              editor.isActive('heading', { level: 1 }) ? ` ${styles.activeCommand}` : ''
+            }`}
+            aria-label={t('itineraryView.richEditor.headingOne')}
+          >
+            H1
+          </button>
+          <button
+            type="button"
+            tabIndex={toolbarTabIndex}
+            onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
+            className={`${styles.headingTwoCommand}${
+              editor.isActive('heading', { level: 2 }) ? ` ${styles.activeCommand}` : ''
+            }`}
+            aria-label={t('itineraryView.richEditor.headingTwo')}
+          >
+            H2
+          </button>
+          <button
+            type="button"
+            tabIndex={toolbarTabIndex}
+            onClick={() => editor.chain().focus().toggleBulletList().run()}
+            className={`${styles.listCommand}${editor.isActive('bulletList') ? ` ${styles.activeCommand}` : ''}`}
+            aria-label={t('itineraryView.richEditor.slash.list')}
+          >
+            <span aria-hidden="true">•</span>
+            <span>{t('itineraryView.richEditor.slash.list')}</span>
+          </button>
+          <button
+            type="button"
+            tabIndex={toolbarTabIndex}
+            onClick={() => editor.chain().focus().toggleBold().run()}
+            className={`${styles.boldCommand}${editor.isActive('bold') ? ` ${styles.activeCommand}` : ''}`}
+            aria-label={t('itineraryView.richEditor.bold')}
+          >
+            B
+          </button>
+          <button
+            type="button"
+            tabIndex={toolbarTabIndex}
+            onClick={() => editor.chain().focus().toggleItalic().run()}
+            className={`${styles.italicCommand}${editor.isActive('italic') ? ` ${styles.activeCommand}` : ''}`}
+            aria-label={t('itineraryView.richEditor.italic')}
+          >
+            I
+          </button>
+          <button
+            type="button"
+            tabIndex={toolbarTabIndex}
+            onClick={() => editor.chain().focus().toggleUnderline().run()}
+            className={`${styles.underlineCommand}${editor.isActive('underline') ? ` ${styles.activeCommand}` : ''}`}
+            aria-label={t('itineraryView.richEditor.underline')}
+          >
+            U
+          </button>
+          <button
+            type="button"
+            tabIndex={toolbarTabIndex}
+            onClick={() => {
+              setLink()
+            }}
+            className={`${styles.linkCommand}${editor.isActive('link') ? ` ${styles.activeCommand}` : ''}`}
+            aria-label={t('itineraryView.richEditor.link')}
+          >
+            <Link2 size={15} aria-hidden="true" />
+            <span>{t('itineraryView.richEditor.link')}</span>
+          </button>
+          <span className={styles.toolbarStatus} role="status">
+            {saveStateLabel}
+          </span>
+        </div>
+      </div>
+
+      <div className={styles.editorWrap}>
+        <EditorContent editor={editor} />
+
+        {slashMenuOpen ? (
+          <div
+            ref={slashMenuRef}
+            className={styles.slashMenu}
+            role="listbox"
+            aria-label={t('itineraryView.richEditor.slashMenuAria')}
+            aria-activedescendant={`slash-command-${day.dayNumber}-${slashMenuItems[slashActiveIndex]?.id}`}
+            style={{
+              left: slashMenuPosition?.left ?? SLASH_MENU_EDGE_GAP_PX,
+              top: slashMenuPosition?.top ?? SLASH_MENU_EDGE_GAP_PX,
+            }}
+          >
+            {slashQuery.length === 0 && slashMenuPath !== 'root' ? (
+              <div className={styles.slashMenuHeader}>
+                <button
+                  type="button"
+                  aria-label={t('itineraryView.richEditor.slash.back')}
+                  onMouseDown={(event) => {
+                    event.preventDefault()
+                  }}
+                  onClick={openSlashRootMenu}
+                >
+                  ‹
+                </button>
+                <span>
+                  {slashMenuPath === 'activity'
+                    ? t('itineraryView.richEditor.slash.activityGroup')
+                    : t('itineraryView.richEditor.slash.formatGroup')}
+                </span>
+              </div>
+            ) : null}
+            {slashMenuItems.map((command, index) => (
+              <button
+                key={command.id}
+                id={`slash-command-${day.dayNumber}-${command.id}`}
+                ref={(element) => {
+                  slashItemRefs.current[index] = element
+                }}
+                type="button"
+                role="option"
+                aria-selected={slashActiveIndex === index}
+                onMouseDown={(event) => {
+                  event.preventDefault()
+                }}
+                onClick={() => {
+                  slashCommandRunnerRef.current?.(command)
+                }}
+              >
+                <span>{command.label}</span>
+                {command.kind === 'group' ? <span aria-hidden="true">›</span> : null}
+              </button>
+            ))}
+          </div>
+        ) : null}
+      </div>
+    </div>
+  )
+}

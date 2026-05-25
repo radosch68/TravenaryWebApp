@@ -270,7 +270,7 @@ export function DashboardHomePage(): ReactElement {
     }
 
     return `${startDateLabel} - ${formatLocalDate(featuredItinerary.endDate, i18n.language)}`
-  }, [featuredItinerary?.endDate, featuredItinerary?.startDate, i18n.language])
+  }, [featuredItinerary, i18n.language])
 
   const upcomingDaysLeft = useMemo(() => {
     if (featuredMode !== 'upcoming' || !featuredItinerary?.startDate) {
@@ -285,7 +285,7 @@ export function DashboardHomePage(): ReactElement {
     const millisecondsPerDay = 24 * 60 * 60 * 1000
     const difference = Math.round((startDate.getTime() - today.getTime()) / millisecondsPerDay)
     return difference > 0 ? difference : null
-  }, [featuredItinerary?.startDate, featuredMode, today])
+  }, [featuredItinerary, featuredMode, today])
 
   useEffect(() => {
     if (featuredMode !== 'ongoing') {

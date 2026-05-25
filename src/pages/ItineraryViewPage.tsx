@@ -1,4 +1,4 @@
-import { Edit3, RefreshCw, Trash2 } from 'lucide-react'
+import { RefreshCw, Trash2 } from 'lucide-react'
 import type { ReactElement } from 'react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -11,9 +11,9 @@ import { ShareButton } from '@/components/itinerary/ShareButton'
 import { buildLocationMapPinsFromDays } from '@/components/itinerary/location-map-pins'
 import { AppShell } from '@/components/layout/AppShell'
 import { Button } from '@/components/ui/button'
-import { ApiError, type ItineraryDetail } from '@/services/contracts'
+import { ApiError, type DayDocumentNode, type ItineraryActivity, type ItineraryDay, type ItineraryDetail } from '@/services/contracts'
 import { updateLastOpenedItinerary } from '@/services/profile-service'
-import { deleteItinerary, getItinerary } from '@/services/itinerary-service'
+import { deleteItinerary, getItinerary, updateItineraryDay } from '@/services/itinerary-service'
 import { useProfileStore } from '@/store/profile-store'
 import { formatLocalDate, parseIsoDate } from '@/utils/date-format'
 
@@ -21,8 +21,82 @@ import styles from './ItineraryViewPage.module.css'
 
 type LoadState = 'loading' | 'ready' | 'error' | 'not-found'
 
+type DaySavePayload = Omit<ItineraryDay, 'date'>
+
 function getTodayIsoDate(): string {
   return new Date().toISOString().slice(0, 10)
+}
+
+function toActivitySavePayload(activity: ItineraryActivity): ItineraryActivity {
+  if (activity.type === 'accommodation' && !activity.details) {
+    return {
+      ...activity,
+      details: {
+        nights: 1,
+      },
+    }
+  }
+
+  if (activity.type === 'tour' && !activity.details?.guidanceMode) {
+    return {
+      ...activity,
+      details: {
+        ...activity.details,
+        guidanceMode: 'selfGuided',
+      },
+    }
+  }
+
+  return activity
+}
+
+function toDocumentSavePayload(nodes: DayDocumentNode[]): DayDocumentNode[] {
+  return nodes.map((node) => {
+    const nextNode: DayDocumentNode = {
+      ...node,
+      attrs: node.attrs ? { ...node.attrs } : undefined,
+      content: node.content ? toDocumentSavePayload(node.content) : undefined,
+    }
+
+    if (nextNode.type === 'activityTile' && nextNode.attrs?.activity) {
+      const activity = nextNode.attrs.activity as ItineraryActivity
+      nextNode.attrs.activity = toActivitySavePayload(activity)
+    }
+
+    return nextNode
+  })
+}
+
+function mergeSavedDayIntoLatestItinerary(
+  latestItinerary: ItineraryDetail,
+  savedItinerary: ItineraryDetail,
+  dayNumber: number,
+): ItineraryDetail {
+  const savedDay = savedItinerary.days.find((day) => day.dayNumber === dayNumber)
+  if (!savedDay) {
+    return latestItinerary
+  }
+
+  let replaced = false
+  const mergedDays = latestItinerary.days.map((day) => {
+    if (day.dayNumber !== dayNumber) {
+      return day
+    }
+
+    replaced = true
+    return savedDay
+  })
+
+  if (!replaced) {
+    return latestItinerary
+  }
+
+  return {
+    ...latestItinerary,
+    schemaVer: savedItinerary.schemaVer,
+    updatedAt: savedItinerary.updatedAt,
+    days: mergedDays,
+  }
 }
 
 function getUpcomingDaysLeft(startDate: string | undefined, todayIsoDate: string): number | null {
@@ -99,8 +173,14 @@ export function ItineraryViewPage(): ReactElement {
   const [dayCollapseCommandMode, setDayCollapseCommandMode] = useState<'collapse-all' | 'expand-all' | undefined>(undefined)
   const [dayCollapseState, setDayCollapseState] = useState({ allCollapsed: false, allExpanded: true })
   const loadRequestSequenceRef = useRef(0)
+  const itineraryRef = useRef<ItineraryDetail | null>(null)
+  const daySaveSequenceByDayRef = useRef<Record<number, number>>({})
   const todayIsoDate = useMemo(() => getTodayIsoDate(), [])
   const nowDate = useMemo(() => new Date(), [])
+
+  useEffect(() => {
+    itineraryRef.current = itinerary
+  }, [itinerary])
 
   const loadItinerary = useCallback(async (): Promise<void> => {
     const requestSequence = loadRequestSequenceRef.current + 1
@@ -222,6 +302,54 @@ export function ItineraryViewPage(): ReactElement {
   const handleExpandAllDays = useCallback((): void => {
     setDayCollapseCommandMode('expand-all')
     setDayCollapseCommandToken((previousValue) => previousValue + 1)
+  }, [])
+
+  const handleDaySave = useCallback(async (updatedDay: DaySavePayload): Promise<void> => {
+    const currentItinerary = itineraryRef.current
+    if (!currentItinerary) {
+      return
+    }
+
+    const saveSequence = (daySaveSequenceByDayRef.current[updatedDay.dayNumber] ?? 0) + 1
+    daySaveSequenceByDayRef.current[updatedDay.dayNumber] = saveSequence
+    const nextDays = currentItinerary.days.map((day) =>
+      day.dayNumber === updatedDay.dayNumber
+        ? {
+            ...day,
+            ...updatedDay,
+          }
+        : day,
+    )
+    const optimisticItinerary = {
+      ...currentItinerary,
+      days: nextDays,
+    }
+
+    itineraryRef.current = optimisticItinerary
+    setItinerary(optimisticItinerary)
+
+    const savedItinerary = await updateItineraryDay(currentItinerary.id, updatedDay.dayNumber, {
+      summary: updatedDay.summary,
+      document: toDocumentSavePayload(updatedDay.document ?? []),
+    })
+
+    if (daySaveSequenceByDayRef.current[updatedDay.dayNumber] !== saveSequence) {
+      return
+    }
+
+    const latestItinerary = itineraryRef.current
+    if (!latestItinerary) {
+      return
+    }
+
+    const reconciledItinerary = mergeSavedDayIntoLatestItinerary(
+      latestItinerary,
+      savedItinerary,
+      updatedDay.dayNumber,
+    )
+
+    itineraryRef.current = reconciledItinerary
+    setItinerary(reconciledItinerary)
   }, [])
 
   async function onDelete(): Promise<void> {
@@ -365,17 +493,6 @@ export function ItineraryViewPage(): ReactElement {
             />
           ) : null}
 
-          <div className={styles.headerActions}>
-            <Button
-              type="button"
-              size="sm"
-              onClick={() => navigate(`/itineraries/${itinerary.id}/edit`)}
-            >
-              <Edit3 aria-hidden="true" />
-              {t('itineraryView.edit')}
-            </Button>
-          </div>
-
           <ItineraryMapLauncher
             className={styles.headerMap}
             pins={itineraryMapPins}
@@ -417,11 +534,13 @@ export function ItineraryViewPage(): ReactElement {
         <ItineraryDaysGrid
           days={itinerary.days}
           locale={i18n.language}
+          editable
           fullBleedOnMobile
           buildDayMapRoute={(dayNumber) => `/itineraries/${itinerary.id}/map?dayNumber=${dayNumber}`}
           collapseCommandToken={dayCollapseCommandToken}
           collapseCommandMode={dayCollapseCommandMode}
           onCollapseStateChange={setDayCollapseState}
+          onDaySave={handleDaySave}
         />
 
         <section className={styles.dangerZone}>

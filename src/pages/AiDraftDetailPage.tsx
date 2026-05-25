@@ -171,6 +171,7 @@ export function AiDraftDetailPage(): ReactElement {
   }, [loadState, requestId])
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     void fetchDetail()
   }, [fetchDetail])
 

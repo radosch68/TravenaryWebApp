@@ -90,11 +90,19 @@ export interface ItineraryActivity {
   locations?: ActivityLocation[]
 }
 
+export interface DayDocumentNode {
+  type: string
+  text?: string
+  attrs?: Record<string, unknown>
+  marks?: Array<Record<string, unknown>>
+  content?: DayDocumentNode[]
+}
+
 export interface ItineraryDay {
   dayNumber: number
   date?: string
   summary?: string
-  activities: ItineraryActivity[]
+  document: DayDocumentNode[]
 }
 
 export interface ItineraryDetail {

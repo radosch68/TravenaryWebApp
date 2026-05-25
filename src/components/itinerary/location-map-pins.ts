@@ -1,4 +1,5 @@
 import type { ItineraryActivity, ItineraryDay } from '@/services/contracts'
+import { toDayActivities } from '@/utils/tiptap-compatibility'
 
 export interface LocationMapPin {
   id: string
@@ -64,7 +65,7 @@ export function buildLocationMapPinsFromDays(days: ItineraryDay[]): LocationMapP
   const pins: LocationMapPin[] = []
 
   for (const day of days) {
-    pins.push(...buildLocationMapPinsFromActivities(day.activities, `day${day.dayNumber}`, day.dayNumber))
+    pins.push(...buildLocationMapPinsFromActivities(toDayActivities(day), `day${day.dayNumber}`, day.dayNumber))
   }
 
   return pins

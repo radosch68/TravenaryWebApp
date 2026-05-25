@@ -1,11 +1,21 @@
 import { apiRequest } from '@/services/api-client'
 import type {
+  DayDocumentNode,
+  ItineraryActivity,
   ItineraryDetail,
+  ItineraryDay,
   ItineraryListParams,
   ItineraryListResponse,
   ShareTokenResponse,
   SharedItineraryDetail,
 } from '@/services/contracts'
+
+function normalizeDay(day: ItineraryDay): ItineraryDay {
+  return {
+    ...day,
+    document: day.document ?? [],
+  }
+}
 
 function toQuery(params: ItineraryListParams = {}): string {
   const query = new URLSearchParams()
@@ -60,8 +70,33 @@ export interface CreateManualItineraryRequest {
   startDate?: string
   days?: Array<{
     dayNumber: number
-    activities: Array<never>
+    document: DayDocumentNode[]
   }>
+}
+
+export interface UpdateItineraryRequest {
+  title?: string
+  description?: string
+  tags?: string[]
+  visibility?: 'private' | 'shared' | 'public'
+  coverPhoto?: {
+    url: string
+    caption?: string
+    type?: 'photo' | 'video' | 'webpage'
+  } | null
+  templateId?: string
+  startDate?: string | null
+  days?: Array<{
+    dayNumber: number
+    summary?: string
+    document: DayDocumentNode[]
+  }>
+  activityBench?: ItineraryActivity[]
+}
+
+export interface UpdateItineraryDayRequest {
+  summary?: string
+  document: DayDocumentNode[]
 }
 
 export async function createManualItinerary(
@@ -75,17 +110,60 @@ export async function createManualItinerary(
 }
 
 export async function getItinerary(itineraryId: string): Promise<ItineraryDetail> {
-  return apiRequest<ItineraryDetail>(`/itineraries/${itineraryId}`, {
+  const itinerary = await apiRequest<ItineraryDetail>(`/itineraries/${itineraryId}`, {
     method: 'GET',
     protected: true,
   })
+
+  return {
+    ...itinerary,
+    days: itinerary.days.map((day: ItineraryDay) => normalizeDay(day)),
+  }
 }
 
 export async function getSharedItinerary(shareToken: string): Promise<SharedItineraryDetail> {
-  return apiRequest<SharedItineraryDetail>(`/shared/${shareToken}`, {
+  const itinerary = await apiRequest<SharedItineraryDetail>(`/shared/${shareToken}`, {
     method: 'GET',
     protected: false,
   })
+
+  return {
+    ...itinerary,
+    days: itinerary.days.map((day: ItineraryDay) => normalizeDay(day)),
+  }
+}
+
+export async function updateItinerary(
+  itineraryId: string,
+  payload: UpdateItineraryRequest,
+): Promise<ItineraryDetail> {
+  const itinerary = await apiRequest<ItineraryDetail>(`/itineraries/${itineraryId}`, {
+    method: 'PATCH',
+    body: payload,
+    protected: true,
+  })
+
+  return {
+    ...itinerary,
+    days: itinerary.days.map((day: ItineraryDay) => normalizeDay(day)),
+  }
+}
+
+export async function updateItineraryDay(
+  itineraryId: string,
+  dayNumber: number,
+  payload: UpdateItineraryDayRequest,
+): Promise<ItineraryDetail> {
+  const itinerary = await apiRequest<ItineraryDetail>(`/itineraries/${itineraryId}/days/${dayNumber}`, {
+    method: 'PATCH',
+    body: payload,
+    protected: true,
+  })
+
+  return {
+    ...itinerary,
+    days: itinerary.days.map((day: ItineraryDay) => normalizeDay(day)),
+  }
 }
 
 export async function createShareLink(itineraryId: string): Promise<ShareTokenResponse> {

@@ -72,13 +72,13 @@ function deriveManualDayCount(dateFrom: string, dateTo: string): number | null {
 function buildManualDays(
   dateFrom: string,
   dateTo: string,
-): Array<{ dayNumber: number; activities: Array<never> }> | undefined {
+): Array<{ dayNumber: number; document: Array<never> }> | undefined {
   if (!dateFrom) {
     return undefined
   }
 
   if (!dateTo) {
-    return [{ dayNumber: 1, activities: [] }]
+    return [{ dayNumber: 1, document: [] }]
   }
 
   const dayCount = deriveManualDayCount(dateFrom, dateTo)
@@ -88,7 +88,7 @@ function buildManualDays(
 
   return Array.from({ length: dayCount }, (_, index) => ({
     dayNumber: index + 1,
-    activities: [],
+    document: [],
   }))
 }
 
