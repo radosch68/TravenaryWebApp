@@ -1,12 +1,18 @@
-import { CheckCircle2, CirclePlus, Loader2, RefreshCw, XCircle } from 'lucide-react'
+import { ArrowBigRight, CheckCircle2, FilePlus, Loader2, RefreshCw, SlidersHorizontal, Sparkles, XCircle } from 'lucide-react'
 import type { ReactElement } from 'react'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 
 import { AppShell } from '@/components/layout/AppShell'
 import { Button } from '@/components/ui/button'
-import type { AiDraftItinerary, AiGenerationHistoryDetail, DraftActivityObject, DraftBlockActivity } from '@/services/contracts'
+import type {
+  AiDraftItinerary,
+  AiGenerationHistoryDetail,
+  AiGenerationHistoryItem,
+  DraftActivityObject,
+  DraftBlockActivity,
+} from '@/services/contracts'
 import { getAiGenerationHistoryDetail, selectAiDraft } from '@/services/ai-generation-service'
 import { unsplashUrl } from '@/utils/unsplash-url'
 
@@ -151,6 +157,7 @@ export function AiDraftDetailPage(): ReactElement {
   const [creatingDraftId, setCreatingDraftId] = useState<string | null>(null)
   const [selectedPhotoIndexes, setSelectedPhotoIndexes] = useState<Record<string, number>>({})
   const [nowEpochMs, setNowEpochMs] = useState(() => Date.now())
+  const lineageListRef = useRef<HTMLOListElement | null>(null)
 
   const fetchDetail = useCallback(async (): Promise<void> => {
     if (!requestId) {
@@ -202,6 +209,28 @@ export function AiDraftDetailPage(): ReactElement {
       window.clearInterval(interval)
     }
   }, [detail])
+
+  const lineageItems = useMemo<Array<AiGenerationHistoryItem | AiGenerationHistoryDetail>>(
+    () => detail ? [...detail.lineage, detail] : [],
+    [detail],
+  )
+
+  useEffect(() => {
+    if (lineageItems.length <= 1) {
+      return
+    }
+
+    const frame = window.requestAnimationFrame(() => {
+      const list = lineageListRef.current
+      if (list) {
+        list.scrollLeft = list.scrollWidth
+      }
+    })
+
+    return () => {
+      window.cancelAnimationFrame(frame)
+    }
+  }, [lineageItems.length, detail?.id])
 
   const settingsRows = useMemo(() => {
     if (!detail) {
@@ -275,6 +304,12 @@ export function AiDraftDetailPage(): ReactElement {
     addRow(t('ai-generation:detail.settings.timing'), timingValue)
     addRow(t('ai-generation:detail.settings.travelerProfile'), travelerValue)
     addRow(t('ai-generation:detail.settings.budgetProfile'), budgetValue)
+    addRow(
+      t('ai-generation:detail.settings.refinementMode'),
+      detail.refinementMode
+        ? t(`ai-generation:start.refinementModeValues.${detail.refinementMode}`)
+        : null,
+    )
     addRow(t('ai-generation:detail.settings.createdAt'), formatDateTime(detail.createdAt, i18n.language))
 
     return rows
@@ -334,6 +369,43 @@ export function AiDraftDetailPage(): ReactElement {
   return (
     <AppShell>
       <div className={styles.page}>
+        {lineageItems.length > 1 ? (
+          <nav className={styles.lineageCard} aria-label={t('ai-generation:detail.lineageAriaLabel')}>
+            <p className={styles.sectionLabel}>{t('ai-generation:detail.lineageTitle')}</p>
+            <ol ref={lineageListRef} className={styles.lineageList}>
+              {lineageItems.map((item, index) => {
+                const isCurrent = item.id === detail.id
+                const label = index === 0
+                  ? t('ai-generation:detail.lineageOriginal')
+                  : t('ai-generation:detail.lineageRevision', { n: index })
+
+                return (
+                  <li key={item.id} className={styles.lineageItem}>
+                    {index > 0 ? (
+                      <ArrowBigRight className={styles.lineageSeparatorIcon} aria-hidden="true" />
+                    ) : null}
+                    {isCurrent ? (
+                      <span
+                        className={`${styles.lineageLink} ${styles.lineageCurrent}`}
+                        aria-current="page"
+                        title={item.prompt}
+                      >
+                        <span>{label}</span>
+                        <span className={styles.lineagePrompt}>{item.prompt}</span>
+                      </span>
+                    ) : (
+                      <Link className={styles.lineageLink} to={`/ai-drafts/${item.id}`} title={item.prompt}>
+                        <span>{label}</span>
+                        <span className={styles.lineagePrompt}>{item.prompt}</span>
+                      </Link>
+                    )}
+                  </li>
+                )
+              })}
+            </ol>
+          </nav>
+        ) : null}
+
         <section className={styles.bodyCard}>
           <div className={styles.bodyHeader}>
             <div className={styles.responseSummary}>
@@ -406,24 +478,39 @@ export function AiDraftDetailPage(): ReactElement {
                             <h3>{draft.title}</h3>
                             <p>{formatDateRange(draft.startDate, draft.endDate, i18n.language)}</p>
                           </div>
-                          <Button
-                            type="button"
-                            size="sm"
-                            className={styles.createButton}
-                            onClick={() => {
-                              void handleCreateItinerary(draft)
-                            }}
-                            disabled={creatingDraftId === draft._id}
-                          >
-                            <span className={styles.createButtonInner}>
-                              <CirclePlus className={styles.createButtonIcon} aria-hidden="true" />
-                              <span className={styles.createButtonLabel}>
-                                {creatingDraftId === draft._id
-                                  ? t('ai-generation:detail.creatingOne')
-                                  : t('ai-generation:detail.createItinerary')}
+                          <div className={styles.draftActions}>
+                            <Button asChild variant="secondary" size="sm" className={styles.draftActionButton}>
+                              <Link to={`/ai-drafts/new?from=${detail.id}&sourceDraftId=${encodeURIComponent(draft._id)}`}>
+                                <span className={styles.createButtonInner}>
+                                  <SlidersHorizontal className={styles.createButtonIcon} aria-hidden="true" />
+                                  <span className={styles.createButtonLabel}>
+                                    <span className={styles.aiLabelIconWrap} aria-hidden="true">
+                                      <Sparkles className={styles.inlineAiIcon} />
+                                    </span>
+                                    <span>{t('ai-generation:detail.refineWithAi')}</span>
+                                  </span>
+                                </span>
+                              </Link>
+                            </Button>
+                            <Button
+                              type="button"
+                              size="sm"
+                              className={styles.draftActionButton}
+                              onClick={() => {
+                                void handleCreateItinerary(draft)
+                              }}
+                              disabled={creatingDraftId === draft._id}
+                            >
+                              <span className={styles.createButtonInner}>
+                                <FilePlus className={styles.createButtonIcon} aria-hidden="true" />
+                                <span className={styles.createButtonLabel}>
+                                  {creatingDraftId === draft._id
+                                    ? t('ai-generation:detail.creatingOne')
+                                    : t('ai-generation:detail.createItinerary')}
+                                </span>
                               </span>
-                            </span>
-                          </Button>
+                            </Button>
+                          </div>
                         </header>
 
                         {selectedPhoto?.url ? (
@@ -583,12 +670,6 @@ export function AiDraftDetailPage(): ReactElement {
             <div>
               <p className={styles.kicker}>{t('ai-generation:detail.kicker')}</p>
               <h1 className={styles.title}>{t('ai-generation:detail.title')}</h1>
-            </div>
-
-            <div className={styles.headerActions}>
-              <Button asChild size="sm">
-                <Link to={`/ai-drafts/new?from=${detail.id}`}>{t('ai-generation:detail.useForNewGeneration')}</Link>
-              </Button>
             </div>
           </div>
 

@@ -149,6 +149,7 @@
   display: grid;
   grid-template-rows: auto 1fr auto;
   align-items: start;
+  justify-items: center;
   gap: 0.32rem;
 }
 
@@ -158,6 +159,7 @@
   letter-spacing: 0.06em;
   font-weight: 600;
   line-height: 1.2;
+  text-align: center;
 }
 
 .statusRail_pending {
@@ -189,6 +191,25 @@
   line-height: 1;
   font-weight: 700;
   letter-spacing: 0.02em;
+}
+
+.revisionRailText {
+  justify-self: center;
+  align-self: end;
+  text-align: center;
+  font-size: 0.78rem;
+  line-height: 1.2;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.24rem;
+}
+
+.revisionRailText :global(svg) {
+  width: 0.82rem;
+  height: 0.82rem;
+  stroke-width: 2.1;
 }
 
 .statusIconSpinning {

@@ -39,6 +39,7 @@ type FormState = {
   travelerProfileOther: string
   budgetProfile: '' | 'budget' | 'midRange' | 'premium' | 'luxury' | 'other'
   budgetProfileOther: string
+  refinementMode: 'balanced' | 'strict'
 }
 
 const CURATED_LANGUAGE_CODES = ['en', 'cs-CZ', 'de', 'fr', 'es', 'it', 'pt-BR'] as const
@@ -71,6 +72,7 @@ const DEFAULT_FORM: FormState = {
   travelerProfileOther: '',
   budgetProfile: '',
   budgetProfileOther: '',
+  refinementMode: 'balanced',
 }
 
 function trimOrUndefined(value: string): string | undefined {
@@ -99,6 +101,8 @@ export function AiGenerationStartPage(): ReactElement {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const sourceRequestId = searchParams.get('from')
+  const sourceDraftId = searchParams.get('sourceDraftId')
+  const isRefineMode = Boolean(sourceRequestId && sourceDraftId)
 
   const [form, setForm] = useState<FormState>(DEFAULT_FORM)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -164,7 +168,7 @@ export function AiGenerationStartPage(): ReactElement {
 
         setForm((previous) => ({
           ...previous,
-          prompt: source.prompt,
+          prompt: isRefineMode ? '' : source.prompt,
           model: source.selectedModel || previous.model,
           draftCount:
             source.requestedDraftCount === 1 ||
@@ -184,6 +188,7 @@ export function AiGenerationStartPage(): ReactElement {
           travelerProfileOther: source.context.travelerProfileOther ?? '',
           budgetProfile: source.context.budgetProfile ?? '',
           budgetProfileOther: source.context.budgetProfileOther ?? '',
+          refinementMode: source.refinementMode ?? 'balanced',
         }))
       } catch {
         if (!isMounted) {
@@ -203,7 +208,7 @@ export function AiGenerationStartPage(): ReactElement {
     return () => {
       isMounted = false
     }
-  }, [sourceRequestId, t])
+  }, [isRefineMode, sourceRequestId, t])
 
   function updateField<K extends keyof FormState>(key: K, value: FormState[K]): void {
     setForm((previous) => ({
@@ -341,6 +346,9 @@ export function AiGenerationStartPage(): ReactElement {
         ...(form.budgetProfile === 'other' && budgetProfileOther.length > 0
           ? { budgetProfileOther }
           : {}),
+        ...(isRefineMode && sourceRequestId && sourceDraftId
+          ? { sourceRequestId, sourceDraftId, refinementMode: form.refinementMode }
+          : {}),
       })
 
       navigate(`/ai-drafts/${response.generationRequestId}`)
@@ -360,7 +368,9 @@ export function AiGenerationStartPage(): ReactElement {
             <h1 className={styles.title}>{t('ai-generation:start.title')}</h1>
             <p className={styles.subtitle}>
               {sourceRequestId
-                ? t('ai-generation:start.subtitlePrefilled')
+                ? isRefineMode
+                  ? t('ai-generation:start.subtitleRefine')
+                  : t('ai-generation:start.subtitlePrefilled')
                 : t('ai-generation:start.subtitleDefault')}
             </p>
           </div>
@@ -373,7 +383,11 @@ export function AiGenerationStartPage(): ReactElement {
 
         <form className={styles.formCard} onSubmit={(event) => void onSubmit(event)}>
           <label className={styles.fieldWide}>
-            <span>{t('ai-generation:start.promptLabel')}</span>
+            <span>
+              {isRefineMode
+                ? t('ai-generation:start.refineInstructionLabel')
+                : t('ai-generation:start.promptLabel')}
+            </span>
             <textarea
               value={form.prompt}
               onChange={(event) => {
@@ -381,21 +395,78 @@ export function AiGenerationStartPage(): ReactElement {
               }}
               rows={5}
               maxLength={5000}
-              placeholder={t('ai-generation:start.promptPlaceholder')}
+              placeholder={
+                isRefineMode
+                  ? t('ai-generation:start.refineInstructionPlaceholder')
+                  : t('ai-generation:start.promptPlaceholder')
+              }
             />
           </label>
 
+          {isRefineMode ? (
+            <div className={styles.fieldWide}>
+              <span>{t('ai-generation:start.refinementModeLabel')}</span>
+              <div
+                className={styles.segmentedControl}
+                role="radiogroup"
+                aria-label={t('ai-generation:start.refinementModeLabel')}
+              >
+                {(['balanced', 'strict'] as const).map((value) => (
+                  <button
+                    key={value}
+                    type="button"
+                    role="radio"
+                    aria-checked={form.refinementMode === value}
+                    className={`${styles.segmentedButton} ${form.refinementMode === value ? styles.segmentedButtonActive : ''}`}
+                    onClick={() => {
+                      updateField('refinementMode', value)
+                    }}
+                  >
+                    {t(`ai-generation:start.refinementModeValues.${value}`)}
+                  </button>
+                ))}
+              </div>
+              <p className={styles.controlsHint}>
+                {t(`ai-generation:start.refinementModeHints.${form.refinementMode}`)}
+              </p>
+            </div>
+          ) : null}
+
           <details className={styles.promptGuidance}>
-            <summary className={styles.promptGuidanceSummary}>{t('ai-generation:start.promptGuidanceTitle')}</summary>
+            <summary className={styles.promptGuidanceSummary}>
+              {isRefineMode
+                ? t('ai-generation:start.refineGuidanceTitle')
+                : t('ai-generation:start.promptGuidanceTitle')}
+            </summary>
 
             <div className={styles.promptGuidanceContent}>
-              <p className={styles.promptGuidanceNote}>{t('ai-generation:start.promptGuidanceNote')}</p>
+              <p className={styles.promptGuidanceNote}>
+                {isRefineMode
+                  ? t('ai-generation:start.refineGuidanceNote')
+                  : t('ai-generation:start.promptGuidanceNote')}
+              </p>
 
-              <p className={styles.promptExamplesTitle}>{t('ai-generation:start.promptExamplesTitle')}</p>
+              <p className={styles.promptExamplesTitle}>
+                {isRefineMode
+                  ? t('ai-generation:start.refineExamplesTitle')
+                  : t('ai-generation:start.promptExamplesTitle')}
+              </p>
               <ul className={styles.promptGuidanceList}>
-                <li>{t('ai-generation:start.promptExample1')}</li>
-                <li>{t('ai-generation:start.promptExample2')}</li>
-                <li>{t('ai-generation:start.promptExample3')}</li>
+                <li>
+                  {isRefineMode
+                    ? t('ai-generation:start.refineExample1')
+                    : t('ai-generation:start.promptExample1')}
+                </li>
+                <li>
+                  {isRefineMode
+                    ? t('ai-generation:start.refineExample2')
+                    : t('ai-generation:start.promptExample2')}
+                </li>
+                <li>
+                  {isRefineMode
+                    ? t('ai-generation:start.refineExample3')
+                    : t('ai-generation:start.promptExample3')}
+                </li>
               </ul>
             </div>
           </details>

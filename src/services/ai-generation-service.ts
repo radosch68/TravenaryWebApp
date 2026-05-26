@@ -4,6 +4,7 @@ import type {
   AiGenerationHistoryListParams,
   AiGenerationHistoryListResponse,
   OutputDepth,
+  RefinementMode,
 } from '@/services/contracts'
 
 export interface ModelInfo {
@@ -110,6 +111,9 @@ export async function startAiGeneration(
     travelerProfileOther?: string
     budgetProfile?: 'budget' | 'midRange' | 'premium' | 'luxury' | 'other'
     budgetProfileOther?: string
+    sourceRequestId?: string
+    sourceDraftId?: string
+    refinementMode?: RefinementMode
   },
 ): Promise<{ generationRequestId: string; status: 'pending'; message: string; estimatedTime: string }> {
   return apiRequest<{ generationRequestId: string; status: 'pending'; message: string; estimatedTime: string }>(

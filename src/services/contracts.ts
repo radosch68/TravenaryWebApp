@@ -161,6 +161,7 @@ export interface ItineraryListParams {
 }
 
 export type OutputDepth = 'fast' | 'balanced' | 'detailed'
+export type RefinementMode = 'balanced' | 'strict'
 
 export type GenerationRequestStatus = 'pending' | 'completed' | 'failed'
 
@@ -242,6 +243,8 @@ export interface AiGenerationHistoryItem {
   generatedDraftCount: number
   outputDepth: OutputDepth
   dayCount: number
+  ancestorCount: number
+  refinementMode: RefinementMode | null
   createdAt: string
   updatedAt: string
   generationStartedAt?: string
@@ -264,6 +267,10 @@ export interface AiGenerationHistoryDetail {
   requestedDraftCount: number
   generatedDraftCount: number
   outputDepth: OutputDepth
+  sourceRequestId: string | null
+  sourceDraftId: string | null
+  refinementMode: RefinementMode | null
+  ancestorCount: number
   context: AiGenerationContext
   dayCount: number
   errorMessage?: string
@@ -273,6 +280,7 @@ export interface AiGenerationHistoryDetail {
   generationCompletedAt?: string
   createdAt: string
   updatedAt: string
+  lineage: AiGenerationHistoryItem[]
   drafts: AiDraftItinerary[]
 }
 

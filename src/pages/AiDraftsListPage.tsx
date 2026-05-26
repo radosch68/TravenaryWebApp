@@ -1,4 +1,4 @@
-import { CheckCircle2, Loader2, RefreshCw, XCircle } from 'lucide-react'
+import { CheckCircle2, Layers, Loader2, RefreshCw, XCircle } from 'lucide-react'
 import type { ReactElement } from 'react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -415,7 +415,14 @@ export function AiDraftsListPage(): ReactElement {
                         <span className={styles.runningSecondsValue}>
                           {t('ai-generation:list.runningSeconds', { seconds: runningSeconds })}
                         </span>
-                      ) : null}
+                      ) : item.ancestorCount > 0 ? (
+                        <span className={styles.revisionRailText}>
+                          <Layers aria-hidden="true" />
+                          {t('ai-generation:list.revisionCount', { count: item.ancestorCount })}
+                        </span>
+                      ) : (
+                        <span aria-hidden="true" />
+                      )}
                     </div>
 
                     <div className={styles.cardBody}>
