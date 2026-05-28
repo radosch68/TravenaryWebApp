@@ -169,6 +169,10 @@
     overflow: visible;
   }
 
+  .contentFrame[data-menu-hidden='true'] {
+    grid-template-columns: 1fr;
+  }
+
   .sidebar {
     border-right: none;
     border-bottom: 1px solid var(--border);
@@ -177,27 +181,18 @@
     max-height: 12.5rem;
     margin-bottom: 0;
     overflow: visible;
-    transition:
-      opacity var(--menu-motion-ms) ease,
-      border-color var(--menu-motion-ms) ease,
-      padding var(--menu-motion-ms) ease,
-      margin-bottom var(--menu-motion-ms) ease,
-      max-height var(--menu-motion-ms) ease;
+    transition: none;
   }
 
   .contentFrame[data-menu-hidden='true'] .sidebar {
+    opacity: 1;
     transform: none;
     max-height: 12.5rem;
-    margin-bottom: -12.5rem;
-    border-bottom-color: transparent;
-    padding-block: 0;
+    margin-bottom: 0;
+    border-bottom-color: var(--border);
+    padding-block: 0.65rem;
     padding-inline: 0.65rem;
-    transition: none;
-  }
-
-  .contentFrame[data-menu-hidden='true'] .menuToggleButton,
-  .contentFrame[data-menu-hidden='true'] .menuRevealButton {
-    transition: none;
+    pointer-events: auto;
   }
 
   .navList {
@@ -214,17 +209,6 @@
     padding: 0.7rem;
   }
 
-  .menuRevealButton {
-    top: -0.75rem;
-    right: 0.72rem;
-    left: auto;
-    transform: translateY(-0.5rem);
-  }
-
-  .menuRevealButton[data-visible='true'] {
-    transform: translateY(0);
-  }
-
   .menuIconDesktop {
     display: none;
   }
@@ -233,10 +217,9 @@
     display: inline-flex;
   }
 
-  .menuToggleButton {
-    top: auto;
-    right: 0.72rem;
-    bottom: -0.38rem;
+  .menuToggleButton,
+  .menuRevealButton {
+    display: none;
   }
 }
 
@@ -247,6 +230,10 @@
     overflow: visible;
   }
 
+  .contentFrame[data-menu-hidden='true'] {
+    grid-template-columns: 1fr;
+  }
+
   .sidebar {
     border-right: none;
     border-bottom: 1px solid var(--border);
@@ -255,38 +242,18 @@
     max-height: 12.5rem;
     margin-bottom: 0;
     overflow: visible;
-    transition:
-      opacity var(--menu-motion-ms) ease,
-      border-color var(--menu-motion-ms) ease,
-      padding var(--menu-motion-ms) ease,
-      margin-bottom var(--menu-motion-ms) ease,
-      max-height var(--menu-motion-ms) ease;
+    transition: none;
   }
 
   .contentFrame[data-menu-hidden='true'] .sidebar {
+    opacity: 1;
     transform: none;
     max-height: 12.5rem;
-    margin-bottom: -12.5rem;
-    border-bottom-color: transparent;
-    padding-block: 0;
+    margin-bottom: 0;
+    border-bottom-color: var(--border);
+    padding-block: 0.65rem;
     padding-inline: 0.65rem;
-    transition: none;
-  }
-
-  .contentFrame[data-menu-hidden='true'] .menuToggleButton,
-  .contentFrame[data-menu-hidden='true'] .menuRevealButton {
-    transition: none;
-  }
-
-  .menuRevealButton {
-    top: -0.75rem;
-    right: 0.72rem;
-    left: auto;
-    transform: translateY(-0.5rem);
-  }
-
-  .menuRevealButton[data-visible='true'] {
-    transform: translateY(0);
+    pointer-events: auto;
   }
 
   .menuIconDesktop {
@@ -297,10 +264,9 @@
     display: inline-flex;
   }
 
-  .menuToggleButton {
-    top: auto;
-    right: 0.72rem;
-    bottom: -0.38rem;
+  .menuToggleButton,
+  .menuRevealButton {
+    display: none;
   }
 
   .navList {
