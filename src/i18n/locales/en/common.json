@@ -12,6 +12,8 @@
   },
   "navigation": {
     "goToDashboard": "Go to dashboard",
+    "hideMenu": "Hide main menu",
+    "showMenu": "Show main menu",
     "dashboard": "Dashboard",
     "itineraries": "Itineraries",
     "aiDrafts": "AI Draft History",

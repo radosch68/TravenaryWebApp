@@ -12,6 +12,8 @@
   },
   "navigation": {
     "goToDashboard": "Přejít na dashboard",
+    "hideMenu": "Skrýt hlavní menu",
+    "showMenu": "Zobrazit hlavní menu",
     "dashboard": "Dashboard",
     "itineraries": "Itineráře",
     "aiDrafts": "Historie AI návrhů",
