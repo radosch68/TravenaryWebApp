@@ -19,7 +19,7 @@ import {
   UtensilsCrossed,
   type LucideIcon,
 } from 'lucide-react'
-import type { ReactElement } from 'react'
+import type { CSSProperties, PointerEvent as ReactPointerEvent, ReactElement } from 'react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
@@ -63,8 +63,25 @@ const ACTIVITY_ICONS: Record<ActivityType, LucideIcon> = {
 const MAX_VISIBLE_REFERENCES = 3
 const MAX_VISIBLE_LOCATIONS = 3
 const DAY_SAVE_SUCCESS_FLASH_MS = 1000
+const TWO_COLUMN_BREAKPOINT_REM = 64
+const THREE_COLUMN_BREAKPOINT_REM = 96
+const MIN_COLUMN_RATIO = 0.3
+const DEFAULT_TWO_COLUMN_RATIOS: [number, number] = [0.5, 0.5]
+const DEFAULT_THREE_COLUMN_RATIOS: [number, number, number] = [1 / 3, 1 / 3, 1 / 3]
 
 type DaySaveVisualState = 'success' | 'error'
+type ActiveDividerDrag = {
+  pointerId: number
+  columnCount: 2 | 3
+  dividerIndex: number
+  startClientX: number
+  startRatios: [number, number] | [number, number, number]
+  availableWidth: number
+}
+
+function clamp(value: number, min: number, max: number): number {
+  return Math.min(Math.max(value, min), max)
+}
 
 export function ItineraryDaysGrid({
   days,
@@ -78,6 +95,8 @@ export function ItineraryDaysGrid({
   onDaySave,
 }: ItineraryDaysGridProps): ReactElement {
   const { t } = useTranslation('common')
+  const gridRef = useRef<HTMLElement | null>(null)
+  const activeDividerDragRef = useRef<ActiveDividerDrag | null>(null)
   const todayIsoDate = useMemo(() => {
     const now = new Date()
     const year = String(now.getFullYear())
@@ -102,6 +121,13 @@ export function ItineraryDaysGrid({
     new globalThis.Map<number, ResizeObserver>(),
   )
   const saveSuccessTimersRef = useRef<globalThis.Map<number, number>>(new globalThis.Map())
+  const [isPointerCoarse, setIsPointerCoarse] = useState(false)
+  const [desktopColumnCount, setDesktopColumnCount] = useState<1 | 2 | 3>(1)
+  const [gridWidthPx, setGridWidthPx] = useState(0)
+  const [gridGapPx, setGridGapPx] = useState(12)
+  const [twoColumnRatios, setTwoColumnRatios] = useState<[number, number]>(DEFAULT_TWO_COLUMN_RATIOS)
+  const [threeColumnRatios, setThreeColumnRatios] = useState<[number, number, number]>(DEFAULT_THREE_COLUMN_RATIOS)
+  const [isDraggingDivider, setIsDraggingDivider] = useState(false)
 
   useEffect(() => {
     const dayNumbers = new Set(sortedDays.map((day) => day.dayNumber))
@@ -130,6 +156,84 @@ export function ItineraryDaysGrid({
         window.clearTimeout(timerId)
       })
       saveSuccessTimers.clear()
+      activeDividerDragRef.current = null
+    }
+  }, [])
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return
+    }
+
+    const coarsePointerMedia = window.matchMedia('(pointer: coarse)')
+
+    function updatePointerMode(): void {
+      setIsPointerCoarse(coarsePointerMedia.matches)
+    }
+
+    function updateDesktopColumnCount(): void {
+      const rootFontSizePx =
+        Number.parseFloat(window.getComputedStyle(document.documentElement).fontSize || '16') || 16
+      const viewportWidthPx = window.innerWidth
+
+      if (viewportWidthPx >= THREE_COLUMN_BREAKPOINT_REM * rootFontSizePx) {
+        setDesktopColumnCount(3)
+        return
+      }
+
+      if (viewportWidthPx >= TWO_COLUMN_BREAKPOINT_REM * rootFontSizePx) {
+        setDesktopColumnCount(2)
+        return
+      }
+
+      setDesktopColumnCount(1)
+    }
+
+    updatePointerMode()
+    updateDesktopColumnCount()
+
+    coarsePointerMedia.addEventListener('change', updatePointerMode)
+    window.addEventListener('resize', updateDesktopColumnCount)
+
+    return () => {
+      coarsePointerMedia.removeEventListener('change', updatePointerMode)
+      window.removeEventListener('resize', updateDesktopColumnCount)
+    }
+  }, [])
+
+  useEffect(() => {
+    const element = gridRef.current
+    if (!element) {
+      return
+    }
+
+    function updateGridMetrics(): void {
+      const currentElement = gridRef.current
+      if (!currentElement) {
+        return
+      }
+
+      const computedStyle = window.getComputedStyle(currentElement)
+      const gapPx = Number.parseFloat(computedStyle.columnGap || computedStyle.gap || '12') || 12
+      const widthPx = currentElement.getBoundingClientRect().width
+
+      setGridGapPx(gapPx)
+      setGridWidthPx(widthPx)
+    }
+
+    updateGridMetrics()
+
+    if (typeof ResizeObserver === 'undefined') {
+      window.addEventListener('resize', updateGridMetrics)
+      return () => {
+        window.removeEventListener('resize', updateGridMetrics)
+      }
+    }
+
+    const observer = new ResizeObserver(updateGridMetrics)
+    observer.observe(element)
+    return () => {
+      observer.disconnect()
     }
   }, [])
 
@@ -256,9 +360,164 @@ export function ItineraryDaysGrid({
     saveSuccessTimersRef.current.set(dayNumber, timerId)
   }, [])
 
+  const availableGridWidthPx = useMemo(() => {
+    const columns = desktopColumnCount
+    const available = gridWidthPx - gridGapPx * Math.max(columns - 1, 0)
+    return Math.max(available, 0)
+  }, [desktopColumnCount, gridGapPx, gridWidthPx])
+
+  const normalizedTwoColumnRatios = useMemo<[number, number]>(() => {
+    const left = clamp(twoColumnRatios[0], MIN_COLUMN_RATIO, 1 - MIN_COLUMN_RATIO)
+    return [left, 1 - left]
+  }, [twoColumnRatios])
+
+  const normalizedThreeColumnRatios = useMemo<[number, number, number]>(() => {
+    const [leftRaw, centerRaw, rightRaw] = threeColumnRatios
+    const sumRaw = leftRaw + centerRaw + rightRaw || 1
+    const left = clamp(leftRaw / sumRaw, MIN_COLUMN_RATIO, 1 - 2 * MIN_COLUMN_RATIO)
+    let center = clamp(centerRaw / sumRaw, MIN_COLUMN_RATIO, 1 - left - MIN_COLUMN_RATIO)
+    let right = 1 - left - center
+
+    if (right < MIN_COLUMN_RATIO) {
+      const deficit = MIN_COLUMN_RATIO - right
+      center = clamp(center - deficit, MIN_COLUMN_RATIO, 1 - left - MIN_COLUMN_RATIO)
+      right = 1 - left - center
+    }
+
+    return [left, center, right]
+  }, [threeColumnRatios])
+
+  const gridInlineStyle = useMemo<CSSProperties | undefined>(() => {
+    if (isPointerCoarse || desktopColumnCount === 1) {
+      return undefined
+    }
+
+    if (desktopColumnCount === 2) {
+      const [left, right] = normalizedTwoColumnRatios
+      return {
+        gridTemplateColumns: `minmax(0, ${left}fr) minmax(0, ${right}fr)`,
+      }
+    }
+
+    const [left, center, right] = normalizedThreeColumnRatios
+    return {
+      gridTemplateColumns: `minmax(0, ${left}fr) minmax(0, ${center}fr) minmax(0, ${right}fr)`,
+    }
+  }, [desktopColumnCount, isPointerCoarse, normalizedThreeColumnRatios, normalizedTwoColumnRatios])
+
+  const dividerOffsetsPx = useMemo<number[]>(() => {
+    if (isPointerCoarse || desktopColumnCount < 2 || availableGridWidthPx <= 0) {
+      return []
+    }
+
+    if (desktopColumnCount === 2) {
+      const leftWidthPx = normalizedTwoColumnRatios[0] * availableGridWidthPx
+      return [leftWidthPx + gridGapPx / 2]
+    }
+
+    const leftWidthPx = normalizedThreeColumnRatios[0] * availableGridWidthPx
+    const centerWidthPx = normalizedThreeColumnRatios[1] * availableGridWidthPx
+    return [
+      leftWidthPx + gridGapPx / 2,
+      leftWidthPx + gridGapPx + centerWidthPx + gridGapPx / 2,
+    ]
+  }, [
+    availableGridWidthPx,
+    desktopColumnCount,
+    gridGapPx,
+    isPointerCoarse,
+    normalizedThreeColumnRatios,
+    normalizedTwoColumnRatios,
+  ])
+
+  const handleDividerPointerDown = useCallback((dividerIndex: number, event: ReactPointerEvent<HTMLButtonElement>): void => {
+    if (event.button !== 0 || isPointerCoarse || desktopColumnCount < 2 || availableGridWidthPx <= 0) {
+      return
+    }
+
+    event.preventDefault()
+    event.currentTarget.setPointerCapture(event.pointerId)
+    const activeColumnCount: 2 | 3 = desktopColumnCount === 2 ? 2 : 3
+
+    activeDividerDragRef.current = {
+      pointerId: event.pointerId,
+      columnCount: activeColumnCount,
+      dividerIndex,
+      startClientX: event.clientX,
+      startRatios:
+        activeColumnCount === 2
+          ? [...normalizedTwoColumnRatios]
+          : [...normalizedThreeColumnRatios],
+      availableWidth: availableGridWidthPx,
+    }
+    setIsDraggingDivider(true)
+  }, [
+    availableGridWidthPx,
+    desktopColumnCount,
+    isPointerCoarse,
+    normalizedThreeColumnRatios,
+    normalizedTwoColumnRatios,
+  ])
+
+  const handleDividerPointerMove = useCallback((event: ReactPointerEvent<HTMLButtonElement>): void => {
+    const activeDrag = activeDividerDragRef.current
+    if (!activeDrag || event.pointerId !== activeDrag.pointerId || activeDrag.availableWidth <= 0) {
+      return
+    }
+
+    event.preventDefault()
+    const deltaRatio = (event.clientX - activeDrag.startClientX) / activeDrag.availableWidth
+
+    if (activeDrag.columnCount === 2) {
+      const [startLeft] = activeDrag.startRatios as [number, number]
+      const nextLeft = clamp(startLeft + deltaRatio, MIN_COLUMN_RATIO, 1 - MIN_COLUMN_RATIO)
+      setTwoColumnRatios([nextLeft, 1 - nextLeft])
+      return
+    }
+
+    const [startLeft, startCenter, startRight] = activeDrag.startRatios as [number, number, number]
+    if (activeDrag.dividerIndex === 0) {
+      const pairTotal = startLeft + startCenter
+      const nextLeft = clamp(startLeft + deltaRatio, MIN_COLUMN_RATIO, pairTotal - MIN_COLUMN_RATIO)
+      const nextCenter = pairTotal - nextLeft
+      setThreeColumnRatios([nextLeft, nextCenter, startRight])
+      return
+    }
+
+    const pairTotal = startCenter + startRight
+    const nextCenter = clamp(startCenter + deltaRatio, MIN_COLUMN_RATIO, pairTotal - MIN_COLUMN_RATIO)
+    const nextRight = pairTotal - nextCenter
+    setThreeColumnRatios([startLeft, nextCenter, nextRight])
+  }, [])
+
+  const handleDividerPointerUp = useCallback((event: ReactPointerEvent<HTMLButtonElement>): void => {
+    const activeDrag = activeDividerDragRef.current
+    if (!activeDrag || event.pointerId !== activeDrag.pointerId) {
+      return
+    }
+
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId)
+    }
+
+    activeDividerDragRef.current = null
+    setIsDraggingDivider(false)
+  }, [])
+
+  const handleDividerDoubleClick = useCallback((): void => {
+    activeDividerDragRef.current = null
+    setIsDraggingDivider(false)
+    setTwoColumnRatios(DEFAULT_TWO_COLUMN_RATIOS)
+    setThreeColumnRatios(DEFAULT_THREE_COLUMN_RATIOS)
+  }, [])
+
   return (
     <section
+      ref={gridRef}
       className={`${styles.daysGrid}${fullBleedOnMobile ? ` ${styles.fullBleedOnMobile}` : ''}`}
+      data-resizable-columns={isPointerCoarse ? 1 : desktopColumnCount}
+      data-is-dragging-divider={isDraggingDivider ? 'true' : 'false'}
+      style={gridInlineStyle}
       aria-label={t('itineraryView.daysAriaLabel')}
     >
       {sortedDays.map((day, index) => {
@@ -357,6 +616,22 @@ export function ItineraryDaysGrid({
           </article>
         )
       })}
+
+      {dividerOffsetsPx.map((offsetPx, dividerIndex) => (
+        <button
+          key={`column-divider-${desktopColumnCount}-${dividerIndex}`}
+          type="button"
+          className={styles.columnDivider}
+          style={{ left: `${offsetPx}px` }}
+          onPointerDown={(event) => handleDividerPointerDown(dividerIndex, event)}
+          onPointerMove={handleDividerPointerMove}
+          onPointerUp={handleDividerPointerUp}
+          onPointerCancel={handleDividerPointerUp}
+          onDoubleClick={handleDividerDoubleClick}
+          tabIndex={-1}
+          aria-hidden="true"
+        />
+      ))}
     </section>
   )
 }
