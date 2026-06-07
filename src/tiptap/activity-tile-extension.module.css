@@ -407,9 +407,30 @@
   display: grid;
   grid-template-columns: minmax(0, 1.2fr) minmax(7rem, 0.8fr);
   gap: 0.62rem;
+}
+
+.activityEditorInline {
   margin-top: 0.26rem;
-  padding-top: 0.72rem;
+  padding: 0.72rem 0.5rem 0.5rem;
   border-top: 1px solid color-mix(in oklab, var(--border) 78%, transparent 22%);
+}
+
+.activityEditorInline .activityEditor {
+  min-width: 0;
+}
+
+.activityEditorInline .activityEditor input,
+.activityEditorInline .activityEditor textarea {
+  box-sizing: border-box;
+  max-width: 100%;
+}
+
+.activityEditorDialogShell {
+  width: min(100%, 40rem);
+}
+
+.activityEditorModalBody {
+  padding: 0.2rem;
 }
 
 .activityEditor label {
@@ -418,7 +439,7 @@
   min-width: 0;
   color: var(--muted-foreground);
   font-size: 0.73rem;
-  font-weight: 700;
+  font-weight: 400;
 }
 
 .activityEditor input,
@@ -430,6 +451,7 @@
   color: var(--foreground);
   padding: 0.48rem 0.56rem;
   font-size: 0.86rem;
+  font-weight: 400;
 }
 
 .activityEditor textarea {
@@ -440,10 +462,62 @@
   grid-column: 1 / -1;
 }
 
+.activityEditorActions {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.activityEditorCancelButton {
+  border: 1px solid var(--border);
+  border-radius: calc(var(--radius) - 0.24rem);
+  background: color-mix(in oklab, var(--card) 92%, transparent 8%);
+  color: var(--foreground);
+  font-size: 0.86rem;
+  font-weight: 700;
+  line-height: 1;
+  padding: 0.34rem 0.62rem;
+  cursor: pointer;
+}
+
+.activityEditorCancelButton:hover {
+  background: color-mix(in oklab, var(--muted) 42%, var(--card) 58%);
+}
+
+.activityEditorCancelButton:focus-visible {
+  outline: 2px solid color-mix(in oklab, var(--ring) 70%, transparent 30%);
+  outline-offset: 2px;
+}
+
+.activityEditorConfirmButton {
+  border: 1px solid color-mix(in oklab, var(--primary) 46%, var(--border) 54%);
+  border-radius: calc(var(--radius) - 0.2rem);
+  background: color-mix(in oklab, var(--primary) 86%, var(--card) 14%);
+  color: var(--primary-foreground);
+  font-size: 0.86rem;
+  font-weight: 700;
+  line-height: 1;
+  padding: 0.48rem 0.86rem;
+  cursor: pointer;
+}
+
+.activityEditorConfirmButton:hover {
+  background: color-mix(in oklab, var(--primary) 92%, var(--card) 8%);
+}
+
+.activityEditorConfirmButton:focus-visible {
+  outline: 2px solid color-mix(in oklab, var(--ring) 72%, transparent 28%);
+  outline-offset: 2px;
+}
+
 @media (max-width: 640px) {
   .activityEditor {
     display: grid;
     grid-template-columns: 1fr;
+  }
+
+  .activityEditorModalBody {
+    padding: 0;
   }
 
   .activityHeaderLine {

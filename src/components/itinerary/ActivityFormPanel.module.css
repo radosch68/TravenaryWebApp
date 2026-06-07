@@ -1,0 +1,83 @@
+.modal {
+  width: min(100%, 480px);
+  max-height: calc(100dvh - 2rem);
+}
+
+.modalBody {
+  padding-inline: 0.5rem;
+}
+
+.nestedModal {
+  width: min(100%, 560px);
+  max-height: calc(100dvh - 2rem);
+}
+
+.nestedModal .modalBody {
+  padding-inline: 0.5rem;
+}
+
+.inlinePanel {
+  display: grid;
+  gap: 0.5rem;
+  width: 100%;
+}
+
+.inlineActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.4rem;
+  padding: 0 0.75rem 0.75rem;
+}
+
+.inlineCancelButton {
+  border: 1px solid var(--border);
+  border-radius: calc(var(--radius) - 0.24rem);
+  background: color-mix(in oklab, var(--card) 92%, transparent 8%);
+  color: var(--foreground);
+  font-size: 0.86rem;
+  font-weight: 700;
+  line-height: 1;
+  padding: 0.34rem 0.62rem;
+  cursor: pointer;
+}
+
+.inlineCancelButton:hover {
+  background: color-mix(in oklab, var(--muted) 42%, var(--card) 58%);
+}
+
+.inlineCancelButton:focus-visible {
+  outline: 2px solid color-mix(in oklab, var(--ring) 70%, transparent 30%);
+  outline-offset: 2px;
+}
+
+.typeBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.3rem 0.65rem;
+  border-radius: 8px;
+  border: 2px solid;
+  font-size: 0.78rem;
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.typeBadgeIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@media (max-width: 500px) {
+  .modal {
+    width: min(100%, 25rem);
+    max-height: calc(100dvh - 1.5rem);
+    border-radius: 14px;
+  }
+
+  .nestedModal {
+    width: min(100%, 28rem);
+    max-height: calc(100dvh - 1.5rem);
+  }
+}

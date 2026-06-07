@@ -25,7 +25,7 @@ import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 
 import { DayRichTextEditor, type DayRichTextSaveState } from '@/components/itinerary/DayRichTextEditor'
-import type { ActivityType, ItineraryActivity, ItineraryDay, WebReference } from '@/services/contracts'
+import type { ActivityType, DayDocumentNode, ItineraryActivity, ItineraryDay, WebReference } from '@/services/contracts'
 import { hasCoordinates } from '@/components/itinerary/location-map-pins'
 import { formatLocalDate, formatLocalTime, formatLocalTimeRange, formatWeekday } from '@/utils/date-format'
 import { getOvernightCoverageByGapDay, groupDayForView, type OvernightCoverage } from '@/utils/itinerary-grouping'
@@ -37,6 +37,7 @@ import styles from './ItineraryDaysGrid.module.css'
 interface ItineraryDaysGridProps {
   days: ItineraryDay[]
   locale: string
+  draftCacheIdentity?: string
   editable?: boolean
   fullBleedOnMobile?: boolean
   buildDayMapRoute?: (dayNumber: number) => string | null
@@ -83,9 +84,46 @@ function clamp(value: number, min: number, max: number): number {
   return Math.min(Math.max(value, min), max)
 }
 
+function isHeaderInteractiveTarget(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) {
+    return false
+  }
+
+  return Boolean(target.closest('button, a, input, textarea, select, [role="button"]'))
+}
+
+function cloneDayDocument(document: DayDocumentNode[]): DayDocumentNode[] {
+  return JSON.parse(JSON.stringify(document)) as DayDocumentNode[]
+}
+
+function toDocumentSignature(document: DayDocumentNode[]): string {
+  const serialized = JSON.stringify(document)
+  let hash = 2166136261
+
+  for (let index = 0; index < serialized.length; index += 1) {
+    hash ^= serialized.charCodeAt(index)
+    hash = Math.imul(hash, 16777619)
+  }
+
+  return `${serialized.length}:${(hash >>> 0).toString(36)}`
+}
+
+function toDayDraftCacheSignature(days: ItineraryDay[], draftCacheIdentity?: string): string {
+  return [
+    draftCacheIdentity ?? '',
+    ...days.map((day) => {
+      const summary = day.summary?.trim() ?? ''
+      const date = day.date ?? ''
+      const documentSignature = toDocumentSignature(day.document ?? [])
+      return `${day.dayNumber}:${date}:${summary}:${documentSignature}`
+    }),
+  ].join('|')
+}
+
 export function ItineraryDaysGrid({
   days,
   locale,
+  draftCacheIdentity,
   editable = false,
   fullBleedOnMobile = false,
   buildDayMapRoute,
@@ -117,10 +155,12 @@ export function ItineraryDaysGrid({
   const [daySaveVisualStates, setDaySaveVisualStates] = useState<globalThis.Map<number, DaySaveVisualState>>(
     () => new globalThis.Map(),
   )
+  const [activeSavedOkDayNumber, setActiveSavedOkDayNumber] = useState<number | null>(null)
   const dayHeaderObserversRef = useRef<globalThis.Map<number, ResizeObserver>>(
     new globalThis.Map<number, ResizeObserver>(),
   )
   const saveSuccessTimersRef = useRef<globalThis.Map<number, number>>(new globalThis.Map())
+  const skipHeaderSummaryBlurSaveRef = useRef(false)
   const [isPointerCoarse, setIsPointerCoarse] = useState(false)
   const [desktopColumnCount, setDesktopColumnCount] = useState<1 | 2 | 3>(1)
   const [gridWidthPx, setGridWidthPx] = useState(0)
@@ -128,9 +168,15 @@ export function ItineraryDaysGrid({
   const [twoColumnRatios, setTwoColumnRatios] = useState<[number, number]>(DEFAULT_TWO_COLUMN_RATIOS)
   const [threeColumnRatios, setThreeColumnRatios] = useState<[number, number, number]>(DEFAULT_THREE_COLUMN_RATIOS)
   const [isDraggingDivider, setIsDraggingDivider] = useState(false)
+  const [editingHeaderDayNumber, setEditingHeaderDayNumber] = useState<number | null>(null)
+  const [headerSummaryDraft, setHeaderSummaryDraft] = useState('')
+  const [isHeaderSummarySaving, setIsHeaderSummarySaving] = useState(false)
+  const dayDocumentDraftByDayRef = useRef<Record<number, DayDocumentNode[]>>({})
+  const dayDraftCacheSignatureRef = useRef<string>('')
 
   useEffect(() => {
     const dayNumbers = new Set(sortedDays.map((day) => day.dayNumber))
+    const nextDayDraftCacheSignature = toDayDraftCacheSignature(sortedDays, draftCacheIdentity)
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setCollapsedDayNumbers((previousValue) => {
       const nextValue = new Set<number>()
@@ -141,7 +187,59 @@ export function ItineraryDaysGrid({
       })
       return nextValue.size === previousValue.size ? previousValue : nextValue
     })
-  }, [sortedDays])
+
+    setDaySaveVisualStates((previousValue) => {
+      let didChange = false
+      const nextValue = new globalThis.Map<number, DaySaveVisualState>()
+      previousValue.forEach((state, dayNumber) => {
+        if (dayNumbers.has(dayNumber)) {
+          nextValue.set(dayNumber, state)
+          return
+        }
+
+        didChange = true
+      })
+
+      return didChange ? nextValue : previousValue
+    })
+
+    setActiveSavedOkDayNumber((previousValue) => {
+      if (previousValue === null || dayNumbers.has(previousValue)) {
+        return previousValue
+      }
+
+      return null
+    })
+
+    if (dayDraftCacheSignatureRef.current !== nextDayDraftCacheSignature) {
+      // Rebuild cache when day identity/content changes so stale drafts cannot
+      // survive renumbering or same-number replacements from a new itinerary payload.
+      dayDocumentDraftByDayRef.current = sortedDays.reduce<Record<number, DayDocumentNode[]>>((acc, day) => {
+        acc[day.dayNumber] = cloneDayDocument(day.document ?? [])
+        return acc
+      }, {})
+      dayDraftCacheSignatureRef.current = nextDayDraftCacheSignature
+      return
+    }
+
+    const draftCache = dayDocumentDraftByDayRef.current
+    const nextDraftCache: Record<number, DayDocumentNode[]> = {}
+    let didPruneDraftCache = false
+
+    Object.entries(draftCache).forEach(([dayNumberKey, documentDraft]) => {
+      const dayNumber = Number(dayNumberKey)
+      if (!Number.isFinite(dayNumber) || !dayNumbers.has(dayNumber)) {
+        didPruneDraftCache = true
+        return
+      }
+
+      nextDraftCache[dayNumber] = documentDraft
+    })
+
+    if (didPruneDraftCache) {
+      dayDocumentDraftByDayRef.current = nextDraftCache
+    }
+  }, [draftCacheIdentity, sortedDays])
 
   useEffect(() => {
     const dayHeaderObservers = dayHeaderObserversRef.current
@@ -317,6 +415,14 @@ export function ItineraryDaysGrid({
     }
 
     if (state === 'error') {
+      setActiveSavedOkDayNumber((previousValue) => {
+        if (previousValue !== dayNumber) {
+          return previousValue
+        }
+
+        return null
+      })
+
       setDaySaveVisualStates((previousValue) => {
         const nextValue = new globalThis.Map(previousValue)
         nextValue.set(dayNumber, 'error')
@@ -326,8 +432,9 @@ export function ItineraryDaysGrid({
     }
 
     if (state === 'dirty' || state === 'saving') {
+
       setDaySaveVisualStates((previousValue) => {
-        if (previousValue.get(dayNumber) !== 'error') {
+        if (!previousValue.has(dayNumber)) {
           return previousValue
         }
 
@@ -337,6 +444,8 @@ export function ItineraryDaysGrid({
       })
       return
     }
+
+    setActiveSavedOkDayNumber(dayNumber)
 
     setDaySaveVisualStates((previousValue) => {
       const nextValue = new globalThis.Map(previousValue)
@@ -358,6 +467,127 @@ export function ItineraryDaysGrid({
     }, DAY_SAVE_SUCCESS_FLASH_MS)
 
     saveSuccessTimersRef.current.set(dayNumber, timerId)
+  }, [])
+
+  const handleDayEditorActivate = useCallback((dayNumber: number): void => {
+    setActiveSavedOkDayNumber(dayNumber)
+  }, [])
+
+  const handleDayDocumentDraftChange = useCallback((dayNumber: number, document: DayDocumentNode[]): void => {
+    dayDocumentDraftByDayRef.current[dayNumber] = cloneDayDocument(document)
+  }, [])
+
+  const startHeaderSummaryEdit = useCallback((day: ItineraryDay): void => {
+    setEditingHeaderDayNumber(day.dayNumber)
+    setHeaderSummaryDraft(day.summary ?? '')
+    handleDayEditorActivate(day.dayNumber)
+  }, [handleDayEditorActivate])
+
+  const cancelHeaderSummaryEdit = useCallback((): void => {
+    if (isHeaderSummarySaving) {
+      return
+    }
+
+    skipHeaderSummaryBlurSaveRef.current = false
+    setEditingHeaderDayNumber(null)
+    setHeaderSummaryDraft('')
+  }, [isHeaderSummarySaving])
+
+  const saveHeaderSummary = useCallback(async (day: ItineraryDay): Promise<void> => {
+    if (!onDaySave || isHeaderSummarySaving) {
+      return
+    }
+
+    const trimmedDraft = headerSummaryDraft.trim()
+    const nextSummary = trimmedDraft.length > 0 ? trimmedDraft : undefined
+    const currentSummary = day.summary?.trim() ? day.summary.trim() : undefined
+
+    if (nextSummary === currentSummary) {
+      setEditingHeaderDayNumber(null)
+      setHeaderSummaryDraft('')
+      return
+    }
+
+    setIsHeaderSummarySaving(true)
+    setDaySaveVisualState(day.dayNumber, 'saving')
+
+    try {
+      const latestDocumentDraft = dayDocumentDraftByDayRef.current[day.dayNumber]
+      await onDaySave({
+        dayNumber: day.dayNumber,
+        summary: nextSummary,
+        document: cloneDayDocument(latestDocumentDraft ?? (day.document ?? [])),
+      })
+
+      setDaySaveVisualState(day.dayNumber, 'saved')
+      handleDayEditorActivate(day.dayNumber)
+    } catch {
+      setDaySaveVisualState(day.dayNumber, 'error')
+    } finally {
+      setIsHeaderSummarySaving(false)
+      setEditingHeaderDayNumber(null)
+      setHeaderSummaryDraft('')
+    }
+  }, [handleDayEditorActivate, headerSummaryDraft, isHeaderSummarySaving, onDaySave, setDaySaveVisualState])
+
+  const switchHeaderSummaryEdit = useCallback(async (day: ItineraryDay): Promise<void> => {
+    if (isHeaderSummarySaving) {
+      return
+    }
+
+    if (editingHeaderDayNumber === null || editingHeaderDayNumber === day.dayNumber) {
+      startHeaderSummaryEdit(day)
+      return
+    }
+
+    const previousEditingDay = sortedDays.find(
+      (candidateDay) => candidateDay.dayNumber === editingHeaderDayNumber,
+    )
+
+    if (previousEditingDay) {
+      await saveHeaderSummary(previousEditingDay)
+    }
+
+    startHeaderSummaryEdit(day)
+  }, [editingHeaderDayNumber, isHeaderSummarySaving, saveHeaderSummary, sortedDays, startHeaderSummaryEdit])
+
+  useEffect(() => {
+    if (typeof document === 'undefined') {
+      return
+    }
+
+    function handleDocumentPointerDown(event: PointerEvent): void {
+      const target = event.target
+      if (!(target instanceof HTMLElement)) {
+        setActiveSavedOkDayNumber(null)
+        return
+      }
+
+      if (target.closest('[data-day-rich-editor-root="true"], [data-day-header-editor-root="true"]')) {
+        return
+      }
+
+      setActiveSavedOkDayNumber(null)
+    }
+
+    document.addEventListener('pointerdown', handleDocumentPointerDown, true)
+    return () => {
+      document.removeEventListener('pointerdown', handleDocumentPointerDown, true)
+    }
+  }, [])
+
+  const handleGridPointerDownCapture = useCallback((event: ReactPointerEvent<HTMLElement>): void => {
+    const target = event.target
+    if (!(target instanceof HTMLElement)) {
+      setActiveSavedOkDayNumber(null)
+      return
+    }
+
+    if (target.closest('[data-day-rich-editor-root="true"], [data-day-header-editor-root="true"]')) {
+      return
+    }
+
+    setActiveSavedOkDayNumber(null)
   }, [])
 
   const availableGridWidthPx = useMemo(() => {
@@ -518,6 +748,7 @@ export function ItineraryDaysGrid({
       data-resizable-columns={isPointerCoarse ? 1 : desktopColumnCount}
       data-is-dragging-divider={isDraggingDivider ? 'true' : 'false'}
       style={gridInlineStyle}
+      onPointerDownCapture={handleGridPointerDownCapture}
       aria-label={t('itineraryView.daysAriaLabel')}
     >
       {sortedDays.map((day, index) => {
@@ -531,9 +762,12 @@ export function ItineraryDaysGrid({
         const hasDayMapLocations = hasMappableLocations(dayActivities)
         const isToday = day.date === todayIsoDate
         const saveVisualState = daySaveVisualStates.get(day.dayNumber)
+        const isDaySavedOk = activeSavedOkDayNumber === day.dayNumber
+        const isEditingHeaderSummary = editingHeaderDayNumber === day.dayNumber
         const dayCardClassName = [
           styles.dayCard,
           isToday ? styles.dayCardToday : '',
+          isDaySavedOk ? styles.dayCardSaveOk : '',
           saveVisualState === 'success' ? styles.dayCardSaveSuccess : '',
           saveVisualState === 'error' ? styles.dayCardSaveError : '',
         ].filter(Boolean).join(' ')
@@ -548,27 +782,43 @@ export function ItineraryDaysGrid({
             <header
               ref={(element) => setDayHeaderElement(day.dayNumber, element)}
               className={styles.dayHeader}
-            >
-              <button
-                type="button"
-                className={styles.dayToggleButton}
-                onClick={() => toggleDayCollapsed(day.dayNumber)}
-                aria-expanded={!isCollapsed}
-                aria-controls={`itinerary-day-content-${day.dayNumber}`}
-                aria-label={
-                  isCollapsed
-                    ? t('itineraryView.expandDayAria', { dayNumber: day.dayNumber })
-                    : t('itineraryView.collapseDayAria', { dayNumber: day.dayNumber })
+              onClick={(event) => {
+                if (isHeaderInteractiveTarget(event.target)) {
+                  return
                 }
-              >
-                <ChevronRight
-                  size={19}
-                  className={`${styles.dayToggleIcon}${!isCollapsed ? ` ${styles.dayToggleIconExpanded}` : ''}`}
-                  aria-hidden="true"
-                />
-              </button>
-              <div className={styles.dayHeaderMain}>
-                <p className={styles.dayNumber}>{day.dayNumber}</p>
+
+                const dayAnchorId = `itinerary-day-${day.dayNumber}`
+                const dayElement = document.getElementById(dayAnchorId)
+                if (!dayElement) {
+                  return
+                }
+
+                dayElement.scrollIntoView({ block: 'start' })
+              }}
+            >
+              <div className={styles.dayHeaderTopRow}>
+                <div className={styles.dayHeaderPrimary}>
+                  <button
+                    type="button"
+                    className={styles.dayToggleButton}
+                    onClick={() => toggleDayCollapsed(day.dayNumber)}
+                    aria-expanded={!isCollapsed}
+                    aria-controls={`itinerary-day-content-${day.dayNumber}`}
+                    aria-label={
+                      isCollapsed
+                        ? t('itineraryView.expandDayAria', { dayNumber: day.dayNumber })
+                        : t('itineraryView.collapseDayAria', { dayNumber: day.dayNumber })
+                    }
+                  >
+                    <ChevronRight
+                      size={19}
+                      className={`${styles.dayToggleIcon}${!isCollapsed ? ` ${styles.dayToggleIconExpanded}` : ''}`}
+                      aria-hidden="true"
+                    />
+                  </button>
+                  <p className={styles.dayNumber}>{day.dayNumber}</p>
+                </div>
+
                 <div className={styles.dayDateStack}>
                   <p className={styles.dayWeekday}>
                     {day.date ? formatWeekday(day.date, locale) : '—'}
@@ -577,21 +827,103 @@ export function ItineraryDaysGrid({
                     {day.date ? formatLocalDate(day.date, locale) : t('itineraryView.missingDate')}
                   </p>
                 </div>
+
+                {hasDayMapLocations && dayMapRoute ? (
+                  <div className={styles.dayHeaderActions}>
+                    <Link
+                      className={styles.dayMapLauncher}
+                      to={dayMapRoute}
+                      aria-label={t('itineraryView.openDailyMapAria', { dayNumber: day.dayNumber })}
+                      title={t('itineraryView.openDailyMapAria', { dayNumber: day.dayNumber })}
+                    >
+                      <Map size={17} aria-hidden="true" />
+                      <span>{t('itineraryView.dailyMap')}</span>
+                    </Link>
+                  </div>
+                ) : null}
               </div>
 
-              {hasDayMapLocations && dayMapRoute ? (
-                <div className={styles.dayHeaderActions}>
-                  <Link
-                    className={styles.dayMapLauncher}
-                    to={dayMapRoute}
-                    aria-label={t('itineraryView.openDailyMapAria', { dayNumber: day.dayNumber })}
-                    title={t('itineraryView.openDailyMapAria', { dayNumber: day.dayNumber })}
-                  >
-                    <Map size={17} aria-hidden="true" />
-                    <span>{t('itineraryView.dailyMap')}</span>
-                  </Link>
-                </div>
-              ) : null}
+              <div className={styles.dayHeaderSummaryRow} data-day-header-editor-root="true">
+                {editable && onDaySave ? (
+                  isEditingHeaderSummary ? (
+                    <form
+                      className={styles.dayHeaderSummaryForm}
+                      onBlurCapture={(event) => {
+                        const nextTarget = event.relatedTarget
+                        if (nextTarget instanceof Node && event.currentTarget.contains(nextTarget)) {
+                          return
+                        }
+
+                        if (skipHeaderSummaryBlurSaveRef.current) {
+                          skipHeaderSummaryBlurSaveRef.current = false
+                          return
+                        }
+
+                        void saveHeaderSummary(day)
+                      }}
+                      onSubmit={(event) => {
+                        event.preventDefault()
+                        void saveHeaderSummary(day)
+                      }}
+                    >
+                      <textarea
+                        className={styles.dayHeaderSummaryTextarea}
+                        value={headerSummaryDraft}
+                        onFocus={() => handleDayEditorActivate(day.dayNumber)}
+                        onChange={(event) => {
+                          setHeaderSummaryDraft(event.target.value)
+                          setDaySaveVisualState(day.dayNumber, 'dirty')
+                          handleDayEditorActivate(day.dayNumber)
+                        }}
+                        onKeyDown={(event) => {
+                          if (event.key === 'Escape') {
+                            event.preventDefault()
+                            cancelHeaderSummaryEdit()
+                          }
+                        }}
+                        rows={2}
+                        placeholder={t('itineraryView.daySummaryPlaceholder')}
+                        aria-label={t('itineraryView.editDaySummaryAria', { dayNumber: day.dayNumber })}
+                        disabled={isHeaderSummarySaving}
+                        autoFocus
+                      />
+                      <div className={styles.dayHeaderSummaryActions}>
+                        <button
+                          type="button"
+                          className={styles.dayHeaderSummaryCancelButton}
+                          onPointerDown={() => {
+                            skipHeaderSummaryBlurSaveRef.current = true
+                          }}
+                          onClick={cancelHeaderSummaryEdit}
+                          disabled={isHeaderSummarySaving}
+                          aria-label={t('itineraryView.cancel')}
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    </form>
+                  ) : (
+                    <button
+                      type="button"
+                      className={styles.dayHeaderSummaryDisplay}
+                      onClick={() => {
+                        void switchHeaderSummaryEdit(day)
+                      }}
+                      aria-label={t('itineraryView.editDaySummaryAria', { dayNumber: day.dayNumber })}
+                    >
+                      {day.summary?.trim().length
+                        ? day.summary
+                        : t('itineraryView.daySummaryPlaceholder')}
+                    </button>
+                  )
+                ) : (
+                  <p className={styles.dayHeaderSummaryText}>
+                    {day.summary?.trim().length
+                      ? day.summary
+                      : t('itineraryView.daySummaryPlaceholder')}
+                  </p>
+                )}
+              </div>
             </header>
 
             {!isCollapsed ? (
@@ -601,6 +933,8 @@ export function ItineraryDaysGrid({
                     day={day}
                     locale={locale}
                     onDaySave={onDaySave}
+                    onEditorActivate={() => handleDayEditorActivate(day.dayNumber)}
+                    onDocumentDraftChange={handleDayDocumentDraftChange}
                     onSaveStateChange={(state) => setDaySaveVisualState(day.dayNumber, state)}
                   />
                 ) : (

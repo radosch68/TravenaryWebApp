@@ -53,6 +53,7 @@
 .dayCard {
   --day-card-padding: 0.75rem;
   scroll-margin-top: calc(var(--travenary-top-banner-offset, 0px) + 0.5rem);
+  position: relative;
   border: 1px solid var(--border);
   border-radius: calc(var(--radius) - 0.05rem);
   background: color-mix(in oklab, var(--card) 95%, white 5%);
@@ -63,6 +64,15 @@
   align-self: start;
 }
 
+.dayCardSaveOk::after {
+  content: '';
+  position: absolute;
+  inset: 1px;
+  border: 2px dotted color-mix(in oklab, #22c55e 70%, transparent 30%);
+  border-radius: calc(var(--radius) - 0.1rem);
+  pointer-events: none;
+}
+
 .dayCardToday {
   border-color: color-mix(in oklab, var(--primary) 58%, var(--border) 42%);
   box-shadow: 0 0 0 1px color-mix(in oklab, var(--primary) 28%, transparent 72%);
@@ -70,8 +80,6 @@
 
 .dayCardSaveSuccess {
   border-color: color-mix(in oklab, #15803d 76%, var(--border) 24%);
-  box-shadow: inset 0 0 0 3px color-mix(in oklab, #22c55e 64%, transparent 36%);
-  animation: daySaveSuccessFlash 1s ease-out;
 }
 
 .dayCardSaveError {
@@ -83,12 +91,20 @@
 @keyframes daySaveSuccessFlash {
   0%,
   100% {
-    box-shadow: inset 0 0 0 3px color-mix(in oklab, #22c55e 64%, transparent 36%);
+    border-width: 2px;
+    border-color: color-mix(in oklab, #22c55e 70%, transparent 30%);
+    box-shadow: inset 0 0 0 0 color-mix(in oklab, #22c55e 0%, transparent 100%);
   }
 
   45% {
-    box-shadow: inset 0 0 0 5px color-mix(in oklab, #22c55e 82%, transparent 18%);
+    border-width: 4px;
+    border-color: color-mix(in oklab, #22c55e 92%, transparent 8%);
+    box-shadow: inset 0 0 0 1px color-mix(in oklab, #22c55e 52%, transparent 48%);
   }
+}
+
+.dayCardSaveSuccess.dayCardSaveOk::after {
+  animation: daySaveSuccessFlash 1s ease-out;
 }
 
 .overnightBanner {
@@ -131,18 +147,29 @@
   position: sticky;
   top: var(--travenary-top-banner-offset, 0px);
   z-index: 7;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.75rem;
+  display: grid;
+  gap: 0;
   margin-inline: calc(-1 * var(--day-card-padding));
   margin-top: calc(-1 * var(--day-card-padding));
-  padding: calc(var(--day-card-padding) - 0.02rem) var(--day-card-padding) 0.4rem;
-  border-bottom: 1px solid color-mix(in oklab, var(--border) 82%, transparent 18%);
   border-top-left-radius: calc(var(--radius) - 0.08rem);
   border-top-right-radius: calc(var(--radius) - 0.08rem);
   background: color-mix(in oklab, var(--muted) 70%, var(--card) 30%);
   box-shadow: 0 0.08rem 0.2rem color-mix(in oklab, var(--foreground) 10%, transparent 90%);
+}
+
+.dayHeaderTopRow {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  column-gap: 0.72rem;
+  padding: calc(var(--day-card-padding) - 0.02rem) var(--day-card-padding) 0.42rem;
+}
+
+.dayHeaderPrimary {
+  display: flex;
+  align-items: center;
+  gap: 0.62rem;
+  min-width: 0;
 }
 
 .dayToggleButton {
@@ -184,6 +211,13 @@
   flex: 1 1 auto;
 }
 
+.dayHeaderMeta {
+  min-width: 0;
+  display: grid;
+  gap: 0.24rem;
+  width: 100%;
+}
+
 .dayNumber {
   margin: 0;
   font-family: var(--font-heading);
@@ -196,6 +230,7 @@
 .dayDateStack {
   display: grid;
   gap: 0.04rem;
+  min-width: 0;
 }
 
 .dayWeekday {
@@ -222,6 +257,113 @@
   white-space: nowrap;
 }
 
+.dayHeaderSummary {
+  min-width: 0;
+  width: 100%;
+}
+
+.dayHeaderSummaryRow {
+  border-top: 1px solid color-mix(in oklab, var(--border) 82%, transparent 18%);
+  padding: 0.42rem var(--day-card-padding) 0.34rem;
+  min-width: 0;
+}
+
+.dayHeaderSummaryDisplay {
+  width: 100%;
+  margin: 0;
+  padding: 0.18rem 0.34rem;
+  border: 1px dashed transparent;
+  border-radius: calc(var(--radius) - 0.34rem);
+  background: transparent;
+  text-align: left;
+  color: color-mix(in oklab, var(--foreground) 78%, var(--muted-foreground) 22%);
+  font-size: 0.8rem;
+  line-height: 1.3;
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+  overflow-wrap: anywhere;
+  cursor: text;
+}
+
+.dayHeaderSummaryDisplay:hover {
+  border-color: color-mix(in oklab, var(--primary) 32%, var(--border) 68%);
+  background: color-mix(in oklab, var(--muted) 70%, transparent 30%);
+}
+
+.dayHeaderSummaryDisplay:focus-visible {
+  outline: 2px solid color-mix(in oklab, var(--ring) 68%, transparent 32%);
+  outline-offset: 1px;
+}
+
+.dayHeaderSummaryForm {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.26rem;
+  width: 100%;
+}
+
+.dayHeaderSummaryText {
+  margin: 0;
+  padding: 0.18rem 0.34rem;
+  color: color-mix(in oklab, var(--foreground) 78%, var(--muted-foreground) 22%);
+  font-size: 0.8rem;
+  line-height: 1.3;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.dayHeaderSummaryTextarea {
+  min-width: 0;
+  flex: 1 1 auto;
+  min-height: 2.25rem;
+  padding: 0.34rem 0.48rem;
+  border: 1px solid color-mix(in oklab, var(--primary) 38%, var(--border) 62%);
+  border-radius: calc(var(--radius) - 0.34rem);
+  background: color-mix(in oklab, var(--card) 94%, transparent 6%);
+  color: var(--foreground);
+  font: inherit;
+  font-size: 0.8rem;
+  line-height: 1.3;
+}
+
+.dayHeaderSummaryTextarea {
+  resize: vertical;
+}
+
+.dayHeaderSummaryTextarea:focus-visible {
+  outline: 2px solid color-mix(in oklab, var(--ring) 70%, transparent 30%);
+  outline-offset: 1px;
+}
+
+.dayHeaderSummaryActions {
+  display: inline-flex;
+  align-items: center;
+  gap: 0;
+}
+
+.dayHeaderSummaryCancelButton {
+  width: 1.55rem;
+  height: 1.55rem;
+  border: 1px solid color-mix(in oklab, var(--border) 84%, transparent 16%);
+  border-radius: calc(var(--radius) - 0.38rem);
+  background: color-mix(in oklab, var(--card) 92%, transparent 8%);
+  color: color-mix(in oklab, var(--foreground) 76%, var(--muted-foreground) 24%);
+  font-size: 0.9rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.dayHeaderSummaryCancelButton:hover {
+  background: color-mix(in oklab, var(--muted) 74%, var(--card) 26%);
+}
+
+.dayHeaderSummaryCancelButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
 .dayMapLauncher {
   flex: 0 0 auto;
   display: inline-flex;
@@ -244,7 +386,7 @@
   align-items: center;
   justify-content: flex-end;
   gap: 0.5rem;
-  margin-left: auto;
+  justify-self: end;
   min-width: 0;
 }
 
@@ -700,8 +842,21 @@
   }
 
   .dayHeader {
-    gap: 0.45rem;
-    flex-wrap: wrap;
+    gap: 0;
+  }
+
+  .dayHeaderTopRow {
+    column-gap: 0.55rem;
+    padding-bottom: 0.36rem;
+  }
+
+  .dayHeaderPrimary {
+    gap: 0.5rem;
+  }
+
+  .dayHeaderSummaryRow {
+    padding-top: 0.34rem;
+    padding-bottom: 0.28rem;
   }
 }
 

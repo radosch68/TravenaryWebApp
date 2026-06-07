@@ -6,8 +6,10 @@ import type {
   ItineraryDay,
   ItineraryListParams,
   ItineraryListResponse,
+  PhotoSearchResult,
   ShareTokenResponse,
   SharedItineraryDetail,
+  WebReference,
 } from '@/services/contracts'
 
 function normalizeDay(day: ItineraryDay): ItineraryDay {
@@ -79,11 +81,7 @@ export interface UpdateItineraryRequest {
   description?: string
   tags?: string[]
   visibility?: 'private' | 'shared' | 'public'
-  coverPhoto?: {
-    url: string
-    caption?: string
-    type?: 'photo' | 'video' | 'webpage'
-  } | null
+  coverPhoto?: WebReference | null
   templateId?: string
   startDate?: string | null
   days?: Array<{
@@ -193,4 +191,17 @@ export async function deleteItinerary(itineraryId: string): Promise<void> {
     protected: true,
     skipAuthRefreshOn401: true,
   })
+}
+
+export async function searchPhotos(keywords: string, limit = 3): Promise<PhotoSearchResult[]> {
+  const response = await apiRequest<{ items: PhotoSearchResult[] }>('/itineraries/photos/search', {
+    method: 'POST',
+    body: {
+      keywords,
+      limit,
+    },
+    protected: true,
+  })
+
+  return response.items ?? []
 }

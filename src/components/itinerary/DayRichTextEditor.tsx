@@ -7,7 +7,6 @@ import { EditorContent, useEditor } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import { Suggestion } from '@tiptap/suggestion'
 import { computePosition, flip, offset, shift } from '@floating-ui/dom'
-import { Link2 } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { ReactElement } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -15,6 +14,7 @@ import { useTranslation } from 'react-i18next'
 import type { ActivityType, DayDocumentNode, ItineraryActivity, ItineraryDay } from '@/services/contracts'
 import {
   ActivityTile,
+  ACTIVITY_EDITOR_CONFIRMED_EVENT,
   createActivityTileNode,
   type ActivityTileLabels,
 } from '@/tiptap/activity-tile-extension'
@@ -28,7 +28,9 @@ interface DayRichTextEditorProps {
   day: ItineraryDay
   locale: string
   onDaySave: (day: DaySavePayload) => Promise<void>
+  onEditorActivate?: () => void
   onSaveStateChange?: (state: DayRichTextSaveState) => void
+  onDocumentDraftChange?: (dayNumber: number, document: DayDocumentNode[]) => void
 }
 
 export type DayRichTextSaveState = 'idle' | 'dirty' | 'saving' | 'saved' | 'error'
@@ -52,13 +54,12 @@ type SlashMenuPosition = {
   top: number
 }
 
-const AUTOSAVE_DELAY_MS = 2000
+const AUTOSAVE_DELAY_MS = 7000
 const TOP_DROP_ZONE_PX = 36
-const TOOLBAR_SUPPRESSION_MS = 180
-const DROP_TOOLBAR_SUPPRESSION_MS = 1400
 const SLASH_MENU_CURSOR_GAP_PX = 6
 const SLASH_MENU_EDGE_GAP_PX = 6
 const THROWAWAY_SAVE_ERROR_TRIGGER = '[[error]]'
+const USE_MODAL_ACTIVITY_EDITOR = true
 
 const SectionBreak = Node.create({
   name: 'sectionBreak',
@@ -86,14 +87,6 @@ const SectionBreak = Node.create({
     ]
   },
 })
-
-function isNonTextEditorTarget(target: EventTarget | null): boolean {
-  if (!(target instanceof HTMLElement)) {
-    return false
-  }
-
-  return Boolean(target.closest('[data-activity-id], a[href]'))
-}
 
 function tokenizeSlashText(value: string): string[] {
   return value
@@ -161,12 +154,13 @@ export function DayRichTextEditor({
   day,
   locale,
   onDaySave,
+  onEditorActivate,
   onSaveStateChange,
+  onDocumentDraftChange,
 }: DayRichTextEditorProps): ReactElement {
   const { t } = useTranslation('common')
   const [documentNodes, setDocumentNodes] = useState<DayDocumentNode[]>(() => cloneDocument(day.document ?? []))
   const [saveState, setSaveState] = useState<DayRichTextSaveState>('idle')
-  const [isToolbarVisible, setIsToolbarVisible] = useState(false)
   const [slashMenuOpen, setSlashMenuOpen] = useState(false)
   const [slashMenuPosition, setSlashMenuPosition] = useState<SlashMenuPosition | null>(null)
   const [slashMenuItems, setSlashMenuItems] = useState<SlashCommand[]>([])
@@ -179,6 +173,8 @@ export function DayRichTextEditor({
       locale,
       activityEditorLabel: t('itineraryView.richEditor.activityEditorLabel'),
       deleteActivity: t('itineraryView.richEditor.deleteActivity'),
+      cancelEdit: t('cancel'),
+      confirmEdit: t('save'),
       titleFallback: t('itineraryView.richEditor.titleFallback'),
       fields: {
         title: t('itineraryView.richEditor.fields.title'),
@@ -215,6 +211,8 @@ export function DayRichTextEditor({
     [locale, t],
   )
   const documentNodesRef = useRef(documentNodes)
+  const editVersionRef = useRef(editVersion)
+  const lastSavedEditVersionRef = useRef(0)
   const labelsRef = useRef<ActivityTileLabels>(activityTileLabels)
   const saveSequenceRef = useRef(0)
   const slashCommandsRef = useRef<SlashCommand[]>([])
@@ -226,14 +224,16 @@ export function DayRichTextEditor({
   const slashCommandRunnerRef = useRef<((command: SlashCommand) => void) | null>(null)
   const slashItemRefs = useRef<Array<HTMLButtonElement | null>>([])
   const slashMenuRef = useRef<HTMLDivElement | null>(null)
-  const editorRootRef = useRef<HTMLDivElement | null>(null)
   const saveStateChangeRef = useRef(onSaveStateChange)
-  const toolbarSuppressedRef = useRef(false)
-  const toolbarSuppressionTimeoutRef = useRef<number | null>(null)
+  const documentDraftChangeRef = useRef(onDocumentDraftChange)
 
   useEffect(() => {
     documentNodesRef.current = documentNodes
   }, [documentNodes])
+
+  useEffect(() => {
+    editVersionRef.current = editVersion
+  }, [editVersion])
 
   useEffect(() => {
     labelsRef.current = activityTileLabels
@@ -244,8 +244,16 @@ export function DayRichTextEditor({
   }, [onSaveStateChange])
 
   useEffect(() => {
+    documentDraftChangeRef.current = onDocumentDraftChange
+  }, [onDocumentDraftChange])
+
+  useEffect(() => {
     saveStateChangeRef.current?.(saveState)
   }, [saveState])
+
+  useEffect(() => {
+    documentDraftChangeRef.current?.(day.dayNumber, cloneDocument(documentNodes))
+  }, [day.dayNumber, documentNodes])
 
   useEffect(() => {
     slashMenuItemsRef.current = slashMenuItems
@@ -258,15 +266,6 @@ export function DayRichTextEditor({
   useEffect(() => {
     slashActiveIndexRef.current = slashActiveIndex
   }, [slashActiveIndex])
-
-  useEffect(
-    () => () => {
-      if (toolbarSuppressionTimeoutRef.current !== null) {
-        window.clearTimeout(toolbarSuppressionTimeoutRef.current)
-      }
-    },
-    [],
-  )
 
   const markDirty = useCallback((): void => {
     setSaveState('dirty')
@@ -370,20 +369,6 @@ export function DayRichTextEditor({
     window.requestAnimationFrame(updateSlashMenuPosition)
   }, [setSlashActiveCommandIndex, updateSlashMenuPosition])
 
-  const suppressToolbarForNonTextInteraction = useCallback((durationMs = TOOLBAR_SUPPRESSION_MS): void => {
-    toolbarSuppressedRef.current = true
-    setIsToolbarVisible(false)
-
-    if (toolbarSuppressionTimeoutRef.current !== null) {
-      window.clearTimeout(toolbarSuppressionTimeoutRef.current)
-    }
-
-    toolbarSuppressionTimeoutRef.current = window.setTimeout(() => {
-      toolbarSuppressedRef.current = false
-      toolbarSuppressionTimeoutRef.current = null
-    }, durationMs)
-  }, [])
-
   const saveStateLabel = useMemo(() => {
     if (saveState === 'saving') {
       return t('itineraryView.richEditor.saving')
@@ -407,14 +392,60 @@ export function DayRichTextEditor({
   const buildSavePayload = useCallback((): DaySavePayload => {
     return {
       dayNumber: day.dayNumber,
-      summary: day.summary,
       document: cloneDocument(documentNodesRef.current),
     }
-  }, [day.dayNumber, day.summary])
+  }, [day.dayNumber])
 
   const shouldSimulateSaveError = useCallback((): boolean => {
     return JSON.stringify(documentNodesRef.current).includes(THROWAWAY_SAVE_ERROR_TRIGGER)
   }, [])
+
+  const saveNow = useCallback((): void => {
+    const currentEditVersion = editVersionRef.current
+    if (currentEditVersion === 0 || currentEditVersion === lastSavedEditVersionRef.current) {
+      return
+    }
+
+    const sequence = saveSequenceRef.current + 1
+    saveSequenceRef.current = sequence
+    setSaveState('saving')
+
+    const savePromise =
+      shouldSimulateSaveError()
+        ? Promise.reject(new Error('THROWAWAY simulated day save error'))
+        : onDaySave(buildSavePayload())
+
+    void savePromise
+      .then(() => {
+        if (saveSequenceRef.current === sequence) {
+          lastSavedEditVersionRef.current = Math.max(lastSavedEditVersionRef.current, currentEditVersion)
+        }
+
+        if (saveSequenceRef.current === sequence && currentEditVersion === editVersionRef.current) {
+          setSaveState('saved')
+        }
+      })
+      .catch(() => {
+        if (saveSequenceRef.current === sequence) {
+          setSaveState('error')
+        }
+      })
+  }, [buildSavePayload, onDaySave, shouldSimulateSaveError])
+
+  useEffect(() => {
+    const onActivityEditorConfirmed = (): void => {
+      // Let TipTap flush attribute changes first, then persist immediately.
+      window.setTimeout(() => {
+        saveNow()
+      }, 0)
+    }
+
+    window.addEventListener(ACTIVITY_EDITOR_CONFIRMED_EVENT, onActivityEditorConfirmed)
+
+    return () => {
+      window.removeEventListener(ACTIVITY_EDITOR_CONFIRMED_EVENT, onActivityEditorConfirmed)
+    }
+  }, [saveNow])
 
   const slashCommandExtension = useMemo(
     () =>
@@ -583,6 +614,7 @@ export function DayRichTextEditor({
       // eslint-disable-next-line react-hooks/refs
       ActivityTile.configure({
         dayNumber: day.dayNumber,
+        useModalEditor: USE_MODAL_ACTIVITY_EDITOR,
         getActivityTypeLabel: (activity) => t(`itineraryView.activityType.${activity.type}`),
         getActivityMeta: (activity) => {
           const timeRange = formatLocalTimeRange(activity.time, activity.timeEnd, locale)
@@ -601,34 +633,11 @@ export function DayRichTextEditor({
         'aria-label': t('itineraryView.richEditor.editorAria', { dayNumber: day.dayNumber }),
       },
       handleDOMEvents: {
-        pointerdown: (_view, event) => {
-          if (isNonTextEditorTarget(event.target)) {
-            suppressToolbarForNonTextInteraction()
-          } else {
-            toolbarSuppressedRef.current = false
-            setIsToolbarVisible(true)
-          }
-
-          return false
-        },
-        click: (_view, event) => {
-          if (isNonTextEditorTarget(event.target)) {
-            suppressToolbarForNonTextInteraction()
-          }
-
-          return false
-        },
-        dragstart: () => {
-          suppressToolbarForNonTextInteraction(DROP_TOOLBAR_SUPPRESSION_MS)
-          return false
-        },
-        dragenter: () => {
-          suppressToolbarForNonTextInteraction(DROP_TOOLBAR_SUPPRESSION_MS)
+        pointerdown: () => {
+          onEditorActivate?.()
           return false
         },
         dragover: (view, event) => {
-          suppressToolbarForNonTextInteraction(DROP_TOOLBAR_SUPPRESSION_MS)
-
           const editorElement = view.dom as HTMLElement
           const editorRect = editorElement.getBoundingClientRect()
           const isTopDropZone =
@@ -643,10 +652,6 @@ export function DayRichTextEditor({
             view.dispatch(transaction)
           }
 
-          return false
-        },
-        drop: () => {
-          suppressToolbarForNonTextInteraction(DROP_TOOLBAR_SUPPRESSION_MS)
           return false
         },
       },
@@ -664,48 +669,24 @@ export function DayRichTextEditor({
       setDocumentNodes(editorDocument)
       markDirty()
     },
-    onFocus: ({ event }) => {
-      if (toolbarSuppressedRef.current || isNonTextEditorTarget(event.target)) {
-        return
-      }
-
-      setIsToolbarVisible(true)
+    onFocus: () => {
+      onEditorActivate?.()
     },
   })
 
   useEffect(() => {
-    if (editVersion === 0) {
+    if (editVersion === 0 || editVersion === lastSavedEditVersionRef.current) {
       return undefined
     }
 
-    const saveVersion = editVersion
     const handle = window.setTimeout(() => {
-      const sequence = saveSequenceRef.current + 1
-      saveSequenceRef.current = sequence
-      setSaveState('saving')
-
-      const savePromise =
-        shouldSimulateSaveError()
-          ? Promise.reject(new Error('THROWAWAY simulated day save error'))
-          : onDaySave(buildSavePayload())
-
-      void savePromise
-        .then(() => {
-          if (saveSequenceRef.current === sequence && saveVersion === editVersion) {
-            setSaveState('saved')
-          }
-        })
-        .catch(() => {
-          if (saveSequenceRef.current === sequence) {
-            setSaveState('error')
-          }
-        })
+      saveNow()
     }, AUTOSAVE_DELAY_MS)
 
     return () => {
       window.clearTimeout(handle)
     }
-  }, [buildSavePayload, editVersion, onDaySave, shouldSimulateSaveError])
+  }, [editVersion, saveNow])
 
   const setLink = useCallback((range?: Range): void => {
     if (!editor) {
@@ -1054,125 +1035,8 @@ export function DayRichTextEditor({
     return <p className={styles.statusText}>{t('loading')}</p>
   }
 
-  const toolbarTabIndex = isToolbarVisible ? 0 : -1
-
   return (
-    <div
-      ref={editorRootRef}
-      className={styles.richEditor}
-      onBlurCapture={(event) => {
-        const nextTarget = event.relatedTarget
-        if (nextTarget instanceof Node && event.currentTarget.contains(nextTarget)) {
-          return
-        }
-
-        window.setTimeout(() => {
-          const rootElement = editorRootRef.current
-          const activeElement = document.activeElement
-          if (activeElement && rootElement?.contains(activeElement)) {
-            return
-          }
-
-          if (!editor.isFocused) {
-            setIsToolbarVisible(false)
-          }
-        }, 0)
-      }}
-    >
-      <div
-        className={styles.formatToolbar}
-        data-visible={isToolbarVisible ? 'true' : 'false'}
-        role="toolbar"
-        aria-label={t('itineraryView.richEditor.toolbarAria')}
-        aria-hidden={!isToolbarVisible}
-      >
-        <div className={styles.formatToolbarInner}>
-          <button
-            type="button"
-            tabIndex={toolbarTabIndex}
-            onClick={() => editor.chain().focus().setParagraph().run()}
-            className={`${styles.normalCommand}${editor.isActive('paragraph') ? ` ${styles.activeCommand}` : ''}`}
-            aria-label={t('itineraryView.richEditor.normalText')}
-          >
-            N
-          </button>
-          <button
-            type="button"
-            tabIndex={toolbarTabIndex}
-            onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
-            className={`${styles.headingOneCommand}${
-              editor.isActive('heading', { level: 1 }) ? ` ${styles.activeCommand}` : ''
-            }`}
-            aria-label={t('itineraryView.richEditor.headingOne')}
-          >
-            H1
-          </button>
-          <button
-            type="button"
-            tabIndex={toolbarTabIndex}
-            onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
-            className={`${styles.headingTwoCommand}${
-              editor.isActive('heading', { level: 2 }) ? ` ${styles.activeCommand}` : ''
-            }`}
-            aria-label={t('itineraryView.richEditor.headingTwo')}
-          >
-            H2
-          </button>
-          <button
-            type="button"
-            tabIndex={toolbarTabIndex}
-            onClick={() => editor.chain().focus().toggleBulletList().run()}
-            className={`${styles.listCommand}${editor.isActive('bulletList') ? ` ${styles.activeCommand}` : ''}`}
-            aria-label={t('itineraryView.richEditor.slash.list')}
-          >
-            <span aria-hidden="true">•</span>
-            <span>{t('itineraryView.richEditor.slash.list')}</span>
-          </button>
-          <button
-            type="button"
-            tabIndex={toolbarTabIndex}
-            onClick={() => editor.chain().focus().toggleBold().run()}
-            className={`${styles.boldCommand}${editor.isActive('bold') ? ` ${styles.activeCommand}` : ''}`}
-            aria-label={t('itineraryView.richEditor.bold')}
-          >
-            B
-          </button>
-          <button
-            type="button"
-            tabIndex={toolbarTabIndex}
-            onClick={() => editor.chain().focus().toggleItalic().run()}
-            className={`${styles.italicCommand}${editor.isActive('italic') ? ` ${styles.activeCommand}` : ''}`}
-            aria-label={t('itineraryView.richEditor.italic')}
-          >
-            I
-          </button>
-          <button
-            type="button"
-            tabIndex={toolbarTabIndex}
-            onClick={() => editor.chain().focus().toggleUnderline().run()}
-            className={`${styles.underlineCommand}${editor.isActive('underline') ? ` ${styles.activeCommand}` : ''}`}
-            aria-label={t('itineraryView.richEditor.underline')}
-          >
-            U
-          </button>
-          <button
-            type="button"
-            tabIndex={toolbarTabIndex}
-            onClick={() => {
-              setLink()
-            }}
-            className={`${styles.linkCommand}${editor.isActive('link') ? ` ${styles.activeCommand}` : ''}`}
-            aria-label={t('itineraryView.richEditor.link')}
-          >
-            <Link2 size={15} aria-hidden="true" />
-            <span>{t('itineraryView.richEditor.link')}</span>
-          </button>
-          <span className={styles.toolbarStatus} role="status">
-            {saveStateLabel}
-          </span>
-        </div>
-      </div>
-
+    <div className={styles.richEditor} data-day-rich-editor-root="true">
       <div className={styles.editorWrap}>
         <EditorContent editor={editor} />
 
@@ -1231,6 +1095,9 @@ export function DayRichTextEditor({
           </div>
         ) : null}
       </div>
+      <p className={styles.statusText} role="status">
+        {saveStateLabel}
+      </p>
     </div>
   )
 }

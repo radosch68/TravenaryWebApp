@@ -72,3 +72,7 @@ export function formatLocalTimeRange(start: string | undefined, end: string | un
   const formattedEnd = end ? formatLocalTime(end, locale) : ''
   return formattedEnd ? `${formattedStart} - ${formattedEnd}` : formattedStart
 }
+
+export function getLocalizedTimeInputPlaceholder(locale: string): string {
+  return locale.startsWith('en') ? 'e.g. 2:30 PM' : 'napr. 14:30'
+}

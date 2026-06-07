@@ -13,7 +13,7 @@ import { AppShell } from '@/components/layout/AppShell'
 import { Button } from '@/components/ui/button'
 import { ApiError, type DayDocumentNode, type ItineraryActivity, type ItineraryDay, type ItineraryDetail } from '@/services/contracts'
 import { updateLastOpenedItinerary } from '@/services/profile-service'
-import { deleteItinerary, getItinerary, updateItineraryDay } from '@/services/itinerary-service'
+import { deleteItinerary, getItinerary, updateItinerary, updateItineraryDay } from '@/services/itinerary-service'
 import { useProfileStore } from '@/store/profile-store'
 import { formatLocalDate, parseIsoDate } from '@/utils/date-format'
 
@@ -25,6 +25,36 @@ type DaySavePayload = Omit<ItineraryDay, 'date'>
 
 function getTodayIsoDate(): string {
   return new Date().toISOString().slice(0, 10)
+}
+
+function parseIsoDateInput(value: string): Date | null {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    return null
+  }
+
+  const parsedDate = new Date(`${value}T00:00:00`)
+  return Number.isNaN(parsedDate.getTime()) ? null : parsedDate
+}
+
+function shiftIsoDate(value: string, dayDelta: number): string {
+  const parsedDate = parseIsoDateInput(value)
+  if (!parsedDate) {
+    return value
+  }
+
+  parsedDate.setDate(parsedDate.getDate() + dayDelta)
+  const year = parsedDate.getFullYear()
+  const month = String(parsedDate.getMonth() + 1).padStart(2, '0')
+  const day = String(parsedDate.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+function areStringArraysEqual(left: string[], right: string[]): boolean {
+  if (left.length !== right.length) {
+    return false
+  }
+
+  return left.every((value, index) => value === right[index])
 }
 
 function toActivitySavePayload(activity: ItineraryActivity): ItineraryActivity {
@@ -172,9 +202,38 @@ export function ItineraryViewPage(): ReactElement {
   const [dayCollapseCommandToken, setDayCollapseCommandToken] = useState(0)
   const [dayCollapseCommandMode, setDayCollapseCommandMode] = useState<'collapse-all' | 'expand-all' | undefined>(undefined)
   const [dayCollapseState, setDayCollapseState] = useState({ allCollapsed: false, allExpanded: true })
+  const [isTitleEditing, setIsTitleEditing] = useState(false)
+  const [titleDraft, setTitleDraft] = useState('')
+  const [isTitleSaving, setIsTitleSaving] = useState(false)
+  const [titleSaveError, setTitleSaveError] = useState(false)
+  const [isDescriptionEditing, setIsDescriptionEditing] = useState(false)
+  const [descriptionDraft, setDescriptionDraft] = useState('')
+  const [isDescriptionSaving, setIsDescriptionSaving] = useState(false)
+  const [descriptionSaveError, setDescriptionSaveError] = useState(false)
+  const [isDateRangeEditing, setIsDateRangeEditing] = useState(false)
+  const [dateFromDraft, setDateFromDraft] = useState('')
+  const [dateToDraft, setDateToDraft] = useState('')
+  const [isDateRangeSaving, setIsDateRangeSaving] = useState(false)
+  const [dateRangeSaveError, setDateRangeSaveError] = useState(false)
+  const [dateRangeValidationError, setDateRangeValidationError] = useState(false)
+  const [isTagsEditing, setIsTagsEditing] = useState(false)
+  const [tagsDraft, setTagsDraft] = useState('')
+  const [isTagsSaving, setIsTagsSaving] = useState(false)
+  const [tagsSaveError, setTagsSaveError] = useState(false)
+  const [isCoverPhotoEditing, setIsCoverPhotoEditing] = useState(false)
+  const [coverPhotoUrlDraft, setCoverPhotoUrlDraft] = useState('')
+  const [coverPhotoCaptionDraft, setCoverPhotoCaptionDraft] = useState('')
+  const [isCoverPhotoSaving, setIsCoverPhotoSaving] = useState(false)
+  const [coverPhotoSaveError, setCoverPhotoSaveError] = useState(false)
   const loadRequestSequenceRef = useRef(0)
   const itineraryRef = useRef<ItineraryDetail | null>(null)
+  const skipTitleBlurSaveRef = useRef(false)
+  const skipDescriptionBlurSaveRef = useRef(false)
+  const skipDateRangeBlurSaveRef = useRef(false)
+  const skipTagsBlurSaveRef = useRef(false)
+  const skipCoverPhotoBlurSaveRef = useRef(false)
   const daySaveSequenceByDayRef = useRef<Record<number, number>>({})
+  const daySaveQueueByDayRef = useRef<Record<number, Promise<void>>>({})
   const todayIsoDate = useMemo(() => getTodayIsoDate(), [])
   const nowDate = useMemo(() => new Date(), [])
 
@@ -305,52 +364,419 @@ export function ItineraryViewPage(): ReactElement {
   }, [])
 
   const handleDaySave = useCallback(async (updatedDay: DaySavePayload): Promise<void> => {
-    const currentItinerary = itineraryRef.current
-    if (!currentItinerary) {
-      return
+    const dayNumber = updatedDay.dayNumber
+    const previousQueue = daySaveQueueByDayRef.current[dayNumber] ?? Promise.resolve()
+
+    const queuedSave = previousQueue
+      .catch(() => undefined)
+      .then(async () => {
+        const currentItinerary = itineraryRef.current
+        if (!currentItinerary) {
+          return
+        }
+
+        const saveSequence = (daySaveSequenceByDayRef.current[dayNumber] ?? 0) + 1
+        daySaveSequenceByDayRef.current[dayNumber] = saveSequence
+        const nextDays = currentItinerary.days.map((day) =>
+          day.dayNumber === dayNumber
+            ? {
+                ...day,
+                ...updatedDay,
+              }
+            : day,
+        )
+        const optimisticItinerary = {
+          ...currentItinerary,
+          days: nextDays,
+        }
+
+        itineraryRef.current = optimisticItinerary
+        setItinerary(optimisticItinerary)
+
+        const savedItinerary = await updateItineraryDay(currentItinerary.id, dayNumber, {
+          summary: updatedDay.summary,
+          document: toDocumentSavePayload(updatedDay.document ?? []),
+        })
+
+        if (daySaveSequenceByDayRef.current[dayNumber] !== saveSequence) {
+          return
+        }
+
+        const latestItinerary = itineraryRef.current
+        if (!latestItinerary) {
+          return
+        }
+
+        const reconciledItinerary = mergeSavedDayIntoLatestItinerary(
+          latestItinerary,
+          savedItinerary,
+          dayNumber,
+        )
+
+        itineraryRef.current = reconciledItinerary
+        setItinerary(reconciledItinerary)
+      })
+
+    daySaveQueueByDayRef.current[dayNumber] = queuedSave
+
+    try {
+      await queuedSave
+    } finally {
+      if (daySaveQueueByDayRef.current[dayNumber] === queuedSave) {
+        delete daySaveQueueByDayRef.current[dayNumber]
+      }
     }
-
-    const saveSequence = (daySaveSequenceByDayRef.current[updatedDay.dayNumber] ?? 0) + 1
-    daySaveSequenceByDayRef.current[updatedDay.dayNumber] = saveSequence
-    const nextDays = currentItinerary.days.map((day) =>
-      day.dayNumber === updatedDay.dayNumber
-        ? {
-            ...day,
-            ...updatedDay,
-          }
-        : day,
-    )
-    const optimisticItinerary = {
-      ...currentItinerary,
-      days: nextDays,
-    }
-
-    itineraryRef.current = optimisticItinerary
-    setItinerary(optimisticItinerary)
-
-    const savedItinerary = await updateItineraryDay(currentItinerary.id, updatedDay.dayNumber, {
-      summary: updatedDay.summary,
-      document: toDocumentSavePayload(updatedDay.document ?? []),
-    })
-
-    if (daySaveSequenceByDayRef.current[updatedDay.dayNumber] !== saveSequence) {
-      return
-    }
-
-    const latestItinerary = itineraryRef.current
-    if (!latestItinerary) {
-      return
-    }
-
-    const reconciledItinerary = mergeSavedDayIntoLatestItinerary(
-      latestItinerary,
-      savedItinerary,
-      updatedDay.dayNumber,
-    )
-
-    itineraryRef.current = reconciledItinerary
-    setItinerary(reconciledItinerary)
   }, [])
+
+  const startTitleEdit = useCallback((): void => {
+    if (!itineraryRef.current || isTitleSaving) {
+      return
+    }
+
+    setTitleSaveError(false)
+    setTitleDraft(itineraryRef.current.title)
+    setIsTitleEditing(true)
+  }, [isTitleSaving])
+
+  const cancelTitleEdit = useCallback((): void => {
+    if (isTitleSaving) {
+      return
+    }
+
+    skipTitleBlurSaveRef.current = false
+    setIsTitleEditing(false)
+    setTitleDraft('')
+    setTitleSaveError(false)
+  }, [isTitleSaving])
+
+  const saveTitleEdit = useCallback(async (): Promise<void> => {
+    const currentItinerary = itineraryRef.current
+    if (!currentItinerary || isTitleSaving) {
+      return
+    }
+
+    const nextTitle = titleDraft.trim()
+    if (nextTitle.length === 0 || nextTitle === currentItinerary.title) {
+      cancelTitleEdit()
+      return
+    }
+
+    setIsTitleSaving(true)
+    setTitleSaveError(false)
+
+    try {
+      const saved = await updateItinerary(currentItinerary.id, { title: nextTitle })
+      itineraryRef.current = saved
+      setItinerary(saved)
+    } catch {
+      setTitleSaveError(true)
+    } finally {
+      setIsTitleSaving(false)
+      setIsTitleEditing(false)
+      setTitleDraft('')
+    }
+  }, [cancelTitleEdit, isTitleSaving, titleDraft])
+
+  const startDescriptionEdit = useCallback((): void => {
+    if (!itineraryRef.current || isDescriptionSaving) {
+      return
+    }
+
+    setDescriptionSaveError(false)
+    setDescriptionDraft(itineraryRef.current.description ?? '')
+    setIsDescriptionEditing(true)
+  }, [isDescriptionSaving])
+
+  const cancelDescriptionEdit = useCallback((): void => {
+    if (isDescriptionSaving) {
+      return
+    }
+
+    skipDescriptionBlurSaveRef.current = false
+    setIsDescriptionEditing(false)
+    setDescriptionDraft('')
+    setDescriptionSaveError(false)
+  }, [isDescriptionSaving])
+
+  const saveDescriptionEdit = useCallback(async (): Promise<void> => {
+    const currentItinerary = itineraryRef.current
+    if (!currentItinerary || isDescriptionSaving) {
+      return
+    }
+
+    const trimmedDraft = descriptionDraft.trim()
+    const nextDescription = trimmedDraft.length > 0 ? trimmedDraft : undefined
+    const currentDescription = currentItinerary.description?.trim() ? currentItinerary.description.trim() : undefined
+
+    if (nextDescription === currentDescription) {
+      cancelDescriptionEdit()
+      return
+    }
+
+    setIsDescriptionSaving(true)
+    setDescriptionSaveError(false)
+
+    try {
+      const saved = await updateItinerary(currentItinerary.id, { description: nextDescription })
+      itineraryRef.current = saved
+      setItinerary(saved)
+    } catch {
+      setDescriptionSaveError(true)
+    } finally {
+      setIsDescriptionSaving(false)
+      setIsDescriptionEditing(false)
+      setDescriptionDraft('')
+    }
+  }, [cancelDescriptionEdit, descriptionDraft, isDescriptionSaving])
+
+  const startDateRangeEdit = useCallback((): void => {
+    const currentItinerary = itineraryRef.current
+    if (!currentItinerary || isDateRangeSaving) {
+      return
+    }
+
+    setDateRangeSaveError(false)
+    setDateRangeValidationError(false)
+    setDateFromDraft(currentItinerary.startDate ?? '')
+    setDateToDraft(currentItinerary.endDate ?? '')
+    setIsDateRangeEditing(true)
+  }, [isDateRangeSaving])
+
+  const cancelDateRangeEdit = useCallback((): void => {
+    if (isDateRangeSaving) {
+      return
+    }
+
+    skipDateRangeBlurSaveRef.current = false
+    setIsDateRangeEditing(false)
+    setDateFromDraft('')
+    setDateToDraft('')
+    setDateRangeSaveError(false)
+    setDateRangeValidationError(false)
+  }, [isDateRangeSaving])
+
+  const saveDateRangeEdit = useCallback(async (): Promise<void> => {
+    const currentItinerary = itineraryRef.current
+    if (!currentItinerary || isDateRangeSaving) {
+      return
+    }
+
+    const nextFrom = dateFromDraft.trim()
+    const nextTo = dateToDraft.trim()
+
+    if (nextFrom.length === 0 && nextTo.length === 0) {
+      if (!currentItinerary.startDate) {
+        cancelDateRangeEdit()
+        return
+      }
+
+      setIsDateRangeSaving(true)
+      setDateRangeSaveError(false)
+      setDateRangeValidationError(false)
+
+      try {
+        const saved = await updateItinerary(currentItinerary.id, { startDate: null })
+        itineraryRef.current = saved
+        setItinerary(saved)
+      } catch {
+        setDateRangeSaveError(true)
+      } finally {
+        setIsDateRangeSaving(false)
+        setIsDateRangeEditing(false)
+        setDateFromDraft('')
+        setDateToDraft('')
+      }
+      return
+    }
+
+    const parsedFrom = parseIsoDateInput(nextFrom)
+    const parsedTo = parseIsoDateInput(nextTo)
+    if (!parsedFrom || !parsedTo || parsedTo < parsedFrom) {
+      setDateRangeValidationError(true)
+      return
+    }
+
+    if (nextFrom === currentItinerary.startDate) {
+      cancelDateRangeEdit()
+      return
+    }
+
+    setIsDateRangeSaving(true)
+    setDateRangeSaveError(false)
+    setDateRangeValidationError(false)
+
+    try {
+      const saved = await updateItinerary(currentItinerary.id, { startDate: nextFrom })
+      itineraryRef.current = saved
+      setItinerary(saved)
+    } catch {
+      setDateRangeSaveError(true)
+    } finally {
+      setIsDateRangeSaving(false)
+      setIsDateRangeEditing(false)
+      setDateFromDraft('')
+      setDateToDraft('')
+    }
+  }, [cancelDateRangeEdit, dateFromDraft, dateToDraft, isDateRangeSaving])
+
+  const startTagsEdit = useCallback((): void => {
+    const currentItinerary = itineraryRef.current
+    if (!currentItinerary || isTagsSaving) {
+      return
+    }
+
+    setTagsSaveError(false)
+    setTagsDraft(currentItinerary.tags.join(', '))
+    setIsTagsEditing(true)
+  }, [isTagsSaving])
+
+  const cancelTagsEdit = useCallback((): void => {
+    if (isTagsSaving) {
+      return
+    }
+
+    skipTagsBlurSaveRef.current = false
+    setIsTagsEditing(false)
+    setTagsDraft('')
+    setTagsSaveError(false)
+  }, [isTagsSaving])
+
+  const saveTagsEdit = useCallback(async (): Promise<void> => {
+    const currentItinerary = itineraryRef.current
+    if (!currentItinerary || isTagsSaving) {
+      return
+    }
+
+    const parsedTags = Array.from(
+      new Set(
+        tagsDraft
+          .split(',')
+          .map((tag) => tag.trim())
+          .filter(Boolean),
+      ),
+    )
+
+    if (areStringArraysEqual(parsedTags, currentItinerary.tags)) {
+      cancelTagsEdit()
+      return
+    }
+
+    setIsTagsSaving(true)
+    setTagsSaveError(false)
+
+    try {
+      const saved = await updateItinerary(currentItinerary.id, { tags: parsedTags })
+      itineraryRef.current = saved
+      setItinerary(saved)
+    } catch {
+      setTagsSaveError(true)
+    } finally {
+      setIsTagsSaving(false)
+      setIsTagsEditing(false)
+      setTagsDraft('')
+    }
+  }, [cancelTagsEdit, isTagsSaving, tagsDraft])
+
+  const startCoverPhotoEdit = useCallback((): void => {
+    const currentItinerary = itineraryRef.current
+    if (!currentItinerary || isCoverPhotoSaving) {
+      return
+    }
+
+    setCoverPhotoSaveError(false)
+    setCoverPhotoUrlDraft(currentItinerary.coverPhoto?.url ?? '')
+    setCoverPhotoCaptionDraft(currentItinerary.coverPhoto?.caption ?? '')
+    setIsCoverPhotoEditing(true)
+  }, [isCoverPhotoSaving])
+
+  const cancelCoverPhotoEdit = useCallback((): void => {
+    if (isCoverPhotoSaving) {
+      return
+    }
+
+    skipCoverPhotoBlurSaveRef.current = false
+    setIsCoverPhotoEditing(false)
+    setCoverPhotoUrlDraft('')
+    setCoverPhotoCaptionDraft('')
+    setCoverPhotoSaveError(false)
+  }, [isCoverPhotoSaving])
+
+  const saveCoverPhotoEdit = useCallback(async (): Promise<void> => {
+    const currentItinerary = itineraryRef.current
+    if (!currentItinerary || isCoverPhotoSaving) {
+      return
+    }
+
+    const nextUrl = coverPhotoUrlDraft.trim()
+    const nextCaption = coverPhotoCaptionDraft.trim()
+    const nextCaptionValue = nextCaption.length > 0 ? nextCaption : undefined
+    const currentUrl = currentItinerary.coverPhoto?.url?.trim() ?? ''
+    const currentCaption = currentItinerary.coverPhoto?.caption?.trim() || undefined
+
+    if (nextUrl.length === 0) {
+      if (!currentItinerary.coverPhoto?.url) {
+        cancelCoverPhotoEdit()
+        return
+      }
+
+      setIsCoverPhotoSaving(true)
+      setCoverPhotoSaveError(false)
+
+      try {
+        const saved = await updateItinerary(currentItinerary.id, { coverPhoto: null })
+        itineraryRef.current = saved
+        setItinerary(saved)
+      } catch {
+        setCoverPhotoSaveError(true)
+      } finally {
+        setIsCoverPhotoSaving(false)
+        setIsCoverPhotoEditing(false)
+        setCoverPhotoUrlDraft('')
+        setCoverPhotoCaptionDraft('')
+      }
+      return
+    }
+
+    if (nextUrl === currentUrl && nextCaptionValue === currentCaption) {
+      cancelCoverPhotoEdit()
+      return
+    }
+
+    setIsCoverPhotoSaving(true)
+    setCoverPhotoSaveError(false)
+
+    try {
+      const existingCoverPhoto = currentItinerary.coverPhoto
+      const preserveExistingAttribution =
+        existingCoverPhoto && nextUrl === currentUrl
+          ? {
+              source: existingCoverPhoto.source,
+              authorName: existingCoverPhoto.authorName,
+              authorUrl: existingCoverPhoto.authorUrl,
+              sourceUrl: existingCoverPhoto.sourceUrl,
+              downloadLocation: existingCoverPhoto.downloadLocation,
+            }
+          : {}
+
+      const saved = await updateItinerary(currentItinerary.id, {
+        coverPhoto: {
+          ...preserveExistingAttribution,
+          url: nextUrl,
+          caption: nextCaptionValue,
+          type: existingCoverPhoto?.type ?? 'photo',
+        },
+      })
+      itineraryRef.current = saved
+      setItinerary(saved)
+    } catch {
+      setCoverPhotoSaveError(true)
+    } finally {
+      setIsCoverPhotoSaving(false)
+      setIsCoverPhotoEditing(false)
+      setCoverPhotoUrlDraft('')
+      setCoverPhotoCaptionDraft('')
+    }
+  }, [cancelCoverPhotoEdit, coverPhotoCaptionDraft, coverPhotoUrlDraft, isCoverPhotoSaving])
 
   async function onDelete(): Promise<void> {
     if (!itinerary || isDeleting) {
@@ -434,11 +860,204 @@ export function ItineraryViewPage(): ReactElement {
                 />
               </div>
             </div>
-            <h1 className={styles.title}>{itinerary.title}</h1>
-            {itinerary.description ? <p className={styles.description}>{itinerary.description}</p> : null}
+            {isTitleEditing ? (
+              <form
+                className={styles.titleEditForm}
+                onBlurCapture={(event) => {
+                  const nextTarget = event.relatedTarget
+                  if (nextTarget instanceof Node && event.currentTarget.contains(nextTarget)) {
+                    return
+                  }
+
+                  if (skipTitleBlurSaveRef.current) {
+                    skipTitleBlurSaveRef.current = false
+                    return
+                  }
+
+                  void saveTitleEdit()
+                }}
+                onSubmit={(event) => {
+                  event.preventDefault()
+                  void saveTitleEdit()
+                }}
+              >
+                <input
+                  type="text"
+                  className={styles.titleInput}
+                  value={titleDraft}
+                  onChange={(event) => setTitleDraft(event.target.value)}
+                  disabled={isTitleSaving}
+                  aria-label={t('itineraryView.edit')}
+                  autoFocus
+                />
+                <div className={styles.titleEditActions}>
+                  <button
+                    type="button"
+                    className={styles.titleCancelButton}
+                    onPointerDown={() => {
+                      skipTitleBlurSaveRef.current = true
+                    }}
+                    onClick={cancelTitleEdit}
+                    disabled={isTitleSaving}
+                    aria-label={t('itineraryView.cancel')}
+                  >
+                    ✕
+                  </button>
+                </div>
+              </form>
+            ) : (
+              <button
+                type="button"
+                className={styles.titleDisplayButton}
+                onClick={startTitleEdit}
+                aria-label={t('itineraryView.editTitleAria')}
+              >
+                <h1 className={styles.title}>{itinerary.title}</h1>
+              </button>
+            )}
+            {titleSaveError ? <p className={styles.errorText}>{t('itineraryView.retry')}</p> : null}
+
+            {isDescriptionEditing ? (
+              <form
+                className={styles.descriptionEditForm}
+                onBlurCapture={(event) => {
+                  const nextTarget = event.relatedTarget
+                  if (nextTarget instanceof Node && event.currentTarget.contains(nextTarget)) {
+                    return
+                  }
+
+                  if (skipDescriptionBlurSaveRef.current) {
+                    skipDescriptionBlurSaveRef.current = false
+                    return
+                  }
+
+                  void saveDescriptionEdit()
+                }}
+                onSubmit={(event) => {
+                  event.preventDefault()
+                  void saveDescriptionEdit()
+                }}
+              >
+                <textarea
+                  className={styles.descriptionTextarea}
+                  value={descriptionDraft}
+                  onChange={(event) => setDescriptionDraft(event.target.value)}
+                  disabled={isDescriptionSaving}
+                  placeholder={t('itineraryView.descriptionPlaceholder')}
+                  aria-label={t('itineraryView.editDescriptionAria')}
+                  rows={3}
+                  autoFocus
+                />
+                <div className={styles.descriptionEditActions}>
+                  <button
+                    type="button"
+                    className={styles.descriptionCancelButton}
+                    onPointerDown={() => {
+                      skipDescriptionBlurSaveRef.current = true
+                    }}
+                    onClick={cancelDescriptionEdit}
+                    disabled={isDescriptionSaving}
+                    aria-label={t('itineraryView.cancel')}
+                  >
+                    ✕
+                  </button>
+                </div>
+              </form>
+            ) : (
+              <button
+                type="button"
+                className={styles.descriptionDisplayButton}
+                onClick={startDescriptionEdit}
+                aria-label={t('itineraryView.editDescriptionAria')}
+              >
+                <p className={styles.description}>
+                  {itinerary.description?.trim().length
+                    ? itinerary.description
+                    : t('itineraryView.descriptionPlaceholder')}
+                </p>
+              </button>
+            )}
+            {descriptionSaveError ? <p className={styles.errorText}>{t('itineraryView.retry')}</p> : null}
 
             <div className={styles.metaRow}>
-              <span className={styles.metaPill}>{dateRangeLabel}</span>
+              {isDateRangeEditing ? (
+                <form
+                  className={styles.metaEditForm}
+                  onBlurCapture={(event) => {
+                    const nextTarget = event.relatedTarget
+                    if (nextTarget instanceof Node && event.currentTarget.contains(nextTarget)) {
+                      return
+                    }
+
+                    if (skipDateRangeBlurSaveRef.current) {
+                      skipDateRangeBlurSaveRef.current = false
+                      return
+                    }
+
+                    void saveDateRangeEdit()
+                  }}
+                  onSubmit={(event) => {
+                    event.preventDefault()
+                    void saveDateRangeEdit()
+                  }}
+                >
+                  <input
+                    type="date"
+                    className={styles.metaDateInput}
+                    value={dateFromDraft}
+                    onChange={(event) => {
+                      const nextFrom = event.target.value
+                      setDateFromDraft(nextFrom)
+                      if (nextFrom) {
+                        const dayDelta = Math.max(0, itinerary.days.length - 1)
+                        setDateToDraft(shiftIsoDate(nextFrom, dayDelta))
+                      }
+                      setDateRangeValidationError(false)
+                    }}
+                    disabled={isDateRangeSaving}
+                    aria-label={t('dashboardManualStart.dateFromLabel')}
+                    autoFocus
+                  />
+                  <span className={styles.metaDateSeparator}>-</span>
+                  <input
+                    type="date"
+                    className={styles.metaDateInput}
+                    value={dateToDraft}
+                    onChange={(event) => {
+                      const nextTo = event.target.value
+                      setDateToDraft(nextTo)
+                      if (nextTo) {
+                        const dayDelta = Math.max(0, itinerary.days.length - 1)
+                        setDateFromDraft(shiftIsoDate(nextTo, -dayDelta))
+                      }
+                      setDateRangeValidationError(false)
+                    }}
+                    disabled={isDateRangeSaving}
+                    aria-label={t('dashboardManualStart.dateToLabel')}
+                  />
+                  <button
+                    type="button"
+                    className={styles.metaCancelButton}
+                    onPointerDown={() => {
+                      skipDateRangeBlurSaveRef.current = true
+                    }}
+                    onClick={cancelDateRangeEdit}
+                    disabled={isDateRangeSaving}
+                    aria-label={t('itineraryView.cancel')}
+                  >
+                    ✕
+                  </button>
+                </form>
+              ) : (
+                <button
+                  type="button"
+                  className={styles.metaPillButton}
+                  onClick={startDateRangeEdit}
+                  aria-label={t('itineraryView.editDateRangeAria')}
+                >
+                  <span className={styles.metaPill}>{dateRangeLabel}</span>
+                </button>
+              )}
               <span className={styles.metaPill}>
                 {t('itineraryView.dayCount', { count: itinerary.days.length })}
               </span>
@@ -470,28 +1089,156 @@ export function ItineraryViewPage(): ReactElement {
                 </div>
               </div>
             ) : null}
+            {dateRangeValidationError ? <p className={styles.errorText}>{t('dashboardManualStart.dateRangeError')}</p> : null}
+            {dateRangeSaveError ? <p className={styles.errorText}>{t('itineraryView.retry')}</p> : null}
 
-            {itinerary.tags.length > 0 ? (
-              <div className={styles.tagsRow}>
-                {itinerary.tags.map((tag) => (
-                  <span key={tag} className={styles.tagChip}>
-                    {tag}
-                  </span>
-                ))}
-              </div>
-            ) : null}
+            {isTagsEditing ? (
+              <form
+                className={styles.tagsEditForm}
+                onBlurCapture={(event) => {
+                  const nextTarget = event.relatedTarget
+                  if (nextTarget instanceof Node && event.currentTarget.contains(nextTarget)) {
+                    return
+                  }
+
+                  if (skipTagsBlurSaveRef.current) {
+                    skipTagsBlurSaveRef.current = false
+                    return
+                  }
+
+                  void saveTagsEdit()
+                }}
+                onSubmit={(event) => {
+                  event.preventDefault()
+                  void saveTagsEdit()
+                }}
+              >
+                <input
+                  type="text"
+                  className={styles.tagsInput}
+                  value={tagsDraft}
+                  onChange={(event) => setTagsDraft(event.target.value)}
+                  disabled={isTagsSaving}
+                  placeholder={t('itineraryView.tagsPlaceholder')}
+                  aria-label={t('itineraryView.editTagsAria')}
+                  autoFocus
+                />
+                <button
+                  type="button"
+                  className={styles.tagsCancelButton}
+                  onPointerDown={() => {
+                    skipTagsBlurSaveRef.current = true
+                  }}
+                  onClick={cancelTagsEdit}
+                  disabled={isTagsSaving}
+                  aria-label={t('itineraryView.cancel')}
+                >
+                  ✕
+                </button>
+              </form>
+            ) : (
+              <button
+                type="button"
+                className={styles.tagsDisplayButton}
+                onClick={startTagsEdit}
+                aria-label={t('itineraryView.editTagsAria')}
+              >
+                <div className={styles.tagsRow}>
+                  {itinerary.tags.length > 0 ? (
+                    itinerary.tags.map((tag) => (
+                      <span key={tag} className={styles.tagChip}>
+                        {tag}
+                      </span>
+                    ))
+                  ) : (
+                    <span className={styles.tagsPlaceholderText}>{t('itineraryView.tagsPlaceholder')}</span>
+                  )}
+                </div>
+              </button>
+            )}
+            {tagsSaveError ? <p className={styles.errorText}>{t('itineraryView.retry')}</p> : null}
 
           </div>
 
-          {itinerary.coverPhoto?.url ? (
-            <img
-              className={styles.coverPhoto}
-              src={itinerary.coverPhoto.url}
-              alt={itinerary.coverPhoto.caption ?? itinerary.title}
-              title={itinerary.coverPhoto.caption ?? itinerary.title}
-              loading="lazy"
-            />
-          ) : null}
+          {isCoverPhotoEditing ? (
+            <form
+              className={styles.coverPhotoEditForm}
+              onBlurCapture={(event) => {
+                const nextTarget = event.relatedTarget
+                if (nextTarget instanceof Node && event.currentTarget.contains(nextTarget)) {
+                  return
+                }
+
+                if (skipCoverPhotoBlurSaveRef.current) {
+                  skipCoverPhotoBlurSaveRef.current = false
+                  return
+                }
+
+                void saveCoverPhotoEdit()
+              }}
+              onSubmit={(event) => {
+                event.preventDefault()
+                void saveCoverPhotoEdit()
+              }}
+            >
+              <input
+                type="url"
+                className={styles.coverPhotoUrlInput}
+                value={coverPhotoUrlDraft}
+                onChange={(event) => setCoverPhotoUrlDraft(event.target.value)}
+                placeholder={t('itineraryView.coverPhotoUrlPlaceholder')}
+                aria-label={t('itineraryView.coverPhotoUrlPlaceholder')}
+                disabled={isCoverPhotoSaving}
+                autoFocus
+              />
+              <input
+                type="text"
+                className={styles.coverPhotoCaptionInput}
+                value={coverPhotoCaptionDraft}
+                onChange={(event) => setCoverPhotoCaptionDraft(event.target.value)}
+                placeholder={t('itineraryView.coverPhotoCaptionPlaceholder')}
+                aria-label={t('itineraryView.coverPhotoCaptionPlaceholder')}
+                disabled={isCoverPhotoSaving}
+              />
+              <button
+                type="button"
+                className={styles.coverPhotoCancelButton}
+                onPointerDown={() => {
+                  skipCoverPhotoBlurSaveRef.current = true
+                }}
+                onClick={cancelCoverPhotoEdit}
+                disabled={isCoverPhotoSaving}
+                aria-label={t('itineraryView.cancel')}
+              >
+                ✕
+              </button>
+            </form>
+          ) : itinerary.coverPhoto?.url ? (
+            <button
+              type="button"
+              className={styles.coverPhotoDisplayButton}
+              onClick={startCoverPhotoEdit}
+              aria-label={t('itineraryView.editCoverPhotoAria')}
+            >
+              <img
+                className={styles.coverPhoto}
+                src={itinerary.coverPhoto.url}
+                alt={itinerary.coverPhoto.caption ?? itinerary.title}
+                title={itinerary.coverPhoto.caption ?? itinerary.title}
+                loading="lazy"
+              />
+            </button>
+          ) : (
+            <button
+              type="button"
+              className={styles.coverPhotoPlaceholderButton}
+              onClick={startCoverPhotoEdit}
+              aria-label={t('itineraryView.editCoverPhotoAria')}
+            >
+              {t('itineraryView.coverPhotoPlaceholder')}
+            </button>
+          )}
+          {coverPhotoSaveError ? <p className={styles.errorText}>{t('itineraryView.retry')}</p> : null}
 
           <ItineraryMapLauncher
             className={styles.headerMap}
@@ -534,6 +1281,7 @@ export function ItineraryViewPage(): ReactElement {
         <ItineraryDaysGrid
           days={itinerary.days}
           locale={i18n.language}
+          draftCacheIdentity={itinerary.id}
           editable
           fullBleedOnMobile
           buildDayMapRoute={(dayNumber) => `/itineraries/${itinerary.id}/map?dayNumber=${dayNumber}`}

@@ -22,7 +22,7 @@ import {
 } from 'lucide-react'
 import type { DragEvent as ReactDragEvent } from 'react'
 import type { PointerEvent as ReactPointerEvent } from 'react'
-import { useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 
 import type {
   AccommodationPlatform,
@@ -31,6 +31,7 @@ import type {
   ItineraryActivity,
   WebReference,
 } from '@/services/contracts'
+import { ActivityFormPanel } from '@/components/itinerary/ActivityFormPanel'
 import { formatLocalTime } from '@/utils/date-format'
 import { unsplashUrl } from '@/utils/unsplash-url'
 
@@ -44,6 +45,8 @@ export interface ActivityTileLabels {
   locale: string
   activityEditorLabel: string
   deleteActivity: string
+  cancelEdit: string
+  confirmEdit: string
   titleFallback: string
   fields: {
     title: string
@@ -74,6 +77,7 @@ export interface ActivityTileLabels {
 
 export interface ActivityTileOptions {
   dayNumber: number | null
+  useModalEditor: boolean
   getActivityTypeLabel: (activity: ItineraryActivity) => string
   getActivityMeta: (activity: ItineraryActivity) => string[]
   getLabels: () => ActivityTileLabels
@@ -81,17 +85,13 @@ export interface ActivityTileOptions {
   onActivityDelete: (activityId: string) => void
 }
 
-type ActivityDraft = {
-  title: string
-  time: string
-  text: string
-}
-
 const TAP_MAX_MS = 260
 const TAP_MAX_MOVE_PX = 8
 const RECENT_DRAG_ACTIVITY_TTL_MS = 30_000
 const MAX_VISIBLE_REFERENCES = 3
 const MAX_VISIBLE_LOCATIONS = 3
+const ACTIVITY_EDITOR_ACTIVE_CHANGE_EVENT = 'travenary:activity-editor-active-change'
+export const ACTIVITY_EDITOR_CONFIRMED_EVENT = 'travenary:activity-editor-confirmed'
 
 const ACTIVITY_ICONS: Record<ActivityType, LucideIcon> = {
   note: NotebookPen,
@@ -114,6 +114,7 @@ export type RecentlyDraggedActivity = {
 }
 
 let recentlyDraggedActivity: RecentlyDraggedActivity | null = null
+let activeEditingActivityId: string | null = null
 
 function cloneActivity(activity: ItineraryActivity): ItineraryActivity {
   return {
@@ -146,12 +147,18 @@ export function getRecentlyDraggedActivitySnapshot(activityId: string): Recently
   }
 }
 
-function toDraft(activity: ItineraryActivity | undefined): ActivityDraft {
-  return {
-    title: activity?.title ?? '',
-    time: activity?.time ?? '',
-    text: activity?.text ?? '',
+function setActiveEditingActivity(activityId: string | null, notify = true): void {
+  activeEditingActivityId = activityId
+
+  if (!notify || typeof window === 'undefined') {
+    return
   }
+
+  window.dispatchEvent(
+    new CustomEvent<{ activityId: string | null }>(ACTIVITY_EDITOR_ACTIVE_CHANGE_EVENT, {
+      detail: { activityId },
+    }),
+  )
 }
 
 function isInteractiveTarget(target: EventTarget | null): boolean {
@@ -166,10 +173,12 @@ function ActivityTileView({ node, deleteNode, extension, selected, updateAttribu
   const attrs = node.attrs as ActivityTileAttributes
   const options = extension.options as ActivityTileOptions
   const activity = attrs.activity
+  const useModalEditor = options.useModalEditor === true
   const labels = options.getLabels()
   const [isEditing, setIsEditing] = useState(false)
-  const [draft, setDraft] = useState<ActivityDraft>(() => toDraft(activity))
+  const [isLegacySubmitting, setIsLegacySubmitting] = useState(false)
   const pointerDownRef = useRef<{ x: number; y: number; startedAt: number } | null>(null)
+  const activityId = activity?.id ?? null
 
   const typeLabel = useMemo(
     () => (activity ? options.getActivityTypeLabel(activity) : labels.titleFallback),
@@ -177,13 +186,55 @@ function ActivityTileView({ node, deleteNode, extension, selected, updateAttribu
   )
   const metaItems = useMemo(() => (activity ? options.getActivityMeta(activity) : []), [activity, options])
 
+  function clearGlobalActiveIfCurrent(): void {
+    if (activityId && activeEditingActivityId === activityId) {
+      setActiveEditingActivity(null, false)
+    }
+  }
+
   function openActivityEditor(): void {
     if (activity) {
       options.onActivityOpen(activity.id)
     }
-    setDraft(toDraft(activity))
+
     setIsEditing(true)
+
+    if (activityId) {
+      setActiveEditingActivity(activityId)
+    }
   }
+
+  useEffect(() => {
+    if (!isEditing) {
+      return
+    }
+
+    const onActiveEditorChange = (event: Event): void => {
+      const nextActivityId = (event as CustomEvent<{ activityId: string | null }>).detail?.activityId ?? null
+      if (nextActivityId === null) {
+        return
+      }
+
+      if (nextActivityId === activityId) {
+        return
+      }
+
+      setIsEditing(false)
+      clearGlobalActiveIfCurrent()
+    }
+
+    window.addEventListener(ACTIVITY_EDITOR_ACTIVE_CHANGE_EVENT, onActiveEditorChange)
+
+    return () => {
+      window.removeEventListener(ACTIVITY_EDITOR_ACTIVE_CHANGE_EVENT, onActiveEditorChange)
+    }
+  }, [activityId, isEditing, activity])
+
+  useEffect(() => {
+    return () => {
+      clearGlobalActiveIfCurrent()
+    }
+  }, [activityId])
 
   function handleTilePointerDown(event: ReactPointerEvent<HTMLDivElement>): void {
     if (event.button !== 0) {
@@ -225,6 +276,11 @@ function ActivityTileView({ node, deleteNode, extension, selected, updateAttribu
   }
 
   function handleDragStart(event: ReactDragEvent<HTMLDivElement>): void {
+    if (isEditing) {
+      event.preventDefault()
+      return
+    }
+
     if (!activity) {
       return
     }
@@ -237,26 +293,6 @@ function ActivityTileView({ node, deleteNode, extension, selected, updateAttribu
     event.dataTransfer.setData('application/x-travenary-activity-id', activity.id)
   }
 
-  function updateDraft(field: keyof ActivityDraft, value: string): void {
-    const nextDraft = {
-      ...draft,
-      [field]: value,
-    }
-
-    setDraft(nextDraft)
-    if (!activity) {
-      return
-    }
-
-    const nextActivity = {
-      ...activity,
-      [field]: value.trim().length > 0 ? value : undefined,
-    }
-    updateAttributes({
-      activity: nextActivity,
-    })
-  }
-
   function deleteActivity(): void {
     if (activity) {
       options.onActivityDelete(activity.id)
@@ -264,11 +300,39 @@ function ActivityTileView({ node, deleteNode, extension, selected, updateAttribu
     deleteNode()
   }
 
+  async function handleLegacyFormSave(nextActivity: ItineraryActivity): Promise<void> {
+    if (!activity) {
+      return
+    }
+
+    setIsLegacySubmitting(true)
+    try {
+      updateAttributes({
+        activity: {
+          ...nextActivity,
+        },
+      })
+
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(
+          new CustomEvent<{ activityId: string | null }>(ACTIVITY_EDITOR_CONFIRMED_EVENT, {
+            detail: { activityId },
+          }),
+        )
+      }
+
+      setIsEditing(false)
+      clearGlobalActiveIfCurrent()
+    } finally {
+      setIsLegacySubmitting(false)
+    }
+  }
+
   return (
     <NodeViewWrapper
       className={`${styles.activityNode}${selected ? ` ${styles.activityNodeSelected}` : ''}`}
       data-activity-id={activity?.id ?? ''}
-      draggable="true"
+      draggable={!isEditing}
     >
       <article className={styles.activityCard} contentEditable={false}>
         <button
@@ -303,45 +367,19 @@ function ActivityTileView({ node, deleteNode, extension, selected, updateAttribu
         </div>
 
         {isEditing ? (
-          <div
-            className={styles.activityEditor}
-            aria-label={labels.activityEditorLabel}
-            onPointerDown={(event) => {
-              event.stopPropagation()
+          <ActivityFormPanel
+            activity={activity ?? undefined}
+            activityType={activity?.type ?? 'note'}
+            mode={useModalEditor ? 'dialog' : 'inline'}
+            disabled={isLegacySubmitting}
+            onSave={async ({ activity: savedActivity }) => {
+              await handleLegacyFormSave(savedActivity)
             }}
-            onClick={(event) => {
-              event.stopPropagation()
+            onCancel={() => {
+              setIsEditing(false)
+              clearGlobalActiveIfCurrent()
             }}
-          >
-            <label>
-              <span>{labels.fields.title}</span>
-              <input
-                value={draft.title}
-                onChange={(event) => {
-                  updateDraft('title', event.target.value)
-                }}
-              />
-            </label>
-            <label>
-              <span>{labels.fields.time}</span>
-              <input
-                value={draft.time}
-                onChange={(event) => {
-                  updateDraft('time', event.target.value)
-                }}
-              />
-            </label>
-            <label className={styles.editorWide}>
-              <span>{labels.fields.notes}</span>
-              <textarea
-                rows={3}
-                value={draft.text}
-                onChange={(event) => {
-                  updateDraft('text', event.target.value)
-                }}
-              />
-            </label>
-          </div>
+          />
         ) : null}
       </article>
     </NodeViewWrapper>
@@ -458,6 +496,7 @@ function ActivityTileDisplay({
                     target="_blank"
                     rel="noopener noreferrer"
                     className={styles.referenceThumbnailLink}
+                    data-no-auto-external-icon="true"
                     aria-label={labels.display.openReferenceAria(fullLinkLabel)}
                   >
                     <img
@@ -495,11 +534,12 @@ function ActivityTileDisplay({
                 target="_blank"
                 rel="noopener noreferrer"
                 className={referenceChipClassName}
+                data-no-auto-external-icon="true"
                 aria-label={labels.display.openReferenceAria(fullLinkLabel)}
               >
                 <ReferenceChipIcon aria-hidden="true" size={12} />
                 <span>{displayLinkLabel}</span>
-                <ExternalLink aria-hidden="true" size={12} />
+                {referenceChipType !== 'photo' ? <ExternalLink aria-hidden="true" size={12} /> : null}
               </a>
             )
           })}
@@ -570,6 +610,7 @@ function LocationChip({
       target="_blank"
       rel="noopener noreferrer"
       className={locationLinkClassName}
+      data-no-auto-external-icon="true"
       aria-label={labels.display.openMapAria(fullLocationLabel)}
     >
       <LocationIcon aria-hidden="true" size={12} />
@@ -823,12 +864,15 @@ export const ActivityTile = Node.create<ActivityTileOptions>({
   addOptions() {
     return {
       dayNumber: null,
+      useModalEditor: false,
       getActivityTypeLabel: () => '',
       getActivityMeta: () => [],
       getLabels: () => ({
         locale: 'en',
         activityEditorLabel: '',
         deleteActivity: '',
+        cancelEdit: '',
+        confirmEdit: '',
         titleFallback: '',
         fields: {
           title: '',

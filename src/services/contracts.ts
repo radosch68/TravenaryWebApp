@@ -39,6 +39,16 @@ export interface WebReference {
   url: string
   caption?: string
   type?: 'photo' | 'video' | 'webpage'
+  source?: 'unsplash'
+  authorName?: string
+  authorUrl?: string
+  sourceUrl?: string
+  downloadLocation?: string
+}
+
+export interface PhotoSearchResult extends WebReference {
+  source: 'unsplash'
+  thumbnailUrl?: string
 }
 
 export type ActivityType =

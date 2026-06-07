@@ -1,0 +1,125 @@
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background: color-mix(in oklab, var(--foreground) 22%, transparent 78%);
+}
+
+.modal {
+  display: flex;
+  flex-direction: column;
+  width: min(100%, 44rem);
+  max-height: min(90vh, 54rem);
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--card);
+  box-shadow:
+    0 20px 56px color-mix(in oklab, var(--foreground) 16%, transparent 84%),
+    0 2px 12px color-mix(in oklab, var(--foreground) 10%, transparent 90%);
+}
+
+.header {
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  background: color-mix(in oklab, var(--muted) 60%, var(--card) 40%);
+  border-bottom: 1px solid var(--border);
+}
+
+.headerTitleRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.95rem 1rem 0.8rem;
+}
+
+.headerTitleRowCentered {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  justify-content: initial;
+}
+
+.headerTitleRowCentered h2,
+.headerTitleRowCentered h3 {
+  text-align: center;
+}
+
+.headerLeft {
+  display: flex;
+  align-items: center;
+  justify-self: start;
+}
+
+.headerExtra {
+  padding: 0.2rem 0;
+}
+
+.header h2,
+.header h3 {
+  margin: 0;
+  color: var(--foreground);
+  font-size: 1rem;
+  line-height: 1.2;
+}
+
+.closeButton {
+  min-width: 2.25rem;
+  min-height: 2.25rem;
+  padding: 0;
+  border-radius: 999px;
+  background: color-mix(in oklab, var(--background) 84%, transparent 16%);
+  color: var(--foreground);
+  border: 1px solid var(--border);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  justify-self: end;
+  flex-shrink: 0;
+  cursor: pointer;
+}
+
+.closeButton:hover {
+  background: color-mix(in oklab, var(--muted) 65%, var(--background) 35%);
+}
+
+.closeButton:focus-visible {
+  outline: 2px solid color-mix(in oklab, var(--ring) 70%, transparent 30%);
+  outline-offset: 2px;
+}
+
+.body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+  overscroll-behavior: contain;
+  padding: 0.9rem 1rem;
+}
+
+.footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  flex-shrink: 0;
+  background: color-mix(in oklab, var(--muted) 52%, var(--card) 48%);
+  border-top: 1px solid var(--border);
+}
+
+@media (max-width: 500px) {
+  .overlay {
+    align-items: flex-start;
+    padding: max(0.75rem, env(safe-area-inset-top)) max(0.75rem, env(safe-area-inset-right)) max(0.75rem, env(safe-area-inset-bottom)) max(0.75rem, env(safe-area-inset-left));
+  }
+
+  .body {
+    padding: 0.75rem;
+  }
+}

@@ -144,3 +144,549 @@ body {
     text-size-adjust: 100%;
   }
 }
+
+/* Legacy activity editor form styles (ported from old FE) */
+
+:root {
+  --text-primary: var(--foreground);
+  --text-secondary: color-mix(in oklab, var(--foreground) 85%, var(--muted-foreground) 15%);
+  --text-muted: var(--muted-foreground);
+  --surface-border: var(--border);
+  --accent-strong: var(--accent);
+  --danger: var(--destructive);
+}
+
+.activity-form-panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3);
+}
+
+.activity-form-panel__field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.activity-form-panel__field label,
+.activity-form-panel__field > span {
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
+.activity-form-panel__field input,
+.activity-form-panel__field select,
+.activity-form-panel__field textarea {
+  font-size: 0.88rem;
+  padding: 0.5rem 0.6rem;
+  border: 1px solid var(--surface-border);
+  border-radius: 8px;
+  background: var(--background);
+}
+
+.activity-form-panel__field textarea {
+  font-size: 0.84rem;
+  line-height: 1.35;
+}
+
+.activity-form-panel__field input:focus,
+.activity-form-panel__field select:focus,
+.activity-form-panel__field textarea:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: -1px;
+}
+
+.activity-form-panel__field-row {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.activity-form-panel__field-row > .activity-form-panel__field {
+  flex: 1;
+  min-width: 0;
+}
+
+.activity-form-panel__field-label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.activity-form-panel__field-link-icon {
+  inline-size: 1.6rem;
+  block-size: 1.6rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--accent-strong);
+  border-radius: 999px;
+  border: 1px solid color-mix(in oklab, var(--accent) 40%, transparent);
+  background: color-mix(in oklab, var(--accent) 12%, transparent);
+  text-decoration: none;
+  flex-shrink: 0;
+}
+
+.activity-form-panel__field-link-icon:hover {
+  color: var(--accent);
+  border-color: color-mix(in oklab, var(--accent) 65%, transparent);
+}
+
+.activity-form-panel__reference-url-field,
+.activity-form-panel__location-address-field {
+  margin-top: 0.3rem;
+}
+
+.activity-form-panel__block-option {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: var(--space-2);
+  align-items: center;
+}
+
+.activity-form-panel__block-option--map-toggle {
+  padding-top: 0.45rem;
+}
+
+.activity-form-panel__checkbox {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  cursor: pointer;
+  position: relative;
+}
+
+.activity-form-panel__anchor-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.activity-form-panel__anchor-icon {
+  color: var(--accent);
+  flex-shrink: 0;
+}
+
+.activity-form-panel__checkbox input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.activity-form-panel__checkbox-indicator {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  inline-size: 1.2rem;
+  block-size: 1.2rem;
+  border-radius: 999px;
+  border: 1.5px solid color-mix(in oklab, var(--border) 70%, transparent);
+  background: var(--background);
+  box-shadow: inset 0 1px 2px color-mix(in oklab, var(--foreground) 8%, transparent);
+  flex-shrink: 0;
+  transition: border-color 0.12s ease, background 0.12s ease, box-shadow 0.12s ease;
+}
+
+.activity-form-panel__checkbox-indicator-mark {
+  font-size: 0.72rem;
+  line-height: 1;
+  color: #fff;
+  opacity: 0;
+  transform: scale(0.7);
+  transition: opacity 0.12s ease, transform 0.12s ease;
+}
+
+.activity-form-panel__checkbox input:checked + .activity-form-panel__checkbox-indicator {
+  border-color: var(--accent);
+  background: var(--accent);
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--accent) 20%, transparent);
+}
+
+.activity-form-panel__checkbox input:checked + .activity-form-panel__checkbox-indicator .activity-form-panel__checkbox-indicator-mark {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.activity-form-panel__checkbox input:focus-visible + .activity-form-panel__checkbox-indicator {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.activity-form-panel__help-text {
+  grid-column: 1 / -1;
+  margin: 0;
+  font-size: 0.72rem;
+  line-height: 1.35;
+  color: var(--text-muted);
+}
+
+.activity-form-panel__section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  padding-top: 0.2rem;
+  border-top: 1px solid color-mix(in oklab, var(--border) 85%, transparent);
+}
+
+.activity-form-panel__section-content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.activity-form-panel__section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.activity-form-panel__section-count {
+  min-inline-size: 1.4rem;
+  text-align: center;
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+
+.activity-form-panel__section-footer {
+  display: flex;
+  justify-content: flex-start;
+  gap: 0.35rem;
+  padding-top: 0.1rem;
+}
+
+.activity-form-panel__anchor-option {
+  margin-top: 0.15rem;
+}
+
+.activity-form-panel__photo-search {
+  margin-top: 0.3rem;
+  padding: 0.55rem;
+  border: 1px solid color-mix(in oklab, var(--border) 82%, transparent);
+  border-radius: 10px;
+  background: color-mix(in oklab, var(--card) 90%, transparent);
+}
+
+.activity-form-panel__photo-search-row {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.activity-form-panel__photo-search-row input {
+  flex: 1;
+  min-width: 0;
+}
+
+.activity-form-panel__photo-search-results {
+  margin-top: 0.5rem;
+  display: grid;
+  gap: 0.45rem;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.activity-form-panel__photo-result {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 0.35rem;
+  border-radius: 8px;
+  border: 1px solid color-mix(in oklab, var(--border) 82%, transparent);
+  background: color-mix(in oklab, var(--card) 96%, transparent);
+  min-width: 0;
+}
+
+.activity-form-panel__photo-result input {
+  margin: 0;
+  inline-size: 0.95rem;
+  block-size: 0.95rem;
+}
+
+.activity-form-panel__photo-result img {
+  inline-size: 100%;
+  block-size: auto;
+  display: block;
+  border-radius: 6px;
+  border: 1px solid color-mix(in oklab, var(--border) 82%, transparent);
+}
+
+.activity-form-panel__photo-result-link {
+  display: block;
+  text-decoration: none;
+}
+
+.activity-form-panel__photo-result-title {
+  font-size: 0.66rem;
+  line-height: 1.2;
+  color: var(--text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.activity-form-panel__photo-search-go {
+  all: unset;
+  inline-size: 1.9rem;
+  block-size: 1.9rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--accent-strong);
+  border-radius: 999px;
+  border: 1px solid color-mix(in oklab, var(--accent) 45%, transparent);
+  background: color-mix(in oklab, var(--accent) 12%, transparent);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.activity-form-panel__photo-search-go:hover:not(:disabled) {
+  background: color-mix(in oklab, var(--accent) 20%, transparent);
+}
+
+.activity-form-panel__photo-search-go:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.activity-form-panel__section-title {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.activity-form-panel__section-collapse {
+  all: unset;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.38rem;
+  cursor: pointer;
+  border-radius: 6px;
+  padding: 0.1rem 0.2rem;
+}
+
+.activity-form-panel__section-collapse--full {
+  width: 100%;
+}
+
+.activity-form-panel__section-collapse--full .activity-form-panel__section-count {
+  margin-left: auto;
+}
+
+.activity-form-panel__section-collapse:hover:not(:disabled) {
+  background: color-mix(in oklab, var(--muted) 55%, transparent);
+}
+
+.activity-form-panel__section-collapse:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.activity-form-panel__section-icon-action,
+.activity-form-panel__repeatable-move-top-icon {
+  all: unset;
+  inline-size: 1.7rem;
+  block-size: 1.7rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--accent-strong);
+  cursor: pointer;
+  border-radius: 999px;
+  border: 1px solid color-mix(in oklab, var(--accent) 45%, transparent);
+  background: color-mix(in oklab, var(--accent) 12%, transparent);
+}
+
+.activity-form-panel__section-find-action {
+  all: unset;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  block-size: 1.7rem;
+  padding: 0 0.6rem;
+  color: var(--accent-strong);
+  cursor: pointer;
+  border-radius: 999px;
+  border: 1px solid color-mix(in oklab, var(--accent) 45%, transparent);
+  background: color-mix(in oklab, var(--accent) 12%, transparent);
+  font-size: 0.74rem;
+  font-weight: 600;
+}
+
+.activity-form-panel__section-find-action:hover:not(:disabled),
+.activity-form-panel__section-icon-action:hover:not(:disabled),
+.activity-form-panel__repeatable-move-top-icon:hover:not(:disabled) {
+  background: color-mix(in oklab, var(--accent) 20%, transparent);
+}
+
+.activity-form-panel__section-find-action:disabled,
+.activity-form-panel__section-icon-action:disabled,
+.activity-form-panel__repeatable-move-top-icon:disabled,
+.activity-form-panel__repeatable-remove-icon:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.activity-form-panel__repeatable-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  padding: 0.55rem;
+  border: 1px solid color-mix(in oklab, var(--border) 82%, transparent);
+  border-radius: 10px;
+  background: color-mix(in oklab, var(--card) 92%, transparent);
+}
+
+.activity-form-panel__repeatable-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.45rem;
+}
+
+.activity-form-panel__repeatable-collapse {
+  all: unset;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  width: 100%;
+  flex: 1;
+  min-width: 0;
+  cursor: pointer;
+  border-radius: 6px;
+  padding: 0.1rem 0.2rem;
+  color: var(--text-primary);
+}
+
+.activity-form-panel__repeatable-collapse > svg {
+  flex-shrink: 0;
+}
+
+.activity-form-panel__repeatable-collapse:hover:not(:disabled) {
+  background: color-mix(in oklab, var(--muted) 55%, transparent);
+}
+
+.activity-form-panel__repeatable-row--error {
+  border-color: color-mix(in oklab, var(--destructive) 45%, transparent);
+  background: color-mix(in oklab, var(--destructive) 8%, transparent);
+}
+
+.activity-form-panel__repeatable-error-indicator {
+  inline-size: 1rem;
+  block-size: 1rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border-radius: 999px;
+  background: var(--danger);
+  color: #fff;
+  font-size: 0.68rem;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.activity-form-panel__repeatable-title {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.activity-form-panel__repeatable-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.25rem;
+}
+
+.activity-form-panel__repeatable-remove-icon {
+  all: unset;
+  inline-size: 1.6rem;
+  block-size: 1.6rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--danger);
+  cursor: pointer;
+  border-radius: 999px;
+  border: 1px solid color-mix(in oklab, var(--destructive) 40%, transparent);
+  background: color-mix(in oklab, var(--destructive) 9%, transparent);
+}
+
+.activity-form-panel__repeatable-remove-icon:hover:not(:disabled) {
+  background: color-mix(in oklab, var(--destructive) 18%, transparent);
+}
+
+.activity-form-panel__field-row--location-top > .activity-form-panel__field:first-child {
+  flex: 1.4;
+}
+
+.activity-form-panel__field-row--location-top > .activity-form-panel__field:not(:first-child) {
+  flex: 1;
+}
+
+.activity-form-panel__field-error {
+  margin: -0.15rem 0 0;
+  font-size: 0.73rem;
+  color: var(--danger);
+}
+
+.activity-form-panel__submit-error {
+  margin: 0 0 0.75rem;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid color-mix(in oklab, var(--destructive) 45%, transparent);
+  border-radius: 8px;
+  background: color-mix(in oklab, var(--destructive) 9%, transparent);
+  color: var(--danger);
+  font-size: 0.82rem;
+  line-height: 1.35;
+}
+
+@media (max-width: 520px) {
+  .activity-form-panel__photo-search-results {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .activity-form-panel {
+    padding: 0.85rem;
+    gap: 0.65rem;
+  }
+
+  .activity-form-panel__field input,
+  .activity-form-panel__field select,
+  .activity-form-panel__field textarea {
+    font-size: 16px;
+  }
+
+  .activity-form-panel__field textarea {
+    font-size: 15px;
+  }
+
+  .activity-form-panel__block-option {
+    grid-template-columns: 1fr;
+    gap: 0.55rem;
+  }
+
+  .activity-form-panel__field-row {
+    flex-direction: column;
+    gap: 0.65rem;
+  }
+
+  .activity-form-panel__field-row--time,
+  .activity-form-panel__field-row--location-top {
+    flex-direction: row;
+    gap: 0.55rem;
+  }
+
+  .activity-form-panel__field-row--time > .activity-form-panel__field,
+  .activity-form-panel__field-row--location-top > .activity-form-panel__field {
+    min-width: 0;
+  }
+}
