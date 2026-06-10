@@ -15,8 +15,10 @@ import type { ActivityType, DayDocumentNode, ItineraryActivity, ItineraryDay } f
 import {
   ActivityTile,
   ACTIVITY_EDITOR_CONFIRMED_EVENT,
+  ACTIVITY_TILE_LABELS_CHANGED_EVENT,
   createActivityTileNode,
   type ActivityTileLabels,
+  type PhotoThumbnailSize,
 } from '@/tiptap/activity-tile-extension'
 import { formatLocalTimeRange } from '@/utils/date-format'
 
@@ -24,16 +26,29 @@ import styles from './DayRichTextEditor.module.css'
 
 type DaySavePayload = Omit<ItineraryDay, 'date'>
 
+export type DayRichTextSaveState = 'idle' | 'dirty' | 'saving' | 'saved' | 'error'
+
+export interface DayRichTextEditorHistoryState {
+  canUndo: boolean
+  canRedo: boolean
+}
+
+export interface DayRichTextEditorHistoryActions {
+  undo: () => void
+  redo: () => void
+}
+
 interface DayRichTextEditorProps {
   day: ItineraryDay
   locale: string
+  photoThumbnailSize: PhotoThumbnailSize
   onDaySave: (day: DaySavePayload) => Promise<void>
   onEditorActivate?: () => void
   onSaveStateChange?: (state: DayRichTextSaveState) => void
   onDocumentDraftChange?: (dayNumber: number, document: DayDocumentNode[]) => void
+  onHistoryStateChange?: (state: DayRichTextEditorHistoryState) => void
+  onHistoryActionsChange?: (actions: DayRichTextEditorHistoryActions | null) => void
 }
-
-export type DayRichTextSaveState = 'idle' | 'dirty' | 'saving' | 'saved' | 'error'
 
 type SlashMenuPath = 'root' | 'activity' | 'format'
 
@@ -153,10 +168,13 @@ function toNewActivity(type: Exclude<ActivityType, 'divider'>, title: string): I
 export function DayRichTextEditor({
   day,
   locale,
+  photoThumbnailSize,
   onDaySave,
   onEditorActivate,
   onSaveStateChange,
   onDocumentDraftChange,
+  onHistoryStateChange,
+  onHistoryActionsChange,
 }: DayRichTextEditorProps): ReactElement {
   const { t } = useTranslation('common')
   const [documentNodes, setDocumentNodes] = useState<DayDocumentNode[]>(() => cloneDocument(day.document ?? []))
@@ -187,6 +205,20 @@ export function DayRichTextEditor({
         guidanceGuided: t('itineraryView.guidanceGuided'),
         guidanceSelfGuided: t('itineraryView.guidanceSelfGuided'),
         cuisineLabel: (cuisine) => t('itineraryView.cuisineLabel', { cuisine }),
+        transferRouteFrom: t('itineraryView.transferRouteFrom'),
+        transferRouteTo: t('itineraryView.transferRouteTo'),
+        transferMotLabel: t('itineraryView.transferMotLabel'),
+        transferMotOptions: {
+          walk: t('itineraryView.transferMot.walk'),
+          bike: t('itineraryView.transferMot.bike'),
+          motorcycle: t('itineraryView.transferMot.motorcycle'),
+          car: t('itineraryView.transferMot.car'),
+          bus: t('itineraryView.transferMot.bus'),
+          train: t('itineraryView.transferMot.train'),
+          plane: t('itineraryView.transferMot.plane'),
+        },
+        transferEstimateLabel: t('itineraryView.transferEstimateLabel'),
+        transferEstimateUnavailable: t('itineraryView.transferEstimateUnavailable'),
         accommodationSummaryNights: t('itineraryView.accommodationSummaryNights'),
         accommodationSummaryCheckIn: t('itineraryView.accommodationSummaryCheckIn'),
         accommodationSummaryCheckOut: t('itineraryView.accommodationSummaryCheckOut'),
@@ -226,6 +258,9 @@ export function DayRichTextEditor({
   const slashMenuRef = useRef<HTMLDivElement | null>(null)
   const saveStateChangeRef = useRef(onSaveStateChange)
   const documentDraftChangeRef = useRef(onDocumentDraftChange)
+  const historyStateChangeRef = useRef(onHistoryStateChange)
+  const historyActionsChangeRef = useRef(onHistoryActionsChange)
+  const photoThumbnailSizeRef = useRef(photoThumbnailSize)
 
   useEffect(() => {
     documentNodesRef.current = documentNodes
@@ -237,6 +272,8 @@ export function DayRichTextEditor({
 
   useEffect(() => {
     labelsRef.current = activityTileLabels
+
+    window.dispatchEvent(new Event(ACTIVITY_TILE_LABELS_CHANGED_EVENT))
   }, [activityTileLabels])
 
   useEffect(() => {
@@ -246,6 +283,18 @@ export function DayRichTextEditor({
   useEffect(() => {
     documentDraftChangeRef.current = onDocumentDraftChange
   }, [onDocumentDraftChange])
+
+  useEffect(() => {
+    historyStateChangeRef.current = onHistoryStateChange
+  }, [onHistoryStateChange])
+
+  useEffect(() => {
+    historyActionsChangeRef.current = onHistoryActionsChange
+  }, [onHistoryActionsChange])
+
+  useEffect(() => {
+    photoThumbnailSizeRef.current = photoThumbnailSize
+  }, [photoThumbnailSize])
 
   useEffect(() => {
     saveStateChangeRef.current?.(saveState)
@@ -615,6 +664,8 @@ export function DayRichTextEditor({
       ActivityTile.configure({
         dayNumber: day.dayNumber,
         useModalEditor: USE_MODAL_ACTIVITY_EDITOR,
+        photoThumbnailSize,
+        getPhotoThumbnailSize: () => photoThumbnailSizeRef.current,
         getActivityTypeLabel: (activity) => t(`itineraryView.activityType.${activity.type}`),
         getActivityMeta: (activity) => {
           const timeRange = formatLocalTimeRange(activity.time, activity.timeEnd, locale)
@@ -673,6 +724,52 @@ export function DayRichTextEditor({
       onEditorActivate?.()
     },
   })
+
+  const emitHistoryState = useCallback((activeEditor = editor): void => {
+    if (!activeEditor) {
+      historyStateChangeRef.current?.({ canUndo: false, canRedo: false })
+      return
+    }
+
+    historyStateChangeRef.current?.({
+      canUndo: activeEditor.can().undo(),
+      canRedo: activeEditor.can().redo(),
+    })
+  }, [editor])
+
+  useEffect(() => {
+    if (!editor) {
+      emitHistoryState(undefined)
+      historyActionsChangeRef.current?.(null)
+      return
+    }
+
+    const handleHistoryChange = (): void => {
+      emitHistoryState(editor)
+    }
+
+    const historyActions: DayRichTextEditorHistoryActions = {
+      undo: () => {
+        onEditorActivate?.()
+        editor.commands.undo()
+        emitHistoryState(editor)
+      },
+      redo: () => {
+        onEditorActivate?.()
+        editor.commands.redo()
+        emitHistoryState(editor)
+      },
+    }
+
+    historyActionsChangeRef.current?.(historyActions)
+    handleHistoryChange()
+    editor.on('transaction', handleHistoryChange)
+
+    return () => {
+      editor.off('transaction', handleHistoryChange)
+      historyActionsChangeRef.current?.(null)
+    }
+  }, [editor, emitHistoryState, onEditorActivate])
 
   useEffect(() => {
     if (editVersion === 0 || editVersion === lastSavedEditVersionRef.current) {

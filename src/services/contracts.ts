@@ -65,10 +65,28 @@ export type ActivityType =
   | 'tour'
 
 export type AccommodationPlatform = 'booking' | 'airbnb' | 'agoda' | 'direct' | 'other'
+export type TransferMot = 'walk' | 'bike' | 'motorcycle' | 'car' | 'bus' | 'train' | 'plane'
+
+export interface TransferLocation {
+  caption?: string
+  showOnMap?: boolean
+  coordinates?: number[]
+  address?: string
+}
+
+export interface TransferEstimate {
+  value: string
+  source?: 'google' | 'manual' | 'fallback'
+  updatedAt?: string
+}
 
 export interface ActivityDetails {
   cuisine?: string
   guidanceMode?: 'selfGuided' | 'guided'
+  from?: TransferLocation
+  to?: TransferLocation
+  mot?: TransferMot
+  estimate?: TransferEstimate
   nights?: number
   guests?: number
   checkInFrom?: string

@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate, useParams } from 'react-router-dom'
 
-import { ItineraryDaysGrid } from '@/components/itinerary/ItineraryDaysGrid'
+import { ItineraryDaysGrid, type PhotoThumbnailSize } from '@/components/itinerary/ItineraryDaysGrid'
 import { DayShortcutsRow } from '@/components/itinerary/DayShortcutsRow'
 import { ItineraryMapLauncher } from '@/components/itinerary/ItineraryMapLauncher'
 import { ShareButton } from '@/components/itinerary/ShareButton'
@@ -22,6 +22,23 @@ import styles from './ItineraryViewPage.module.css'
 type LoadState = 'loading' | 'ready' | 'error' | 'not-found'
 
 type DaySavePayload = Omit<ItineraryDay, 'date'>
+
+const PHOTO_THUMBNAIL_SIZE_STORAGE_KEY = 'travenary_photo_thumbnail_size'
+const PHOTO_THUMBNAIL_SIZE_CHANGED_EVENT = 'travenary:photo-thumbnail-size-changed'
+
+const PHOTO_THUMBNAIL_SIZE_OPTIONS: ReadonlyArray<{ value: PhotoThumbnailSize; labelKey: string }> = [
+  { value: 'sm', labelKey: 'itineraryView.photoThumbnailSizeSmall' },
+  { value: 'md', labelKey: 'itineraryView.photoThumbnailSizeMedium' },
+  { value: 'lg', labelKey: 'itineraryView.photoThumbnailSizeLarge' },
+]
+
+function normalizePhotoThumbnailSize(value: string | null): PhotoThumbnailSize {
+  if (value === 'sm' || value === 'md' || value === 'lg') {
+    return value
+  }
+
+  return 'md'
+}
 
 function getTodayIsoDate(): string {
   return new Date().toISOString().slice(0, 10)
@@ -225,6 +242,13 @@ export function ItineraryViewPage(): ReactElement {
   const [coverPhotoCaptionDraft, setCoverPhotoCaptionDraft] = useState('')
   const [isCoverPhotoSaving, setIsCoverPhotoSaving] = useState(false)
   const [coverPhotoSaveError, setCoverPhotoSaveError] = useState(false)
+  const [photoThumbnailSize, setPhotoThumbnailSize] = useState<PhotoThumbnailSize>(() => {
+    if (typeof window === 'undefined') {
+      return 'md'
+    }
+
+    return normalizePhotoThumbnailSize(window.localStorage.getItem(PHOTO_THUMBNAIL_SIZE_STORAGE_KEY))
+  })
   const loadRequestSequenceRef = useRef(0)
   const itineraryRef = useRef<ItineraryDetail | null>(null)
   const skipTitleBlurSaveRef = useRef(false)
@@ -240,6 +264,19 @@ export function ItineraryViewPage(): ReactElement {
   useEffect(() => {
     itineraryRef.current = itinerary
   }, [itinerary])
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return
+    }
+
+    window.localStorage.setItem(PHOTO_THUMBNAIL_SIZE_STORAGE_KEY, photoThumbnailSize)
+    window.dispatchEvent(
+      new CustomEvent<{ size: PhotoThumbnailSize }>(PHOTO_THUMBNAIL_SIZE_CHANGED_EVENT, {
+        detail: { size: photoThumbnailSize },
+      }),
+    )
+  }, [photoThumbnailSize])
 
   const loadItinerary = useCallback(async (): Promise<void> => {
     const requestSequence = loadRequestSequenceRef.current + 1
@@ -1253,6 +1290,27 @@ export function ItineraryViewPage(): ReactElement {
 
           {!dayCollapseState.allExpanded || !dayCollapseState.allCollapsed ? (
             <div className={styles.headerDayControls}>
+              <div className={styles.photoThumbSizeControls} role="group" aria-label={t('itineraryView.photoThumbnailSizeLabel')}>
+                <span className={styles.photoThumbSizeLabel}>{t('itineraryView.photoThumbnailSizeLabel')}</span>
+                {PHOTO_THUMBNAIL_SIZE_OPTIONS.map((option) => (
+                  <button
+                    key={option.value}
+                    type="button"
+                    onClick={() => setPhotoThumbnailSize(option.value)}
+                    aria-pressed={photoThumbnailSize === option.value}
+                    aria-label={t(option.labelKey)}
+                    title={t(option.labelKey)}
+                    className={`${styles.photoThumbSizeButton}${photoThumbnailSize === option.value ? ` ${styles.photoThumbSizeButtonActive}` : ''}`}
+                  >
+                    <span
+                      aria-hidden="true"
+                      className={styles.photoThumbSizeIcon}
+                      data-size={option.value}
+                    />
+                  </button>
+                ))}
+              </div>
+
               {!dayCollapseState.allExpanded ? (
                 <Button
                   type="button"
@@ -1282,6 +1340,7 @@ export function ItineraryViewPage(): ReactElement {
           days={itinerary.days}
           locale={i18n.language}
           draftCacheIdentity={itinerary.id}
+          photoThumbnailSize={photoThumbnailSize}
           editable
           fullBleedOnMobile
           buildDayMapRoute={(dayNumber) => `/itineraries/${itinerary.id}/map?dayNumber=${dayNumber}`}

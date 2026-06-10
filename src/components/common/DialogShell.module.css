@@ -73,9 +73,9 @@
   min-height: 2.25rem;
   padding: 0;
   border-radius: 999px;
-  background: color-mix(in oklab, var(--background) 84%, transparent 16%);
-  color: var(--foreground);
-  border: 1px solid var(--border);
+  background: color-mix(in oklab, #dc2626 10%, var(--background) 90%);
+  color: color-mix(in oklab, #b91c1c 82%, var(--foreground) 18%);
+  border: 1px solid color-mix(in oklab, #dc2626 34%, var(--border) 66%);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -85,7 +85,8 @@
 }
 
 .closeButton:hover {
-  background: color-mix(in oklab, var(--muted) 65%, var(--background) 35%);
+  background: color-mix(in oklab, #dc2626 16%, var(--background) 84%);
+  border-color: color-mix(in oklab, #dc2626 52%, var(--border) 48%);
 }
 
 .closeButton:focus-visible {

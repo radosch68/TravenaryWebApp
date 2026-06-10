@@ -543,10 +543,82 @@
 .headerDayControls {
   grid-column: 1 / -1;
   display: flex;
+  flex-wrap: wrap;
   justify-content: flex-end;
   align-items: center;
   gap: 0.36rem;
   margin-top: -0.02rem;
+}
+
+.photoThumbSizeControls {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.16rem;
+  margin-right: auto;
+}
+
+.photoThumbSizeLabel {
+  font-size: 0.76rem;
+  color: var(--muted-foreground);
+  line-height: 1;
+  margin-right: 0.08rem;
+}
+
+.photoThumbSizeButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  min-height: 0;
+  padding: 0.1rem;
+  border: none;
+  background: transparent;
+  color: var(--muted-foreground);
+  cursor: pointer;
+  transition: color 120ms ease;
+}
+
+.photoThumbSizeButton:hover {
+  color: var(--foreground);
+}
+
+.photoThumbSizeButton:focus-visible {
+  outline: 2px solid color-mix(in oklab, var(--ring) 70%, transparent 30%);
+  outline-offset: 2px;
+}
+
+.photoThumbSizeButtonActive {
+  color: var(--foreground);
+}
+
+.photoThumbSizeButtonActive .photoThumbSizeIcon {
+  background: currentColor;
+  opacity: 1;
+}
+
+.photoThumbSizeIcon {
+  --thumb-icon-scale: 1;
+  --thumb-icon-base-width: 0.82rem;
+  --thumb-icon-base-height: 0.5rem;
+  display: inline-block;
+  width: calc(var(--thumb-icon-base-width) * var(--thumb-icon-scale));
+  height: calc(var(--thumb-icon-base-height) * var(--thumb-icon-scale));
+  border-radius: 0.12rem;
+  border: 1px solid currentColor;
+  opacity: 0.62;
+  transition: opacity 120ms ease, background-color 120ms ease;
+}
+
+.photoThumbSizeIcon[data-size='sm'] {
+  --thumb-icon-scale: 1;
+}
+
+.photoThumbSizeIcon[data-size='md'] {
+  --thumb-icon-scale: 1.35;
+}
+
+.photoThumbSizeIcon[data-size='lg'] {
+  --thumb-icon-scale: 1.7;
 }
 
 .headerMap {

@@ -193,6 +193,10 @@
 }
 
 .accommodationSummary {
+  appearance: none;
+  width: 100%;
+  border: 0;
+  background: transparent;
   display: flex;
   align-items: center;
   column-gap: 0.55rem;
@@ -208,10 +212,6 @@
   user-select: none;
 }
 
-.accommodationSummary::-webkit-details-marker {
-  display: none;
-}
-
 .accommodationSummary::before {
   content: '';
   flex: 0 0 auto;
@@ -224,7 +224,7 @@
   transition: transform 0.12s ease;
 }
 
-.accommodationDetails[open] .accommodationSummary::before {
+.accommodationDetailsOpen .accommodationSummary::before {
   transform: rotate(90deg);
 }
 
@@ -243,15 +243,19 @@
 }
 
 .accommodationGrid {
-  display: grid;
-  grid-template-columns: minmax(7.5rem, max-content) minmax(0, 1fr);
-  gap: 0.26rem 0.7rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.28rem;
   margin: 0;
   padding: 0 0.5rem 0.42rem;
 }
 
 .accommodationRow {
-  display: contents;
+  display: flex;
+  align-items: baseline;
+  gap: 0.34rem;
+  min-width: 0;
+  white-space: nowrap;
 }
 
 .accommodationGrid dt {
@@ -259,16 +263,128 @@
   font-size: 0.84rem;
   font-weight: 400;
   line-height: 1.42;
+  white-space: nowrap;
+  flex: 0 0 auto;
 }
 
 .accommodationGrid dd {
   margin: 0;
-  overflow-wrap: anywhere;
+  min-width: 0;
+  flex: 1 1 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   color: color-mix(in oklab, var(--foreground) 90%, var(--muted-foreground) 10%);
+  font-size: 0.84rem;
+  font-weight: 500;
+  line-height: 1.42;
+}
+
+.accommodationGrid dd strong {
+  font-weight: 700;
+}
+
+.transferDetails {
+  margin: -0.12rem -0.5rem 0;
+  border-bottom: 1px solid color-mix(in oklab, var(--activity-accent) 28%, var(--border) 72%);
+}
+
+.transferSummary {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  column-gap: 0.5rem;
+  padding: 0.34rem 0.5rem;
+}
+
+.transferSummaryLeft {
+  min-width: 0;
+}
+
+.transferSummaryRight {
+  justify-self: end;
+  text-align: right;
+  white-space: nowrap;
+  color: color-mix(in oklab, var(--foreground) 86%, var(--muted-foreground) 14%);
+  font-size: 0.82rem;
+  line-height: 1.35;
+}
+
+.transferSummaryRight strong {
+  font-weight: 700;
+}
+
+.transferSummaryItem {
+  display: flex;
+  align-items: center;
+  gap: 0.26rem;
+  min-width: 0;
+  color: color-mix(in oklab, var(--foreground) 78%, var(--muted-foreground) 22%);
+  font-size: 0.82rem;
+  line-height: 1.35;
+}
+
+.transferSummaryItem strong {
+  font-weight: 700;
+}
+
+.transferGrid {
+  display: flex;
+  flex-direction: column;
+  gap: 0.28rem;
+  margin: 0;
+  padding: 0 0.5rem 0.42rem;
+}
+
+.transferRow {
+  display: flex;
+  align-items: center;
+  gap: 0.34rem;
+  min-width: 0;
+}
+
+.transferGrid dt {
+  color: color-mix(in oklab, var(--foreground) 78%, var(--muted-foreground) 22%);
   font-size: 0.84rem;
   font-weight: 400;
   line-height: 1.42;
+  white-space: nowrap;
+  flex: 0 0 auto;
 }
+
+.transferGrid dd {
+  margin: 0;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.transferGrid dd strong {
+  font-weight: 700;
+}
+
+.transferEstimateChip {
+  border-color: rgba(67, 120, 170, 0.34);
+  background: rgba(67, 120, 170, 0.14);
+  color: #2f5578;
+  font-size: 0.7rem;
+  font-weight: 400;
+  line-height: 1.25;
+}
+
+.transferEstimateChip:hover {
+  border-color: rgba(67, 120, 170, 0.5);
+  background: rgba(67, 120, 170, 0.2);
+}
+
+.transferEstimateChip:focus-visible {
+  outline: 2px solid color-mix(in oklab, var(--ring) 70%, transparent 30%);
+  outline-offset: 2px;
+}
+
+.transferEstimateChip span {
+  font-weight: 400;
+}
+
 
 .metaGroup {
   display: flex;
@@ -299,6 +415,13 @@
   overflow: hidden;
   background: rgba(13, 124, 102, 0.08);
   line-height: 0;
+}
+
+.buttonReset {
+  appearance: none;
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
 }
 
 .referenceThumbnailImage {
@@ -530,12 +653,4 @@
     text-align: left;
   }
 
-  .accommodationGrid {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .accommodationRow {
-    display: grid;
-    gap: 0.06rem;
-  }
 }

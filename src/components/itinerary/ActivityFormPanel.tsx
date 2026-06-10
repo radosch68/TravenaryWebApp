@@ -1,5 +1,5 @@
 import type { ReactElement } from 'react'
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { AnchorSimple, ArrowRight, ArrowSquareOut, CaretDoubleUp, CaretDown, CaretRight, Check, MagnifyingGlass, Plus, Trash } from '@phosphor-icons/react'
 
@@ -9,8 +9,10 @@ import { searchPhotos } from '@/services/itinerary-service'
 import { generateClientId } from '@/utils/client-id'
 import { formatLocalDate, formatLocalTime, getLocalizedTimeInputPlaceholder } from '@/utils/date-format'
 import { toGoogleMapsUrl } from '@/utils/location-links'
+import { inferReferenceTypeFromUrl } from '@/utils/reference-url'
 import { ACTIVITY_TYPE_COLOR, ACTIVITY_TYPE_ICON } from './activity-presentation'
 import formStyles from './ActivityFormPanel.module.css'
+import { ensureGoogleMapsScript, waitForGoogleMapsApiReady } from '@/utils/google-maps-api'
 
 const FULL_EDIT_TYPES: ReadonlySet<ActivityType> = new Set(['note', 'poi', 'custom', 'carRental', 'food', 'shopping', 'tour', 'accommodation'])
 const LIMITED_EDIT_FIELDS = ['title', 'text', 'time', 'timeEnd'] as const
@@ -25,6 +27,16 @@ const EDITABLE_ACTIVITY_TYPES: readonly Exclude<ActivityType, 'divider'>[] = [
   'tour',
   'note',
   'custom',
+]
+
+const TRANSFER_MOT_OPTIONS: ReadonlyArray<'walk' | 'bike' | 'motorcycle' | 'car' | 'bus' | 'train' | 'plane'> = [
+  'walk',
+  'bike',
+  'motorcycle',
+  'car',
+  'bus',
+  'train',
+  'plane',
 ]
 
 const ANCHOR_ELIGIBLE_TYPES: ReadonlySet<ActivityType> = new Set([
@@ -78,45 +90,21 @@ interface LocationDraftRow {
   coordinatesManualOverride: boolean
 }
 
+interface TransferEstimateDraft {
+  value: string
+  source: 'google' | 'manual' | 'fallback'
+}
+
+interface TransferRouteDraft {
+  from: LocationDraftRow
+  to: LocationDraftRow
+  mot: 'walk' | 'bike' | 'motorcycle' | 'car' | 'bus' | 'train' | 'plane'
+  estimateValue: string
+  estimateSource: TransferEstimateDraft['source']
+}
+
 type ReferenceAddDialogMode = 'manual' | 'photo'
 type LocationErrorTarget = 'address' | 'row'
-
-const PHOTO_EXTENSIONS = new Set(['jpg', 'jpeg', 'png', 'webp', 'gif', 'bmp', 'tif', 'tiff', 'svg', 'avif', 'heic', 'heif', 'jfif'])
-const VIDEO_EXTENSIONS = new Set(['mp4', 'mov', 'avi', 'webm', 'm4v', 'mkv', 'mpeg', 'mpg', '3gp', 'ogv'])
-const WEBPAGE_EXTENSIONS = new Set(['html', 'htm', 'php', 'asp', 'aspx', 'jsp'])
-
-function inferReferenceTypeFromUrl(rawUrl: string): ReferenceType | '' {
-  const trimmed = rawUrl.trim()
-  if (!trimmed) {
-    return ''
-  }
-
-  let candidate = trimmed
-  if (isValidAbsoluteUrl(trimmed)) {
-    candidate = new URL(trimmed).pathname
-  } else {
-    candidate = candidate.split('#')[0]?.split('?')[0] ?? candidate
-  }
-
-  const normalized = candidate.toLowerCase()
-  const match = normalized.match(/\.([a-z0-9]+)$/)
-  if (!match) {
-    return ''
-  }
-
-  const extension = match[1]
-  if (PHOTO_EXTENSIONS.has(extension)) {
-    return 'photo'
-  }
-  if (VIDEO_EXTENSIONS.has(extension)) {
-    return 'video'
-  }
-  if (WEBPAGE_EXTENSIONS.has(extension)) {
-    return 'webpage'
-  }
-
-  return ''
-}
 
 function normalizeTimeValue(value: string): string | undefined {
   const trimmed = value.trim()
@@ -167,18 +155,27 @@ function toLocationDraftRows(locations?: LocationReference[]): LocationDraftRow[
     return []
   }
 
-  return locations.map((location) => ({
-    id: generateClientId(),
-    caption: location.caption ?? '',
-    address: location.address ?? '',
-    showOnMap: location.showOnMap === true,
-    longitude: typeof location.coordinates?.[0] === 'number' ? String(location.coordinates[0]) : '',
-    latitude: typeof location.coordinates?.[1] === 'number' ? String(location.coordinates[1]) : '',
-    initialAddress: location.address ?? '',
-    initialLongitude: typeof location.coordinates?.[0] === 'number' ? String(location.coordinates[0]) : '',
-    initialLatitude: typeof location.coordinates?.[1] === 'number' ? String(location.coordinates[1]) : '',
-    coordinatesManualOverride: false,
-  }))
+  return locations.map((location) => {
+    const longitude = typeof location.coordinates?.[0] === 'number'
+      ? String(location.coordinates[0])
+      : ''
+    const latitude = typeof location.coordinates?.[1] === 'number'
+      ? String(location.coordinates[1])
+      : ''
+
+    return {
+      id: generateClientId(),
+      caption: location.caption ?? '',
+      address: location.address ?? '',
+      showOnMap: location.showOnMap === true,
+      longitude,
+      latitude,
+      initialAddress: location.address ?? '',
+      initialLongitude: longitude,
+      initialLatitude: latitude,
+      coordinatesManualOverride: false,
+    }
+  })
 }
 
 function createEmptyReferenceRow(): ReferenceDraftRow {
@@ -205,6 +202,68 @@ function createEmptyLocationRow(): LocationDraftRow {
   }
 }
 
+function toTransferRouteLocationDraft(location?: ActivityLocation): LocationDraftRow {
+  const longitude = typeof location?.coordinates?.[0] === 'number'
+    ? String(location.coordinates[0])
+    : ''
+  const latitude = typeof location?.coordinates?.[1] === 'number'
+    ? String(location.coordinates[1])
+    : ''
+
+  return {
+    id: generateClientId(),
+    caption: location?.caption ?? '',
+    address: location?.address ?? '',
+    showOnMap: location?.showOnMap === true,
+    longitude,
+    latitude,
+    initialAddress: location?.address ?? '',
+    initialLongitude: longitude,
+    initialLatitude: latitude,
+    coordinatesManualOverride: false,
+  }
+}
+
+function parseCoordinatePair(longitudeRaw: string, latitudeRaw: string): [number, number] | null {
+  const normalizedLongitude = longitudeRaw.trim()
+  const normalizedLatitude = latitudeRaw.trim()
+  if (!normalizedLongitude || !normalizedLatitude) {
+    return null
+  }
+
+  const longitude = Number(normalizedLongitude)
+  const latitude = Number(normalizedLatitude)
+
+  if (!Number.isFinite(longitude) || !Number.isFinite(latitude)) {
+    return null
+  }
+
+  if (longitude < -180 || longitude > 180 || latitude < -90 || latitude > 90) {
+    return null
+  }
+
+  return [longitude, latitude]
+}
+
+function isTransferLocationComplete(row: LocationDraftRow): boolean {
+  const hasLongitude = row.longitude.trim().length > 0
+  const hasLatitude = row.latitude.trim().length > 0
+  const hasAddress = row.address.trim().length > 0
+
+  return (hasLongitude && hasLatitude) || hasAddress
+}
+
+function toTransferRouteEndpoint(row: LocationDraftRow): { lat: number; lng: number } | string | null {
+  const coordinates = parseCoordinatePair(row.longitude, row.latitude)
+  if (coordinates) {
+    const [longitude, latitude] = coordinates
+    return { lat: latitude, lng: longitude }
+  }
+
+  const address = row.address.trim()
+  return address.length > 0 ? address : null
+}
+
 function toRowOpenState(rows: Array<{ id: string }>): Record<string, boolean> {
   return rows.reduce<Record<string, boolean>>((acc, row) => {
     acc[row.id] = false
@@ -219,6 +278,14 @@ function isValidAbsoluteUrl(value: string): boolean {
   } catch {
     return false
   }
+}
+
+function openExternalUrl(url: string): void {
+  if (typeof window === 'undefined') {
+    return
+  }
+
+  window.open(url, '_blank', 'noopener,noreferrer')
 }
 
 function toLocationDraftGoogleMapsUrl(row: LocationDraftRow): string | null {
@@ -236,6 +303,24 @@ function toLocationDraftGoogleMapsUrl(row: LocationDraftRow): string | null {
   }
 
   return toGoogleMapsUrl({ address: row.address })
+}
+
+function toLocationDraftCoordinatesLabel(row: LocationDraftRow): string {
+  const longitudeRaw = row.longitude.trim()
+  const latitudeRaw = row.latitude.trim()
+
+  if (!longitudeRaw || !latitudeRaw) {
+    return ''
+  }
+
+  const longitude = Number(longitudeRaw)
+  const latitude = Number(latitudeRaw)
+
+  if (!Number.isFinite(longitude) || !Number.isFinite(latitude)) {
+    return ''
+  }
+
+  return `${longitude.toFixed(5)}, ${latitude.toFixed(5)}`
 }
 
 function readErrorCauseDetails(error: unknown): ErrorDetail[] | undefined {
@@ -302,6 +387,7 @@ interface ActivityFormPanelProps {
   activity?: ItineraryActivity
   activityType: ActivityType
   owningDayDate?: string
+  transferPrefillFrom?: ActivityLocation
   createOwnBlock?: boolean
   blockDividerTitle?: string
   mode?: 'dialog' | 'inline'
@@ -320,6 +406,7 @@ export function ActivityFormPanel({
   activity,
   activityType,
   owningDayDate,
+  transferPrefillFrom,
   createOwnBlock = false,
   blockDividerTitle = '',
   mode = 'dialog',
@@ -358,6 +445,17 @@ export function ActivityFormPanel({
   const [contactPhone, setContactPhone] = useState(activity?.details?.contactPhone ?? '')
   const [contactEmail, setContactEmail] = useState(activity?.details?.contactEmail ?? '')
   const [bookingRef, setBookingRef] = useState(activity?.details?.bookingRef ?? '')
+  const [transferFrom, setTransferFrom] = useState<LocationDraftRow>(() => (activity?.type === 'transfer' || (!activity && activityType === 'transfer'))
+    ? toTransferRouteLocationDraft(activity?.details?.from ?? transferPrefillFrom)
+    : createEmptyLocationRow())
+  const [transferTo, setTransferTo] = useState<LocationDraftRow>(() => activity?.type === 'transfer'
+    ? toTransferRouteLocationDraft(activity.details?.to)
+    : createEmptyLocationRow())
+  const [transferMot, setTransferMot] = useState<TransferRouteDraft['mot']>(() => activity?.details?.mot ?? 'car')
+  const [transferEstimateValue, setTransferEstimateValue] = useState(() => activity?.details?.estimate?.value ?? '')
+  const [transferEstimateSource, setTransferEstimateSource] = useState<TransferEstimateDraft['source']>(activity?.details?.estimate?.source ?? 'google')
+  const [transferEstimateLoading, setTransferEstimateLoading] = useState(false)
+  const [transferEstimateError, setTransferEstimateError] = useState<string | null>(null)
   const initialReferenceRows = toReferenceDraftRows(activity?.references)
   const initialLocationRows = toLocationDraftRows(activity?.locations)
   const [referenceRows, setReferenceRows] = useState<ReferenceDraftRow[]>(initialReferenceRows)
@@ -401,6 +499,13 @@ export function ActivityFormPanel({
     setContactPhone('')
     setContactEmail('')
     setBookingRef('')
+    setTransferFrom(nextType === 'transfer' ? toTransferRouteLocationDraft(transferPrefillFrom) : createEmptyLocationRow())
+    setTransferTo(createEmptyLocationRow())
+    setTransferMot('car')
+    setTransferEstimateValue('')
+    setTransferEstimateSource('google')
+    setTransferEstimateLoading(false)
+    setTransferEstimateError(null)
   }
 
   const handleSelectedActivityTypeChange = (nextType: ActivityType): void => {
@@ -419,6 +524,137 @@ export function ActivityFormPanel({
   const handleTimeEndInput = (value: string): void => {
     setTimeEnd(value)
   }
+
+  useEffect(() => {
+    const scheduleEstimateState = (patch: {
+      loading?: boolean
+      error?: string | null
+      source?: TransferEstimateDraft['source']
+      value?: string
+    }) => {
+      queueMicrotask(() => {
+        if (typeof patch.loading === 'boolean') {
+          setTransferEstimateLoading(patch.loading)
+        }
+        if (patch.error !== undefined) {
+          setTransferEstimateError(patch.error)
+        }
+        if (patch.source) {
+          setTransferEstimateSource(patch.source)
+        }
+        if (patch.value !== undefined) {
+          setTransferEstimateValue(patch.value)
+        }
+      })
+    }
+
+    if (selectedActivityType !== 'transfer') {
+      return
+    }
+
+    if (transferEstimateSource === 'manual') {
+      return
+    }
+
+    const origin = toTransferRouteEndpoint(transferFrom)
+    const destination = toTransferRouteEndpoint(transferTo)
+
+    if (!origin || !destination || !isTransferLocationComplete(transferFrom) || !isTransferLocationComplete(transferTo)) {
+      scheduleEstimateState({ loading: false, error: null })
+      return
+    }
+
+    if (transferMot === 'plane') {
+      scheduleEstimateState({ loading: false, error: null })
+      if (transferEstimateValue.trim().length === 0) {
+        scheduleEstimateState({ source: 'fallback' })
+      }
+      return
+    }
+
+    let cancelled = false
+    scheduleEstimateState({ loading: true, error: null })
+
+    const googleMapsApiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY?.trim() ?? ''
+    if (!googleMapsApiKey) {
+      scheduleEstimateState({
+        loading: false,
+        error: t('common:itinerary.dayEditor.transferEstimateUnavailable'),
+      })
+      return () => {
+        cancelled = true
+      }
+    }
+
+    void (async () => {
+      try {
+        await ensureGoogleMapsScript(googleMapsApiKey)
+        const mapsApi = await waitForGoogleMapsApiReady()
+        if (cancelled) {
+          return
+        }
+
+        const travelMode = transferMot === 'walk'
+          ? mapsApi.TravelMode?.WALKING ?? 'WALKING'
+          : transferMot === 'bike'
+            ? mapsApi.TravelMode?.BICYCLING ?? 'BICYCLING'
+            : transferMot === 'motorcycle' || transferMot === 'car'
+              ? mapsApi.TravelMode?.DRIVING ?? 'DRIVING'
+              : mapsApi.TravelMode?.TRANSIT ?? 'TRANSIT'
+
+        const directionsService = new mapsApi.DirectionsService()
+        const result = await new Promise<{ routes?: Array<{ legs?: Array<{ distance?: { text?: string; value?: number }; duration?: { text?: string } }> }> } | null>((resolve, reject) => {
+          directionsService.route(
+            {
+              origin,
+              destination,
+              travelMode,
+              provideRouteAlternatives: false,
+            },
+            (nextResult, status) => {
+              if (status === 'OK') {
+                resolve(nextResult)
+                return
+              }
+
+              reject(new Error(status))
+            },
+          )
+        })
+
+        if (cancelled) {
+          return
+        }
+
+        const leg = result?.routes?.[0]?.legs?.[0]
+        const distanceText = leg?.distance?.text?.trim() ?? ''
+        const durationText = leg?.duration?.text?.trim() ?? ''
+        const nextEstimate = [durationText, distanceText].filter(Boolean).join(' • ')
+
+        if (nextEstimate.length === 0) {
+          throw new Error('empty_estimate')
+        }
+
+        setTransferEstimateValue(nextEstimate)
+        setTransferEstimateSource('google')
+      } catch {
+        if (!cancelled) {
+          setTransferEstimateError(t('common:itinerary.dayEditor.transferEstimateUnavailable'))
+          if (transferEstimateValue.trim().length === 0) {
+            setTransferEstimateSource('fallback')
+          }
+        }
+      } finally {
+        if (!cancelled) {
+          setTransferEstimateLoading(false)
+        }
+      }
+    })()
+
+    return () => {
+      cancelled = true
+    }
+  }, [selectedActivityType, transferEstimateSource, transferFrom, transferTo, transferMot, transferEstimateValue, t])
 
   const updateReferenceRow = (rowId: string, patch: Partial<Omit<ReferenceDraftRow, 'id'>>): void => {
     setReferenceRows((prev) => prev.map((row) => (row.id === rowId ? { ...row, ...patch } : row)))
@@ -484,9 +720,7 @@ export function ActivityFormPanel({
     }
 
     if (mode === 'manual') {
-      const nextIndex = referenceRows.length + 1
       const nextRow = createEmptyReferenceRow()
-      nextRow.caption = t('common:itinerary.dayEditor.referenceDefaultTitle', { index: nextIndex })
       setReferenceAddRow(nextRow)
     }
     setReferenceAddError(null)
@@ -503,9 +737,7 @@ export function ActivityFormPanel({
       return
     }
 
-    const nextIndex = locationRows.length + 1
     const nextRow = createEmptyLocationRow()
-    nextRow.caption = t('common:itinerary.dayEditor.locationDefaultTitle', { index: nextIndex })
     setLocationAddRow(nextRow)
     setLocationAddError(null)
     setLocationAddDialogOpen(true)
@@ -780,7 +1012,8 @@ export function ActivityFormPanel({
     for (const row of referenceRows) {
       const url = row.url.trim()
       const caption = row.caption.trim()
-      const type = row.type || undefined
+      const inferredType = inferReferenceTypeFromUrl(url)
+      const type = row.type || inferredType || undefined
       const isEmpty = !url && !caption && !type
 
       if (isEmpty) {
@@ -910,6 +1143,49 @@ export function ActivityFormPanel({
       result.details = cuisine.trim() ? { cuisine: cuisine.trim() } : {}
     } else if (selectedActivityType === 'tour') {
       result.details = { guidanceMode }
+    } else if (selectedActivityType === 'transfer') {
+      const normalizedFrom = isTransferLocationComplete(transferFrom)
+        ? {
+            ...(transferFrom.caption.trim() ? { caption: transferFrom.caption.trim() } : {}),
+            showOnMap: transferFrom.showOnMap,
+            ...(transferFrom.address.trim() ? { address: transferFrom.address.trim() } : {}),
+            ...(() => {
+              const coordinates = parseCoordinatePair(transferFrom.longitude, transferFrom.latitude)
+              if (coordinates) {
+                const [longitude, latitude] = coordinates
+                return { coordinates: [longitude, latitude] }
+              }
+              return {}
+            })(),
+          }
+        : undefined
+      const normalizedTo = isTransferLocationComplete(transferTo)
+        ? {
+            ...(transferTo.caption.trim() ? { caption: transferTo.caption.trim() } : {}),
+            showOnMap: transferTo.showOnMap,
+            ...(transferTo.address.trim() ? { address: transferTo.address.trim() } : {}),
+            ...(() => {
+              const coordinates = parseCoordinatePair(transferTo.longitude, transferTo.latitude)
+              if (coordinates) {
+                const [longitude, latitude] = coordinates
+                return { coordinates: [longitude, latitude] }
+              }
+              return {}
+            })(),
+          }
+        : undefined
+      const estimateValue = transferEstimateValue.trim()
+      const shouldPersistEstimate = estimateValue.length > 0 && transferEstimateSource !== 'fallback'
+      if (normalizedFrom && normalizedTo) {
+        result.details = {
+          from: normalizedFrom,
+          to: normalizedTo,
+          mot: transferMot,
+          ...(shouldPersistEstimate
+            ? { estimate: { value: estimateValue, source: transferEstimateSource, updatedAt: new Date().toISOString() } }
+            : {}),
+        }
+      }
     } else if (selectedActivityType === 'accommodation') {
       const parsedNights = parseInt(nightsInput, 10)
       const normalizedNights = Number.isFinite(parsedNights) && parsedNights >= 1 ? parsedNights : 1
@@ -953,15 +1229,13 @@ export function ActivityFormPanel({
   }
 
   const typeColor = ACTIVITY_TYPE_COLOR[selectedActivityType]
-  const hasActivitySpecificFields = selectedActivityType === 'food' || selectedActivityType === 'tour' || selectedActivityType === 'accommodation'
+  const hasActivitySpecificFields = selectedActivityType === 'food' || selectedActivityType === 'tour' || selectedActivityType === 'accommodation' || selectedActivityType === 'transfer'
   const activitySpecificSectionTitle = t(`common:itinerary.dayEditor.activityTypeOptions.${ACTIVITY_TYPE_LABEL_KEY[selectedActivityType]}`)
-  const getReferenceRowSummary = (row: ReferenceDraftRow, rowIndex: number): string => {
-    const fallback = t('common:itinerary.dayEditor.referenceDefaultTitle', { index: rowIndex + 1 })
-    return row.caption.trim() || row.url.trim() || fallback
+  const getReferenceRowSummary = (row: ReferenceDraftRow): string => {
+    return row.caption.trim() || row.url.trim()
   }
-  const getLocationRowSummary = (row: LocationDraftRow, rowIndex: number): string => {
-    const fallback = t('common:itinerary.dayEditor.locationDefaultTitle', { index: rowIndex + 1 })
-    return row.caption.trim() || row.address.trim() || fallback
+  const getLocationRowSummary = (row: LocationDraftRow): string => {
+    return row.caption.trim() || row.address.trim() || toLocationDraftCoordinatesLabel(row)
   }
   const getPhotoResultSummary = (result: PhotoSearchResult, rowIndex: number): string => {
     return result.caption?.trim()
@@ -981,6 +1255,13 @@ export function ActivityFormPanel({
   const handleDialogClose = (): void => {
     if (isSubmitting) {
       return
+    }
+
+    if (typeof document !== 'undefined') {
+      const activeElement = document.activeElement
+      if (activeElement instanceof HTMLElement) {
+        activeElement.blur()
+      }
     }
 
     if (referenceAddDialogOpen) {
@@ -1007,7 +1288,7 @@ export function ActivityFormPanel({
   const dialogFooter = (
     <button
       type="button"
-      className="button-primary"
+      className={formStyles.dialogConfirmButton}
       onClick={() => void handleSubmit()}
       disabled={isFormDisabled || !title.trim()}
       aria-label={t('common:confirm')}
@@ -1185,6 +1466,91 @@ export function ActivityFormPanel({
                     <option value="guided">{t('common:itinerary.dayEditor.guidanceModeGuided')}</option>
                   </select>
                 </div>
+              ) : null}
+
+              {selectedActivityType === 'transfer' ? (
+                <>
+                  <div className="activity-form-panel__field-row activity-form-panel__field-row--location-top">
+                    <div className="activity-form-panel__field">
+                      <label htmlFor="activity-transfer-from-caption">{t('common:itinerary.dayEditor.fieldTransferFromCaption')}</label>
+                      <input id="activity-transfer-from-caption" type="text" value={transferFrom.caption} onChange={(e) => setTransferFrom((prev) => ({ ...prev, caption: e.target.value }))} disabled={isFormDisabled} />
+                    </div>
+                    <div className="activity-form-panel__field">
+                      <label htmlFor="activity-transfer-from-longitude">{t('common:itinerary.dayEditor.fieldLongitude')}</label>
+                      <input id="activity-transfer-from-longitude" type="text" value={transferFrom.longitude} onChange={(e) => setTransferFrom((prev) => ({ ...prev, longitude: e.target.value }))} disabled={isFormDisabled} />
+                    </div>
+                    <div className="activity-form-panel__field">
+                      <label htmlFor="activity-transfer-from-latitude">{t('common:itinerary.dayEditor.fieldLatitude')}</label>
+                      <input id="activity-transfer-from-latitude" type="text" value={transferFrom.latitude} onChange={(e) => setTransferFrom((prev) => ({ ...prev, latitude: e.target.value }))} disabled={isFormDisabled} />
+                    </div>
+                  </div>
+
+                  <div className="activity-form-panel__field activity-form-panel__location-address-field">
+                    <label htmlFor="activity-transfer-from-address">{t('common:itinerary.dayEditor.fieldTransferFromAddress')}</label>
+                    <input id="activity-transfer-from-address" type="text" value={transferFrom.address} onChange={(e) => setTransferFrom((prev) => ({ ...prev, address: e.target.value }))} disabled={isFormDisabled} />
+                  </div>
+
+                  <div className="activity-form-panel__block-option">
+                    <label className="activity-form-panel__checkbox" htmlFor="activity-transfer-from-show-on-map">
+                      <input id="activity-transfer-from-show-on-map" type="checkbox" checked={transferFrom.showOnMap} onChange={(event) => setTransferFrom((prev) => ({ ...prev, showOnMap: event.target.checked }))} disabled={isFormDisabled} />
+                      <span className="activity-form-panel__checkbox-indicator" aria-hidden="true"><span className="activity-form-panel__checkbox-indicator-mark">✓</span></span>
+                      <span>{t('common:itinerary.dayEditor.fieldShowOnMap')}</span>
+                    </label>
+                  </div>
+
+                  <div className="activity-form-panel__field-row activity-form-panel__field-row--location-top">
+                    <div className="activity-form-panel__field">
+                      <label htmlFor="activity-transfer-to-caption">{t('common:itinerary.dayEditor.fieldTransferToCaption')}</label>
+                      <input id="activity-transfer-to-caption" type="text" value={transferTo.caption} onChange={(e) => setTransferTo((prev) => ({ ...prev, caption: e.target.value }))} disabled={isFormDisabled} />
+                    </div>
+                    <div className="activity-form-panel__field">
+                      <label htmlFor="activity-transfer-to-longitude">{t('common:itinerary.dayEditor.fieldLongitude')}</label>
+                      <input id="activity-transfer-to-longitude" type="text" value={transferTo.longitude} onChange={(e) => setTransferTo((prev) => ({ ...prev, longitude: e.target.value }))} disabled={isFormDisabled} />
+                    </div>
+                    <div className="activity-form-panel__field">
+                      <label htmlFor="activity-transfer-to-latitude">{t('common:itinerary.dayEditor.fieldLatitude')}</label>
+                      <input id="activity-transfer-to-latitude" type="text" value={transferTo.latitude} onChange={(e) => setTransferTo((prev) => ({ ...prev, latitude: e.target.value }))} disabled={isFormDisabled} />
+                    </div>
+                  </div>
+
+                  <div className="activity-form-panel__field activity-form-panel__location-address-field">
+                    <label htmlFor="activity-transfer-to-address">{t('common:itinerary.dayEditor.fieldTransferToAddress')}</label>
+                    <input id="activity-transfer-to-address" type="text" value={transferTo.address} onChange={(e) => setTransferTo((prev) => ({ ...prev, address: e.target.value }))} disabled={isFormDisabled} />
+                  </div>
+
+                  <div className="activity-form-panel__block-option">
+                    <label className="activity-form-panel__checkbox" htmlFor="activity-transfer-to-show-on-map">
+                      <input id="activity-transfer-to-show-on-map" type="checkbox" checked={transferTo.showOnMap} onChange={(event) => setTransferTo((prev) => ({ ...prev, showOnMap: event.target.checked }))} disabled={isFormDisabled} />
+                      <span className="activity-form-panel__checkbox-indicator" aria-hidden="true"><span className="activity-form-panel__checkbox-indicator-mark">✓</span></span>
+                      <span>{t('common:itinerary.dayEditor.fieldShowOnMap')}</span>
+                    </label>
+                  </div>
+
+                  <div className="activity-form-panel__field">
+                    <label htmlFor="activity-transfer-mot">{t('common:itinerary.dayEditor.fieldTransferMot')}</label>
+                    <select id="activity-transfer-mot" value={transferMot} onChange={(e) => setTransferMot(e.target.value as TransferRouteDraft['mot'])} disabled={isFormDisabled}>
+                      {TRANSFER_MOT_OPTIONS.map((option) => (
+                        <option key={option} value={option}>{t(`common:itinerary.dayEditor.transferMotOptions.${option}`)}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="activity-form-panel__field">
+                    <label htmlFor="activity-transfer-estimate">{t('common:itinerary.dayEditor.fieldTransferEstimate')}</label>
+                    <input
+                      id="activity-transfer-estimate"
+                      type="text"
+                      value={transferEstimateValue}
+                      onChange={(e) => {
+                        setTransferEstimateValue(e.target.value)
+                        setTransferEstimateSource('manual')
+                      }}
+                      disabled={isFormDisabled}
+                    />
+                    {transferEstimateLoading ? <p className="activity-form-panel__help-text">{t('common:itinerary.dayEditor.transferEstimateLoading')}</p> : null}
+                    {transferEstimateError ? <p className="activity-form-panel__field-error" role="alert">{transferEstimateError}</p> : null}
+                  </div>
+                </>
               ) : null}
 
               {selectedActivityType === 'accommodation' ? (
@@ -1367,7 +1733,7 @@ export function ActivityFormPanel({
 
             {referenceRows.map((row, rowIndex) => {
               const isRowOpen = referenceRowOpen[row.id] ?? true
-              const referenceLinkLabel = getReferenceRowSummary(row, rowIndex)
+              const referenceLinkLabel = getReferenceRowSummary(row)
 
               return (
                 <div key={row.id} className="activity-form-panel__repeatable-row">
@@ -1380,7 +1746,7 @@ export function ActivityFormPanel({
                       aria-controls={`activity-reference-row-content-${row.id}`}
                     >
                       {isRowOpen ? <CaretDown size={13} weight="bold" /> : <CaretRight size={13} weight="bold" />}
-                      <span className="activity-form-panel__repeatable-title">{getReferenceRowSummary(row, rowIndex)}</span>
+                      <span className="activity-form-panel__repeatable-title">{getReferenceRowSummary(row)}</span>
                     </button>
                     <div className="activity-form-panel__repeatable-actions">
                       <button
@@ -1439,16 +1805,22 @@ export function ActivityFormPanel({
                         <div className="activity-form-panel__field-label-row">
                           <label htmlFor={`activity-reference-url-${row.id}`}>{t('common:itinerary.dayEditor.fieldReferenceUrl')}</label>
                           {row.type === 'photo' && isValidAbsoluteUrl(row.url.trim()) ? (
-                            <a
-                              href={row.url.trim()}
-                              target="_blank"
-                              rel="noreferrer noopener"
+                            <button
+                              type="button"
                               className="activity-form-panel__field-link-icon"
                               aria-label={t('common:itinerary.activityMeta.openReference', { label: referenceLinkLabel })}
                               title={t('common:itinerary.activityMeta.openReference', { label: referenceLinkLabel })}
+                              onPointerDown={(event) => {
+                                event.stopPropagation()
+                              }}
+                              onClick={(event) => {
+                                event.preventDefault()
+                                event.stopPropagation()
+                                openExternalUrl(row.url.trim())
+                              }}
                             >
                               <ArrowSquareOut size={15} weight="bold" />
-                            </a>
+                            </button>
                           ) : null}
                         </div>
                         <input
@@ -1522,7 +1894,7 @@ export function ActivityFormPanel({
             {locationRows.map((row, rowIndex) => {
               const isRowOpen = locationRowOpen[row.id] ?? true
               const locationMapsUrl = toLocationDraftGoogleMapsUrl(row)
-              const locationLinkLabel = getLocationRowSummary(row, rowIndex)
+              const locationLinkLabel = getLocationRowSummary(row)
               const locationError = locationErrors[row.id]
               const locationErrorTarget = locationErrorTargets[row.id] ?? 'row'
 
@@ -1546,7 +1918,7 @@ export function ActivityFormPanel({
                           !
                         </span>
                       ) : null}
-                      <span className="activity-form-panel__repeatable-title">{getLocationRowSummary(row, rowIndex)}</span>
+                      <span className="activity-form-panel__repeatable-title">{getLocationRowSummary(row)}</span>
                     </button>
                     <div className="activity-form-panel__repeatable-actions">
                       <button
@@ -1611,16 +1983,22 @@ export function ActivityFormPanel({
                         <div className="activity-form-panel__field-label-row">
                           <label htmlFor={`activity-location-address-${row.id}`}>{t('common:itinerary.dayEditor.fieldLocationAddress')}</label>
                           {locationMapsUrl ? (
-                            <a
-                              href={locationMapsUrl}
-                              target="_blank"
-                              rel="noreferrer noopener"
+                            <button
+                              type="button"
                               className="activity-form-panel__field-link-icon"
                               aria-label={t('common:itinerary.activityMeta.openMap', { label: locationLinkLabel })}
                               title={t('common:itinerary.activityMeta.openMap', { label: locationLinkLabel })}
+                              onPointerDown={(event) => {
+                                event.stopPropagation()
+                              }}
+                              onClick={(event) => {
+                                event.preventDefault()
+                                event.stopPropagation()
+                                openExternalUrl(locationMapsUrl)
+                              }}
                             >
                               <ArrowSquareOut size={15} weight="bold" />
-                            </a>
+                            </button>
                           ) : null}
                         </div>
                         <input
@@ -1684,7 +2062,7 @@ export function ActivityFormPanel({
         footer={(
           <button
             type="button"
-            className="button-primary"
+            className={formStyles.dialogConfirmButton}
             onClick={isReferencePhotoDialog ? handleAddSelectedPhotos : addReferenceRowFromDialog}
             disabled={isFormDisabled || (isReferencePhotoDialog && photoSearchBusy)}
             aria-label={t('common:confirm')}
@@ -1733,16 +2111,22 @@ export function ActivityFormPanel({
                 <div className="activity-form-panel__field-label-row">
                   <label htmlFor={`activity-reference-url-add-${referenceAddRow.id}`}>{t('common:itinerary.dayEditor.fieldReferenceUrl')}</label>
                   {isValidAbsoluteUrl(referenceAddUrl) ? (
-                    <a
-                      href={referenceAddUrl}
-                      target="_blank"
-                      rel="noreferrer noopener"
+                    <button
+                      type="button"
                       className="activity-form-panel__field-link-icon"
                       aria-label={t('common:itinerary.activityMeta.openReference', { label: referenceAddLinkLabel })}
                       title={t('common:itinerary.activityMeta.openReference', { label: referenceAddLinkLabel })}
+                      onPointerDown={(event) => {
+                        event.stopPropagation()
+                      }}
+                      onClick={(event) => {
+                        event.preventDefault()
+                        event.stopPropagation()
+                        openExternalUrl(referenceAddUrl)
+                      }}
                     >
                       <ArrowSquareOut size={15} weight="bold" />
-                    </a>
+                    </button>
                   ) : null}
                 </div>
                 <input
@@ -1854,7 +2238,7 @@ export function ActivityFormPanel({
         footer={(
           <button
             type="button"
-            className="button-primary"
+            className={formStyles.dialogConfirmButton}
             onClick={addLocationRowFromDialog}
             disabled={isFormDisabled}
             aria-label={t('common:confirm')}
@@ -1910,16 +2294,22 @@ export function ActivityFormPanel({
             <div className="activity-form-panel__field-label-row">
               <label htmlFor={`activity-location-address-add-${locationAddRow.id}`}>{t('common:itinerary.dayEditor.fieldLocationAddress')}</label>
               {locationAddMapsUrl ? (
-                <a
-                  href={locationAddMapsUrl}
-                  target="_blank"
-                  rel="noreferrer noopener"
+                <button
+                  type="button"
                   className="activity-form-panel__field-link-icon"
                   aria-label={t('common:itinerary.activityMeta.openMap', { label: locationAddRow.caption || locationAddRow.address })}
                   title={t('common:itinerary.activityMeta.openMap', { label: locationAddRow.caption || locationAddRow.address })}
+                  onPointerDown={(event) => {
+                    event.stopPropagation()
+                  }}
+                  onClick={(event) => {
+                    event.preventDefault()
+                    event.stopPropagation()
+                    openExternalUrl(locationAddMapsUrl)
+                  }}
                 >
                   <ArrowSquareOut size={15} weight="bold" />
-                </a>
+                </button>
               ) : null}
             </div>
             <input

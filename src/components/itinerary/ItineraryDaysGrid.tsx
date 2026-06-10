@@ -1,4 +1,5 @@
 import {
+  CircleAlert,
   BedDouble,
   BusFront,
   Camera,
@@ -14,8 +15,11 @@ import {
   MoonStar,
   NotebookPen,
   Plane,
+  Redo2,
+  Undo2,
   ShoppingBag,
   Sparkles,
+  TriangleAlert,
   UtensilsCrossed,
   type LucideIcon,
 } from 'lucide-react'
@@ -24,13 +28,24 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 
-import { DayRichTextEditor, type DayRichTextSaveState } from '@/components/itinerary/DayRichTextEditor'
+import {
+  DayRichTextEditor,
+  type DayRichTextEditorHistoryActions,
+  type DayRichTextEditorHistoryState,
+  type DayRichTextSaveState,
+} from '@/components/itinerary/DayRichTextEditor'
 import type { ActivityType, DayDocumentNode, ItineraryActivity, ItineraryDay, WebReference } from '@/services/contracts'
 import { hasCoordinates } from '@/components/itinerary/location-map-pins'
 import { formatLocalDate, formatLocalTime, formatLocalTimeRange, formatWeekday } from '@/utils/date-format'
-import { getOvernightCoverageByGapDay, groupDayForView, type OvernightCoverage } from '@/utils/itinerary-grouping'
+import {
+  getOvernightCoverageByGapDay,
+  getVirtualAccommodationCheckoutsByDay,
+  groupDayForView,
+  type OvernightCoverage,
+  type VirtualAccommodationCheckout,
+} from '@/utils/itinerary-grouping'
+import { getReferenceThumbnailUrl, toReferenceChipType } from '@/utils/reference-url'
 import { toDayActivities } from '@/utils/tiptap-compatibility'
-import { unsplashUrl } from '@/utils/unsplash-url'
 
 import styles from './ItineraryDaysGrid.module.css'
 
@@ -38,6 +53,7 @@ interface ItineraryDaysGridProps {
   days: ItineraryDay[]
   locale: string
   draftCacheIdentity?: string
+  photoThumbnailSize?: PhotoThumbnailSize
   editable?: boolean
   fullBleedOnMobile?: boolean
   buildDayMapRoute?: (dayNumber: number) => string | null
@@ -45,6 +61,10 @@ interface ItineraryDaysGridProps {
   collapseCommandMode?: 'collapse-all' | 'expand-all'
   onCollapseStateChange?: (state: { allCollapsed: boolean; allExpanded: boolean }) => void
   onDaySave?: (day: Omit<ItineraryDay, 'date'>) => Promise<void>
+}
+
+function toSelectorAttributeValue(value: string): string {
+  return value.replace(/\\/g, '\\\\').replace(/"/g, '\\"')
 }
 
 const ACTIVITY_ICONS: Record<ActivityType, LucideIcon> = {
@@ -70,7 +90,16 @@ const MIN_COLUMN_RATIO = 0.3
 const DEFAULT_TWO_COLUMN_RATIOS: [number, number] = [0.5, 0.5]
 const DEFAULT_THREE_COLUMN_RATIOS: [number, number, number] = [1 / 3, 1 / 3, 1 / 3]
 
+export type PhotoThumbnailSize = 'sm' | 'md' | 'lg'
+
+const PHOTO_THUMBNAIL_PRESETS: Record<PhotoThumbnailSize, { widthPx: number; widthRem: number }> = {
+  sm: { widthPx: 160, widthRem: 6.2 },
+  md: { widthPx: 220, widthRem: 8.4 },
+  lg: { widthPx: 320, widthRem: 11.5 },
+}
+
 type DaySaveVisualState = 'success' | 'error'
+type DayEditorHistoryState = DayRichTextEditorHistoryState
 type ActiveDividerDrag = {
   pointerId: number
   columnCount: 2 | 3
@@ -85,7 +114,7 @@ function clamp(value: number, min: number, max: number): number {
 }
 
 function isHeaderInteractiveTarget(target: EventTarget | null): boolean {
-  if (!(target instanceof HTMLElement)) {
+  if (!(target instanceof Element)) {
     return false
   }
 
@@ -124,6 +153,7 @@ export function ItineraryDaysGrid({
   days,
   locale,
   draftCacheIdentity,
+  photoThumbnailSize = 'md',
   editable = false,
   fullBleedOnMobile = false,
   buildDayMapRoute,
@@ -151,14 +181,22 @@ export function ItineraryDaysGrid({
     () => getOvernightCoverageByGapDay(sortedDays),
     [sortedDays],
   )
+  const virtualAccommodationCheckoutsByDay = useMemo(
+    () => getVirtualAccommodationCheckoutsByDay(sortedDays),
+    [sortedDays],
+  )
   const [collapsedDayNumbers, setCollapsedDayNumbers] = useState<Set<number>>(() => new Set())
   const [daySaveVisualStates, setDaySaveVisualStates] = useState<globalThis.Map<number, DaySaveVisualState>>(
     () => new globalThis.Map(),
   )
   const [activeSavedOkDayNumber, setActiveSavedOkDayNumber] = useState<number | null>(null)
+  const [dayEditorHistoryStates, setDayEditorHistoryStates] = useState<globalThis.Map<number, DayEditorHistoryState>>(
+    () => new globalThis.Map(),
+  )
   const dayHeaderObserversRef = useRef<globalThis.Map<number, ResizeObserver>>(
     new globalThis.Map<number, ResizeObserver>(),
   )
+  const dayEditorHistoryActionsRef = useRef<Record<number, DayRichTextEditorHistoryActions>>({})
   const saveSuccessTimersRef = useRef<globalThis.Map<number, number>>(new globalThis.Map())
   const skipHeaderSummaryBlurSaveRef = useRef(false)
   const [isPointerCoarse, setIsPointerCoarse] = useState(false)
@@ -210,6 +248,32 @@ export function ItineraryDaysGrid({
 
       return null
     })
+
+    setDayEditorHistoryStates((previousValue) => {
+      let didChange = false
+      const nextValue = new globalThis.Map<number, DayEditorHistoryState>()
+      previousValue.forEach((state, dayNumber) => {
+        if (dayNumbers.has(dayNumber)) {
+          nextValue.set(dayNumber, state)
+          return
+        }
+
+        didChange = true
+      })
+
+      return didChange ? nextValue : previousValue
+    })
+
+    const nextHistoryActions: Record<number, DayRichTextEditorHistoryActions> = {}
+    Object.entries(dayEditorHistoryActionsRef.current).forEach(([dayNumberKey, actions]) => {
+      const dayNumber = Number(dayNumberKey)
+      if (!Number.isFinite(dayNumber) || !dayNumbers.has(dayNumber)) {
+        return
+      }
+
+      nextHistoryActions[dayNumber] = actions
+    })
+    dayEditorHistoryActionsRef.current = nextHistoryActions
 
     if (dayDraftCacheSignatureRef.current !== nextDayDraftCacheSignature) {
       // Rebuild cache when day identity/content changes so stale drafts cannot
@@ -370,6 +434,54 @@ export function ItineraryDaysGrid({
     })
   }, [])
 
+  const jumpToAccommodationSource = useCallback((targetDayNumber: number, sourceActivityId: string): void => {
+    if (!sourceActivityId || !Number.isFinite(targetDayNumber)) {
+      return
+    }
+
+    const activitySelector = `[data-activity-id="${toSelectorAttributeValue(sourceActivityId)}"]`
+
+    setCollapsedDayNumbers((previousValue) => {
+      if (!previousValue.has(targetDayNumber)) {
+        return previousValue
+      }
+
+      const nextValue = new Set(previousValue)
+      nextValue.delete(targetDayNumber)
+      return nextValue
+    })
+
+    const scrollToActivity = (attempt = 0): void => {
+      const activityElement = document.querySelector(activitySelector) as HTMLElement | null
+      if (activityElement) {
+        activityElement.scrollIntoView({ block: 'center', behavior: 'smooth' })
+        return
+      }
+
+      if (attempt >= 8) {
+        const dayElement = document.getElementById(`itinerary-day-${targetDayNumber}`)
+        dayElement?.scrollIntoView({ block: 'start', behavior: 'smooth' })
+        return
+      }
+
+      window.setTimeout(() => {
+        scrollToActivity(attempt + 1)
+      }, 60)
+    }
+
+    window.setTimeout(() => {
+      scrollToActivity(0)
+    }, 0)
+  }, [])
+
+  const jumpToCoveredAccommodation = useCallback((coverage: OvernightCoverage): void => {
+    if (coverage.status !== 'covered' || !coverage.accommodationActivityId || !coverage.accommodationDayNumber) {
+      return
+    }
+
+    jumpToAccommodationSource(coverage.accommodationDayNumber, coverage.accommodationActivityId)
+  }, [jumpToAccommodationSource])
+
   const setDayHeaderElement = useCallback((dayNumber: number, headerElement: HTMLElement | null): void => {
     const previousObserver = dayHeaderObserversRef.current.get(dayNumber)
     previousObserver?.disconnect()
@@ -472,6 +584,33 @@ export function ItineraryDaysGrid({
   const handleDayEditorActivate = useCallback((dayNumber: number): void => {
     setActiveSavedOkDayNumber(dayNumber)
   }, [])
+
+  const setDayEditorHistoryState = useCallback((dayNumber: number, state: DayEditorHistoryState): void => {
+    setDayEditorHistoryStates((previousValue) => {
+      const existingValue = previousValue.get(dayNumber)
+      if (existingValue?.canUndo === state.canUndo && existingValue?.canRedo === state.canRedo) {
+        return previousValue
+      }
+
+      const nextValue = new globalThis.Map(previousValue)
+      nextValue.set(dayNumber, state)
+      return nextValue
+    })
+  }, [])
+
+  const setDayEditorHistoryActions = useCallback((dayNumber: number, actions: DayRichTextEditorHistoryActions | null): void => {
+    if (actions) {
+      dayEditorHistoryActionsRef.current[dayNumber] = actions
+      return
+    }
+
+    delete dayEditorHistoryActionsRef.current[dayNumber]
+  }, [])
+
+  const triggerDayHistoryAction = useCallback((dayNumber: number, action: keyof DayRichTextEditorHistoryActions): void => {
+    handleDayEditorActivate(dayNumber)
+    dayEditorHistoryActionsRef.current[dayNumber]?.[action]()
+  }, [handleDayEditorActivate])
 
   const handleDayDocumentDraftChange = useCallback((dayNumber: number, document: DayDocumentNode[]): void => {
     dayDocumentDraftByDayRef.current[dayNumber] = cloneDayDocument(document)
@@ -753,6 +892,7 @@ export function ItineraryDaysGrid({
     >
       {sortedDays.map((day, index) => {
         const isCollapsed = collapsedDayNumbers.has(day.dayNumber)
+        const dayVirtualCheckouts = virtualAccommodationCheckoutsByDay.get(day.dayNumber) ?? []
         const coverage =
             index < sortedDays.length - 1
               ? overnightCoverageByGapDay.get(day.dayNumber) ?? { status: 'missing' }
@@ -764,6 +904,8 @@ export function ItineraryDaysGrid({
         const saveVisualState = daySaveVisualStates.get(day.dayNumber)
         const isDaySavedOk = activeSavedOkDayNumber === day.dayNumber
         const isEditingHeaderSummary = editingHeaderDayNumber === day.dayNumber
+        const dayEditorHistoryState = dayEditorHistoryStates.get(day.dayNumber) ?? { canUndo: false, canRedo: false }
+        const shouldShowDayHeaderActions = Boolean((editable && onDaySave) || (hasDayMapLocations && dayMapRoute))
         const dayCardClassName = [
           styles.dayCard,
           isToday ? styles.dayCardToday : '',
@@ -828,17 +970,44 @@ export function ItineraryDaysGrid({
                   </p>
                 </div>
 
-                {hasDayMapLocations && dayMapRoute ? (
+                {shouldShowDayHeaderActions ? (
                   <div className={styles.dayHeaderActions}>
-                    <Link
-                      className={styles.dayMapLauncher}
-                      to={dayMapRoute}
-                      aria-label={t('itineraryView.openDailyMapAria', { dayNumber: day.dayNumber })}
-                      title={t('itineraryView.openDailyMapAria', { dayNumber: day.dayNumber })}
-                    >
-                      <Map size={17} aria-hidden="true" />
-                      <span>{t('itineraryView.dailyMap')}</span>
-                    </Link>
+                    {editable && onDaySave ? (
+                      <div className={styles.dayHistoryActions} aria-label={t('itineraryView.editHistoryLabel')} role="group">
+                        <button
+                          type="button"
+                          className={styles.dayHistoryButton}
+                          onClick={() => triggerDayHistoryAction(day.dayNumber, 'undo')}
+                          aria-label={t('itineraryView.undoAria')}
+                          title={t('itineraryView.undoAria')}
+                          disabled={!dayEditorHistoryState.canUndo}
+                        >
+                          <Undo2 size={16} aria-hidden="true" />
+                        </button>
+                        <button
+                          type="button"
+                          className={styles.dayHistoryButton}
+                          onClick={() => triggerDayHistoryAction(day.dayNumber, 'redo')}
+                          aria-label={t('itineraryView.redoAria')}
+                          title={t('itineraryView.redoAria')}
+                          disabled={!dayEditorHistoryState.canRedo}
+                        >
+                          <Redo2 size={16} aria-hidden="true" />
+                        </button>
+                      </div>
+                    ) : null}
+
+                    {hasDayMapLocations && dayMapRoute ? (
+                      <Link
+                        className={styles.dayMapLauncher}
+                        to={dayMapRoute}
+                        aria-label={t('itineraryView.openDailyMapAria', { dayNumber: day.dayNumber })}
+                        title={t('itineraryView.openDailyMapAria', { dayNumber: day.dayNumber })}
+                      >
+                        <Map size={17} aria-hidden="true" />
+                        <span>{t('itineraryView.dailyMap')}</span>
+                      </Link>
+                    ) : null}
                   </div>
                 ) : null}
               </div>
@@ -928,23 +1097,45 @@ export function ItineraryDaysGrid({
 
             {!isCollapsed ? (
               <div id={`itinerary-day-content-${day.dayNumber}`}>
+                {dayVirtualCheckouts.map((checkout) => (
+                  <VirtualAccommodationCheckoutTile
+                    key={`virtual-checkout-${checkout.sourceActivityId}-${checkout.dayNumber}`}
+                    checkout={checkout}
+                    locale={locale}
+                    onClick={() => {
+                      jumpToAccommodationSource(checkout.sourceDayNumber, checkout.sourceActivityId)
+                    }}
+                  />
+                ))}
+
                 {editable && onDaySave ? (
                   <DayRichTextEditor
                     day={day}
                     locale={locale}
+                    photoThumbnailSize={photoThumbnailSize}
                     onDaySave={onDaySave}
                     onEditorActivate={() => handleDayEditorActivate(day.dayNumber)}
                     onDocumentDraftChange={handleDayDocumentDraftChange}
+                    onHistoryStateChange={(state) => setDayEditorHistoryState(day.dayNumber, state)}
+                    onHistoryActionsChange={(actions) => setDayEditorHistoryActions(day.dayNumber, actions)}
                     onSaveStateChange={(state) => setDaySaveVisualState(day.dayNumber, state)}
                   />
                 ) : (
                   <>
                     {day.summary ? <p className={styles.daySummary}>{day.summary}</p> : null}
-                    <DayActivitySections day={day} locale={locale} />
+                    <DayActivitySections
+                      day={day}
+                      locale={locale}
+                      photoThumbnailSize={photoThumbnailSize}
+                      virtualCheckouts={[]}
+                      onVirtualCheckoutClick={(checkout) => {
+                        jumpToAccommodationSource(checkout.sourceDayNumber, checkout.sourceActivityId)
+                      }}
+                    />
                   </>
                 )}
 
-                {coverage ? <OvernightBanner coverage={coverage} /> : null}
+                {coverage ? <OvernightBanner coverage={coverage} onCoveredClick={jumpToCoveredAccommodation} /> : null}
               </div>
             ) : null}
           </article>
@@ -977,15 +1168,63 @@ function hasMappableLocations(activities: ItineraryActivity[]): boolean {
   })
 }
 
-function OvernightBanner({ coverage }: { coverage: OvernightCoverage }): ReactElement {
+function OvernightBanner({
+  coverage,
+  onCoveredClick,
+}: {
+  coverage: OvernightCoverage
+  onCoveredClick: (coverage: OvernightCoverage) => void
+}): ReactElement {
   const { t } = useTranslation('common')
+
+  const isCovered = coverage.status === 'covered'
+  const nightFraction =
+    isCovered && Number.isFinite(coverage.nightNumber) && Number.isFinite(coverage.totalNights)
+      ? `${coverage.nightNumber}/${coverage.totalNights}`
+      : null
+  const nightLabel = isCovered ? t('itineraryView.overnightNightLabel') : null
 
   const bannerLabel =
     coverage.status === 'covered'
-      ? coverage.accommodationTitle
+      ? [
+          coverage.accommodationTitle,
+          nightLabel && nightFraction ? `${nightLabel}: ${nightFraction}` : null,
+        ].filter(Boolean).join(' - ')
       : coverage.status === 'multiple'
         ? t('itineraryView.overnightMultiple', { count: coverage.count ?? 2 })
         : t('itineraryView.overnightMissing')
+
+  const BannerIcon =
+    coverage.status === 'covered'
+      ? MoonStar
+      : coverage.status === 'multiple'
+        ? TriangleAlert
+        : CircleAlert
+
+  if (isCovered) {
+    return (
+      <button
+        type="button"
+        className={`${styles.overnightBanner} ${styles.overnightBannerAction} ${styles[`overnightBanner${toStatusClassName(coverage.status)}`]}`}
+        aria-label={bannerLabel}
+        title={bannerLabel}
+        onClick={() => {
+          onCoveredClick(coverage)
+        }}
+      >
+        <span className={styles.overnightLeft}>
+          <BannerIcon aria-hidden="true" size={14} />
+          <span className={styles.overnightLabel}>{coverage.accommodationTitle}</span>
+        </span>
+        {nightLabel && nightFraction ? (
+          <span className={styles.overnightProgress}>
+            <span>{nightLabel}: </span>
+            <strong>{nightFraction}</strong>
+          </span>
+        ) : null}
+      </button>
+    )
+  }
 
   return (
     <div
@@ -993,7 +1232,7 @@ function OvernightBanner({ coverage }: { coverage: OvernightCoverage }): ReactEl
       aria-label={bannerLabel}
       title={bannerLabel}
     >
-      <MoonStar aria-hidden="true" size={14} />
+      <BannerIcon aria-hidden="true" size={14} />
       <span className={styles.overnightLabel}>{bannerLabel}</span>
     </div>
   )
@@ -1002,9 +1241,15 @@ function OvernightBanner({ coverage }: { coverage: OvernightCoverage }): ReactEl
 function DayActivitySections({
   day,
   locale,
+  photoThumbnailSize,
+  virtualCheckouts,
+  onVirtualCheckoutClick,
 }: {
   day: Pick<ItineraryDay, 'document'>
   locale: string
+  photoThumbnailSize: PhotoThumbnailSize
+  virtualCheckouts: VirtualAccommodationCheckout[]
+  onVirtualCheckoutClick: (checkout: VirtualAccommodationCheckout) => void
 }): ReactElement {
   const { t } = useTranslation('common')
 
@@ -1013,12 +1258,21 @@ function DayActivitySections({
     [day],
   )
 
-  if (sections.length === 0) {
+  if (sections.length === 0 && virtualCheckouts.length === 0) {
     return <p className={styles.emptyActivities}>{t('itineraryView.noActivities')}</p>
   }
 
   return (
     <div className={styles.sectionList}>
+      {virtualCheckouts.map((checkout) => (
+        <VirtualAccommodationCheckoutTile
+          key={`virtual-checkout-${checkout.sourceActivityId}-${checkout.dayNumber}`}
+          checkout={checkout}
+          locale={locale}
+          onClick={onVirtualCheckoutClick}
+        />
+      ))}
+
       {sections.map((section) => (
         <section key={`section-${section.blockIndex}`} className={styles.sectionCard}>
           {section.dividerLabel ? (
@@ -1030,7 +1284,7 @@ function DayActivitySections({
           <ul className={styles.activityList}>
             {section.activities.map((activity) => (
               <li key={activity.id}>
-                <ActivityCard activity={activity} locale={locale} />
+                <ActivityCard activity={activity} locale={locale} photoThumbnailSize={photoThumbnailSize} />
               </li>
             ))}
           </ul>
@@ -1040,12 +1294,55 @@ function DayActivitySections({
   )
 }
 
+function VirtualAccommodationCheckoutTile({
+  checkout,
+  locale,
+  onClick,
+}: {
+  checkout: VirtualAccommodationCheckout
+  locale: string
+  onClick: (checkout: VirtualAccommodationCheckout) => void
+}): ReactElement {
+  const { t } = useTranslation('common')
+  const checkOutLabel = t('itineraryView.accommodationSummaryCheckOut')
+  const checkOutTime = formatLocalTime(checkout.checkOutUntil, locale)
+  const renderedCheckOut = checkOutTime || t('itineraryView.accommodationSummaryEmpty')
+  const title = `${checkout.accommodationTitle} - ${checkOutLabel}: ${renderedCheckOut}`
+
+  return (
+    <button
+      type="button"
+      className={`${styles.activityCard} ${styles.virtualCheckoutTile}`}
+      data-activity-type="accommodation"
+      onClick={() => {
+        onClick(checkout)
+      }}
+      aria-label={title}
+      title={title}
+    >
+      <div className={styles.virtualCheckoutBody}>
+        <span>
+          {checkOutLabel}: <strong>{renderedCheckOut}</strong>
+        </span>
+      </div>
+      <footer className={styles.virtualCheckoutFooter}>
+        <span className={styles.activityIcon} aria-hidden="true">
+          <BedDouble size={18} />
+        </span>
+        <span className={styles.activityTitle}>{checkout.accommodationTitle}</span>
+      </footer>
+    </button>
+  )
+}
+
 function ActivityCard({
   activity,
   locale,
+  photoThumbnailSize,
 }: {
   activity: ItineraryActivity
   locale: string
+  photoThumbnailSize: PhotoThumbnailSize
 }): ReactElement {
   const { t } = useTranslation('common')
   const Icon = ACTIVITY_ICONS[activity.type] ?? Sparkles
@@ -1053,11 +1350,18 @@ function ActivityCard({
   const hasAnchoredDate = typeof activity.anchorDate === 'string' && activity.anchorDate.length > 0
   const hasAccommodationSection = hasAccommodationDetails(activity)
   const detailItems = activity.type === 'accommodation' ? [] : toActivityDetailItems(activity, t)
+  const thumbnailPreset = PHOTO_THUMBNAIL_PRESETS[photoThumbnailSize] ?? PHOTO_THUMBNAIL_PRESETS.md
 
   const references = activity.references ?? []
   const indexedReferences = references.map((reference, index) => ({ reference, index }))
-  const indexedPhotoReferences = indexedReferences.filter(({ reference }) => reference.type === 'photo')
-  const visiblePhotoThumbnails = indexedPhotoReferences.slice(0, 2)
+  const indexedThumbnailReferences = indexedReferences
+    .map(({ reference, index }) => ({
+      reference,
+      index,
+      thumbnailUrl: getReferenceThumbnailUrl(reference, thumbnailPreset.widthPx),
+    }))
+    .filter((item): item is { reference: WebReference; index: number; thumbnailUrl: string } => Boolean(item.thumbnailUrl))
+  const visiblePhotoThumbnails = indexedThumbnailReferences.slice(0, 2)
   const thumbnailIndexes = new Set(visiblePhotoThumbnails.map(({ index }) => index))
   const chipReferences = indexedReferences
     .filter(({ index }) => !thumbnailIndexes.has(index))
@@ -1087,7 +1391,7 @@ function ActivityCard({
     : `${styles.activityHeader} ${styles.activityHeaderOnly}`
 
   return (
-    <article className={activityCardClassName} data-activity-type={activity.type}>
+    <article className={activityCardClassName} data-activity-type={activity.type} data-activity-id={activity.id}>
       <header className={activityHeaderClassName}>
         <div className={styles.activityHeaderLine}>
           <span className={styles.activityIcon} aria-hidden="true">
@@ -1124,10 +1428,9 @@ function ActivityCard({
         <div className={styles.metaGroup}>
           {visiblePhotoThumbnails.length > 0 ? (
             <span className={styles.referenceThumbnails}>
-              {visiblePhotoThumbnails.map(({ reference, index }) => {
+              {visiblePhotoThumbnails.map(({ reference, index, thumbnailUrl }) => {
                 const fullLinkLabel = toReferenceLabel(reference)
                 const displayLinkLabel = toDisplayLabel(fullLinkLabel)
-                const thumbnailUrl = unsplashUrl(reference.url, 160, 70)
 
                 return (
                   <a
@@ -1136,6 +1439,7 @@ function ActivityCard({
                     target="_blank"
                     rel="noopener noreferrer"
                     className={styles.referenceThumbnailLink}
+                    style={{ width: `${thumbnailPreset.widthRem}rem` }}
                     aria-label={t('itineraryView.openReferenceAria', { label: fullLinkLabel })}
                   >
                     <img
@@ -1270,17 +1574,43 @@ function toActivityDetailItems(
     items.push(t('itineraryView.cuisineLabel', { cuisine: activity.details.cuisine.trim() }))
   }
 
+  if (activity.type === 'transfer' && activity.details) {
+    const fromLabel = toTransferLocationLabel(activity.details.from)
+    const toLabel = toTransferLocationLabel(activity.details.to)
+    if (fromLabel) {
+      items.push(`${t('itineraryView.transferRouteFrom')}: ${fromLabel}`)
+    }
+    if (toLabel) {
+      items.push(`${t('itineraryView.transferRouteTo')}: ${toLabel}`)
+    }
+    if (activity.details.mot) {
+      items.push(`${t('itineraryView.transferMotLabel')}: ${t(`itineraryView.transferMot.${activity.details.mot}`)}`)
+    }
+    if (activity.details.estimate?.value?.trim()) {
+      items.push(`${t('itineraryView.transferEstimateLabel')}: ${activity.details.estimate.value.trim()}`)
+    } else if (activity.details.estimate?.source === 'fallback') {
+      items.push(t('itineraryView.transferEstimateUnavailable'))
+    }
+  }
+
   return items
 }
 
-type ReferenceChipType = 'photo' | 'video' | 'webpage' | 'no-type'
+function toTransferLocationLabel(location?: ItineraryActivity['details'] extends infer Details ? Details extends { from?: infer From } ? From : never : never): string {
+  if (!location) {
+    return ''
+  }
 
-function toReferenceChipType(type?: string): ReferenceChipType {
-  if (type === 'photo') return 'photo'
-  if (type === 'video') return 'video'
-  if (type === 'webpage') return 'webpage'
-  return 'no-type'
+  const caption = location.caption?.trim()
+  const address = location.address?.trim()
+  const coordinates = Array.isArray(location.coordinates) && location.coordinates.length === 2
+    ? `${location.coordinates[0].toFixed(4)}, ${location.coordinates[1].toFixed(4)}`
+    : ''
+
+  return caption || address || coordinates
 }
+
+type ReferenceChipType = 'photo' | 'video' | 'webpage' | 'no-type'
 
 function toReferenceChipTypeOrder(chipType: ReferenceChipType): number {
   if (chipType === 'photo') return 0
@@ -1388,8 +1718,10 @@ function AccommodationDetails({
         <dl className={styles.accommodationGrid}>
           {rows.map((row) => (
             <div key={row.label} className={styles.accommodationRow}>
-              <dt>{row.label}</dt>
-              <dd>{row.value}</dd>
+              <dt>{row.label}:</dt>
+              <dd>
+                <strong>{row.value}</strong>
+              </dd>
             </div>
           ))}
         </dl>
