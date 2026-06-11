@@ -55,7 +55,8 @@ interface ItineraryDaysGridProps {
   collapseCommandToken?: number
   collapseCommandMode?: 'collapse-all' | 'expand-all'
   onCollapseStateChange?: (state: { allCollapsed: boolean; allExpanded: boolean }) => void
-  onDaySave?: (day: Omit<ItineraryDay, 'date'>) => Promise<void>
+  activityBench?: ItineraryActivity[]
+  onDaySave?: (day: Omit<ItineraryDay, 'date'> & { activityBench?: ItineraryActivity[] }) => Promise<void>
 }
 
 function toSelectorAttributeValue(value: string): string {
@@ -145,6 +146,7 @@ export function ItineraryDaysGrid({
   collapseCommandToken,
   collapseCommandMode,
   onCollapseStateChange,
+  activityBench,
   onDaySave,
 }: ItineraryDaysGridProps): ReactElement {
   const { t } = useTranslation('common')
@@ -1113,6 +1115,7 @@ export function ItineraryDaysGrid({
                     day={day}
                     locale={locale}
                     photoThumbnailSize={photoThumbnailSize}
+                    activityBench={activityBench}
                     onDaySave={onDaySave}
                     onEditorActivate={() => handleDayEditorActivate(day.dayNumber)}
                     onDocumentDraftChange={handleDayDocumentDraftChange}

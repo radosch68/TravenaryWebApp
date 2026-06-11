@@ -95,6 +95,7 @@ export interface UpdateItineraryRequest {
 export interface UpdateItineraryDayRequest {
   summary?: string
   document: DayDocumentNode[]
+  activityBench?: ItineraryActivity[]
 }
 
 export async function createManualItinerary(

@@ -21,7 +21,7 @@ import { getOngoingProgress, getUpcomingDaysLeft } from '@/utils/trip-progress'
 
 import styles from './ItineraryViewPage.module.css'
 
-type DaySavePayload = Omit<ItineraryDay, 'date'>
+type DaySavePayload = Omit<ItineraryDay, 'date'> & { activityBench?: ItineraryActivity[] }
 
 const PHOTO_THUMBNAIL_SIZE_STORAGE_KEY = 'travenary_photo_thumbnail_size'
 const PHOTO_THUMBNAIL_SIZE_CHANGED_EVENT = 'travenary:photo-thumbnail-size-changed'
@@ -362,6 +362,7 @@ export function ItineraryViewPage(): ReactElement {
         const optimisticItinerary = {
           ...currentItinerary,
           days: nextDays,
+          ...(updatedDay.activityBench !== undefined ? { activityBench: updatedDay.activityBench } : {}),
         }
 
         itineraryRef.current = optimisticItinerary
@@ -370,6 +371,7 @@ export function ItineraryViewPage(): ReactElement {
         const savedItinerary = await updateItineraryDay(currentItinerary.id, dayNumber, {
           summary: updatedDay.summary,
           document: toDocumentSavePayload(updatedDay.document ?? []),
+          ...(updatedDay.activityBench !== undefined ? { activityBench: updatedDay.activityBench } : {}),
         })
 
         if (daySaveSequenceByDayRef.current[dayNumber] !== saveSequence) {
@@ -381,11 +383,18 @@ export function ItineraryViewPage(): ReactElement {
           return
         }
 
-        const reconciledItinerary = mergeSavedDayIntoLatestItinerary(
+        let reconciledItinerary = mergeSavedDayIntoLatestItinerary(
           latestItinerary,
           savedItinerary,
           dayNumber,
         )
+
+        if (updatedDay.activityBench !== undefined) {
+          reconciledItinerary = {
+            ...reconciledItinerary,
+            activityBench: savedItinerary.activityBench,
+          }
+        }
 
         itineraryRef.current = reconciledItinerary
         setItinerary(reconciledItinerary)
@@ -1285,6 +1294,7 @@ export function ItineraryViewPage(): ReactElement {
           collapseCommandToken={dayCollapseCommandToken}
           collapseCommandMode={dayCollapseCommandMode}
           onCollapseStateChange={setDayCollapseState}
+          activityBench={itinerary.activityBench}
           onDaySave={handleDaySave}
         />
 

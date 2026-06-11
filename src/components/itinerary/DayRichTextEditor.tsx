@@ -21,10 +21,11 @@ import {
   type PhotoThumbnailSize,
 } from '@/tiptap/activity-tile-extension'
 import { formatLocalTimeRange } from '@/utils/date-format'
+import { toDayActivities } from '@/utils/tiptap-compatibility'
 
 import styles from './DayRichTextEditor.module.css'
 
-type DaySavePayload = Omit<ItineraryDay, 'date'>
+type DaySavePayload = Omit<ItineraryDay, 'date'> & { activityBench?: ItineraryActivity[] }
 
 export type DayRichTextSaveState = 'idle' | 'dirty' | 'saving' | 'saved' | 'error'
 
@@ -42,6 +43,7 @@ interface DayRichTextEditorProps {
   day: ItineraryDay
   locale: string
   photoThumbnailSize: PhotoThumbnailSize
+  activityBench?: ItineraryActivity[]
   onDaySave: (day: DaySavePayload) => Promise<void>
   onEditorActivate?: () => void
   onSaveStateChange?: (state: DayRichTextSaveState) => void
@@ -50,7 +52,7 @@ interface DayRichTextEditorProps {
   onHistoryActionsChange?: (actions: DayRichTextEditorHistoryActions | null) => void
 }
 
-type SlashMenuPath = 'root' | 'activity' | 'format'
+type SlashMenuPath = 'root' | 'activity' | 'format' | 'bench'
 
 type SlashCommandKind = 'group' | 'command'
 
@@ -61,6 +63,7 @@ type SlashCommand = {
   searchTerms: string[]
   menuPath?: Exclude<SlashMenuPath, 'root'>
   parentPath?: Exclude<SlashMenuPath, 'root'>
+  benchActivityId?: string
   run?: (range: Range) => void
 }
 
@@ -124,6 +127,59 @@ function getSlashCommandMatchRank(command: SlashCommand, query: string): number 
   return null
 }
 
+const BENCH_SLASH_TYPE_ORDER: ActivityType[] = [
+  'tour',
+  'poi',
+  'food',
+  'shopping',
+  'accommodation',
+  'flight',
+  'transfer',
+  'carRental',
+  'custom',
+  'note',
+]
+
+function buildBenchSlashCommands(
+  activityBench: ItineraryActivity[],
+  groupLabel: string,
+  insertBenchActivity: (activity: ItineraryActivity, range?: Range) => void,
+): SlashCommand[] {
+  const benchItems = activityBench
+    .filter((activity) => activity.type !== 'divider')
+    .toSorted((first, second) => {
+      const typeDelta = BENCH_SLASH_TYPE_ORDER.indexOf(first.type) - BENCH_SLASH_TYPE_ORDER.indexOf(second.type)
+      return typeDelta !== 0 ? typeDelta : first.title.localeCompare(second.title)
+    })
+
+  if (benchItems.length === 0) {
+    return []
+  }
+
+  return [
+    {
+      id: 'bench-group',
+      label: groupLabel,
+      kind: 'group',
+      menuPath: 'bench',
+      searchTerms: ['bench', 'unscheduled', 'extra'],
+    },
+    ...benchItems.map(
+      (activity): SlashCommand => ({
+        id: `bench-${activity.id}`,
+        label: activity.title,
+        kind: 'command',
+        parentPath: 'bench',
+        benchActivityId: activity.id,
+        searchTerms: ['bench', activity.type],
+        run: (range) => {
+          insertBenchActivity(activity, range)
+        },
+      }),
+    ),
+  ]
+}
+
 function cloneDocument(nodes: DayDocumentNode[]): DayDocumentNode[] {
   return JSON.parse(JSON.stringify(nodes)) as DayDocumentNode[]
 }
@@ -168,6 +224,7 @@ export function DayRichTextEditor({
   day,
   locale,
   photoThumbnailSize,
+  activityBench,
   onDaySave,
   onEditorActivate,
   onSaveStateChange,
@@ -242,6 +299,7 @@ export function DayRichTextEditor({
     [locale, t],
   )
   const documentNodesRef = useRef(documentNodes)
+  const activityBenchRef = useRef(activityBench)
   const editVersionRef = useRef(editVersion)
   const lastSavedEditVersionRef = useRef(0)
   const labelsRef = useRef<ActivityTileLabels>(activityTileLabels)
@@ -264,6 +322,10 @@ export function DayRichTextEditor({
   useEffect(() => {
     documentNodesRef.current = documentNodes
   }, [documentNodes])
+
+  useEffect(() => {
+    activityBenchRef.current = activityBench
+  }, [activityBench])
 
   useEffect(() => {
     editVersionRef.current = editVersion
@@ -339,9 +401,32 @@ export function DayRichTextEditor({
     setSlashActiveIndex(index)
   }, [])
 
+  const getDocumentActivityIds = useCallback((): Set<string> => {
+    return new Set(toDayActivities({ document: documentNodesRef.current }).map((activity) => activity.id))
+  }, [])
+
+  // Bench commands for activities already inserted in this document are hidden;
+  // when none remain, the bench group disappears from the root menu too.
+  const getAvailableSlashCommands = useCallback((): SlashCommand[] => {
+    const commands = slashCommandsRef.current
+    if (!commands.some((command) => command.benchActivityId)) {
+      return commands.filter((command) => command.menuPath !== 'bench')
+    }
+
+    const documentActivityIds = getDocumentActivityIds()
+    const available = commands.filter(
+      (command) => !command.benchActivityId || !documentActivityIds.has(command.benchActivityId),
+    )
+    if (available.some((command) => command.benchActivityId)) {
+      return available
+    }
+
+    return available.filter((command) => command.menuPath !== 'bench')
+  }, [getDocumentActivityIds])
+
   const resolveSlashMenuItems = useCallback((query: string): SlashCommand[] => {
     const normalizedQuery = query.trim().toLowerCase()
-    const commands = slashCommandsRef.current
+    const commands = getAvailableSlashCommands()
 
     if (normalizedQuery.length > 0) {
       return commands
@@ -362,7 +447,7 @@ export function DayRichTextEditor({
     }
 
     return commands.filter((command) => command.parentPath === slashMenuPathRef.current)
-  }, [])
+  }, [getAvailableSlashCommands])
 
   const updateSlashMenuPosition = useCallback((): void => {
     const menuElement = slashMenuRef.current
@@ -394,7 +479,7 @@ export function DayRichTextEditor({
     (path: Exclude<SlashMenuPath, 'root'>): void => {
       slashQueryRef.current = ''
       setSlashQuery('')
-      const items = slashCommandsRef.current.filter((command) => command.parentPath === path)
+      const items = getAvailableSlashCommands().filter((command) => command.parentPath === path)
       slashMenuPathRef.current = path
       setSlashMenuPath(path)
       setSlashMenuItems(items)
@@ -402,20 +487,20 @@ export function DayRichTextEditor({
       setSlashActiveCommandIndex(0)
       window.requestAnimationFrame(updateSlashMenuPosition)
     },
-    [setSlashActiveCommandIndex, updateSlashMenuPosition],
+    [getAvailableSlashCommands, setSlashActiveCommandIndex, updateSlashMenuPosition],
   )
 
   const openSlashRootMenu = useCallback((): void => {
     slashQueryRef.current = ''
     setSlashQuery('')
-    const items = slashCommandsRef.current.filter((command) => command.kind === 'group')
+    const items = getAvailableSlashCommands().filter((command) => command.kind === 'group')
     slashMenuPathRef.current = 'root'
     setSlashMenuPath('root')
     setSlashMenuItems(items)
     setSlashMenuOpen(items.length > 0)
     setSlashActiveCommandIndex(0)
     window.requestAnimationFrame(updateSlashMenuPosition)
-  }, [setSlashActiveCommandIndex, updateSlashMenuPosition])
+  }, [getAvailableSlashCommands, setSlashActiveCommandIndex, updateSlashMenuPosition])
 
   const saveStateLabel = useMemo(() => {
     if (saveState === 'saving') {
@@ -438,11 +523,23 @@ export function DayRichTextEditor({
   }, [saveState, t])
 
   const buildSavePayload = useCallback((): DaySavePayload => {
-    return {
+    const payload: DaySavePayload = {
       dayNumber: day.dayNumber,
       document: cloneDocument(documentNodesRef.current),
     }
-  }, [day.dayNumber])
+
+    // Bench activities inserted via /bench keep their id; once one appears in
+    // the document, the same save removes it from the bench atomically.
+    const benchItems = activityBenchRef.current ?? []
+    if (benchItems.length > 0) {
+      const documentActivityIds = getDocumentActivityIds()
+      if (benchItems.some((item) => documentActivityIds.has(item.id))) {
+        payload.activityBench = benchItems.filter((item) => !documentActivityIds.has(item.id))
+      }
+    }
+
+    return payload
+  }, [day.dayNumber, getDocumentActivityIds])
 
   const saveNow = useCallback((): void => {
     const currentEditVersion = editVersionRef.current
@@ -863,6 +960,31 @@ export function DayRichTextEditor({
     [editor, markDirty, t],
   )
 
+  const insertBenchActivity = useCallback(
+    (activity: ItineraryActivity, range?: Range): void => {
+      if (!editor) {
+        return
+      }
+
+      const benchActivity: ItineraryActivity = { ...structuredClone(activity), anchorDate: null }
+      const command = editor.chain().focus()
+
+      if (range) {
+        command.deleteRange(range)
+      }
+
+      command
+        .insertContent([createActivityTileNode(benchActivity), { type: 'paragraph' }])
+        .run()
+
+      setSlashMenuOpen(false)
+      setSlashMenuPosition(null)
+      setSlashActiveIndex(0)
+      markDirty()
+    },
+    [editor, markDirty],
+  )
+
   const runDocumentCommand = useCallback(
     (command: 'heading' | 'list', range?: Range): void => {
       if (!editor) {
@@ -1125,8 +1247,9 @@ export function DayRichTextEditor({
           runFormatCommand('link', range)
         },
       },
+      ...buildBenchSlashCommands(activityBench ?? [], t('itineraryView.richEditor.slash.benchGroup'), insertBenchActivity),
     ],
-    [insertActivity, runDocumentCommand, runFormatCommand, t],
+    [activityBench, insertActivity, insertBenchActivity, runDocumentCommand, runFormatCommand, t],
   )
 
   useEffect(() => {

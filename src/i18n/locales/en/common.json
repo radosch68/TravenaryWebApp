@@ -213,6 +213,7 @@
       "slash": {
         "activityGroup": "Activity",
         "formatGroup": "Format",
+        "benchGroup": "Activity Bench",
         "back": "Back to main insert menu",
         "activity": "Activity",
         "food": "Food",
