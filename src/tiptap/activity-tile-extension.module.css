@@ -63,6 +63,22 @@
   border-radius: var(--radius-md);
 }
 
+/* Partially expanded day: tiles in the editor collapse to their headers
+   (mirrors the header-only styles above). */
+[data-day-expand='partial'] .activityDisplay {
+  padding: 0;
+}
+
+[data-day-expand='partial'] .activityDisplay > :not(.activityHeader) {
+  display: none;
+}
+
+[data-day-expand='partial'] .activityDisplay .activityHeader {
+  margin: 0;
+  border-bottom: none;
+  border-radius: var(--radius-md);
+}
+
 .activityHeaderLine {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto;

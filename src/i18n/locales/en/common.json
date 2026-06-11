@@ -321,6 +321,8 @@
     "collapseAllDays": "Collapse all days",
     "expandDayAria": "Expand day {{dayNumber}}",
     "collapseDayAria": "Collapse day {{dayNumber}}",
+    "collapseDayActivitiesAria": "Collapse activities for day {{dayNumber}}",
+    "expandDayActivitiesAria": "Show activities for day {{dayNumber}}",
     "createShareLink": "Create shared link",
     "copyShareLink": "Copy shared link",
     "creatingShareLink": "Preparing link...",

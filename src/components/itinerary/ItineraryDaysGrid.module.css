@@ -231,10 +231,6 @@
   transition: transform 0.14s ease;
 }
 
-.dayToggleIconExpanded {
-  transform: rotate(90deg);
-}
-
 .dayHeaderMain {
   display: flex;
   align-items: center;
@@ -586,6 +582,23 @@
 }
 
 .activityHeaderOnly {
+  margin: 0;
+  border-bottom: none;
+  border-radius: var(--radius-md);
+}
+
+/* Partially expanded day: day text stays visible, activity cards collapse to
+   their headers (mirrors the header-only styles above). Virtual checkout
+   tiles are already compact and keep their full content. */
+[data-day-expand='partial'] .activityCard:not(.virtualCheckoutTile) {
+  padding: 0;
+}
+
+[data-day-expand='partial'] .activityCard:not(.virtualCheckoutTile) > :not(.activityHeader) {
+  display: none;
+}
+
+[data-day-expand='partial'] .activityCard:not(.virtualCheckoutTile) .activityHeader {
   margin: 0;
   border-bottom: none;
   border-radius: var(--radius-md);

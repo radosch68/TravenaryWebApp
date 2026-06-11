@@ -333,6 +333,8 @@
     "collapseAllDays": "Sbalit všechny dny",
     "expandDayAria": "Rozbalit den {{dayNumber}}",
     "collapseDayAria": "Sbalit den {{dayNumber}}",
+    "collapseDayActivitiesAria": "Sbalit aktivity dne {{dayNumber}}",
+    "expandDayActivitiesAria": "Zobrazit aktivity dne {{dayNumber}}",
     "createShareLink": "Vytvořit sdílený odkaz",
     "copyShareLink": "Kopírovat sdílený odkaz",
     "creatingShareLink": "Připravuji odkaz...",

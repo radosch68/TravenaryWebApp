@@ -2,7 +2,9 @@ import {
   CircleAlert,
   BedDouble,
   Camera,
+  ChevronDown,
   ChevronRight,
+  ChevronsDown,
   ExternalLink,
   Film,
   Map,
@@ -78,6 +80,10 @@ const PHOTO_THUMBNAIL_PRESETS: Record<PhotoThumbnailSize, { widthPx: number; wid
 }
 
 type DaySaveVisualState = 'success' | 'error'
+type DayExpandState = 'expanded' | 'partial' | 'collapsed'
+// The toggle bounces (expanded -> partial -> collapsed -> partial -> expanded),
+// so a partial day remembers which way it is heading. 'expanded' is not stored.
+type StoredDayExpandState = 'partial-collapsing' | 'collapsed' | 'partial-expanding'
 type DayEditorHistoryState = DayRichTextEditorHistoryState
 type ActiveDividerDrag = {
   pointerId: number
@@ -158,7 +164,9 @@ export function ItineraryDaysGrid({
     () => getVirtualAccommodationCheckoutsByDay(sortedDays),
     [sortedDays],
   )
-  const [collapsedDayNumbers, setCollapsedDayNumbers] = useState<Set<number>>(() => new Set())
+  const [dayExpandStates, setDayExpandStates] = useState<globalThis.Map<number, StoredDayExpandState>>(
+    () => new globalThis.Map(),
+  )
   const [daySaveVisualStates, setDaySaveVisualStates] = useState<globalThis.Map<number, DaySaveVisualState>>(
     () => new globalThis.Map(),
   )
@@ -189,11 +197,11 @@ export function ItineraryDaysGrid({
     const dayNumbers = new Set(sortedDays.map((day) => day.dayNumber))
     const nextDayDraftCacheSignature = toDayDraftCacheSignature(sortedDays, draftCacheIdentity)
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    setCollapsedDayNumbers((previousValue) => {
-      const nextValue = new Set<number>()
-      previousValue.forEach((dayNumber) => {
+    setDayExpandStates((previousValue) => {
+      const nextValue = new globalThis.Map<number, StoredDayExpandState>()
+      previousValue.forEach((expandState, dayNumber) => {
         if (dayNumbers.has(dayNumber)) {
-          nextValue.add(dayNumber)
+          nextValue.set(dayNumber, expandState)
         }
       })
       return nextValue.size === previousValue.size ? previousValue : nextValue
@@ -379,29 +387,38 @@ export function ItineraryDaysGrid({
 
     if (collapseCommandMode === 'collapse-all') {
       // eslint-disable-next-line react-hooks/set-state-in-effect
-      setCollapsedDayNumbers(new Set(sortedDays.map((day) => day.dayNumber)))
+      setDayExpandStates(new globalThis.Map(sortedDays.map((day) => [day.dayNumber, 'collapsed' as StoredDayExpandState])))
       return
     }
 
-    setCollapsedDayNumbers(new Set())
+    setDayExpandStates(new globalThis.Map())
   }, [collapseCommandMode, collapseCommandToken, sortedDays])
 
   useEffect(() => {
     const totalDays = sortedDays.length
-    const collapsedCount = collapsedDayNumbers.size
-    const allExpanded = collapsedCount === 0
+    const collapsedCount = sortedDays.filter((day) => dayExpandStates.get(day.dayNumber) === 'collapsed').length
+    const expandedCount = sortedDays.filter((day) => dayExpandStates.get(day.dayNumber) === undefined).length
+    const allExpanded = expandedCount === totalDays
     const allCollapsed = totalDays > 0 && collapsedCount === totalDays
 
     onCollapseStateChange?.({ allCollapsed, allExpanded })
-  }, [collapsedDayNumbers, onCollapseStateChange, sortedDays])
+  }, [dayExpandStates, onCollapseStateChange, sortedDays])
 
-  const toggleDayCollapsed = useCallback((dayNumber: number): void => {
-    setCollapsedDayNumbers((previousValue) => {
-      const nextValue = new Set(previousValue)
-      if (nextValue.has(dayNumber)) {
-        nextValue.delete(dayNumber)
+  // Bounce through the states: expanded -> partial -> collapsed -> partial ->
+  // expanded. In the partial state the day text stays visible while activity
+  // tiles collapse to their headers.
+  const cycleDayExpandState = useCallback((dayNumber: number): void => {
+    setDayExpandStates((previousValue) => {
+      const nextValue = new globalThis.Map(previousValue)
+      const currentState = previousValue.get(dayNumber)
+      if (currentState === undefined) {
+        nextValue.set(dayNumber, 'partial-collapsing')
+      } else if (currentState === 'partial-collapsing') {
+        nextValue.set(dayNumber, 'collapsed')
+      } else if (currentState === 'collapsed') {
+        nextValue.set(dayNumber, 'partial-expanding')
       } else {
-        nextValue.add(dayNumber)
+        nextValue.delete(dayNumber)
       }
       return nextValue
     })
@@ -414,12 +431,12 @@ export function ItineraryDaysGrid({
 
     const activitySelector = `[data-activity-id="${toSelectorAttributeValue(sourceActivityId)}"]`
 
-    setCollapsedDayNumbers((previousValue) => {
-      if (!previousValue.has(targetDayNumber)) {
+    setDayExpandStates((previousValue) => {
+      if (previousValue.get(targetDayNumber) !== 'collapsed') {
         return previousValue
       }
 
-      const nextValue = new Set(previousValue)
+      const nextValue = new globalThis.Map(previousValue)
       nextValue.delete(targetDayNumber)
       return nextValue
     })
@@ -865,7 +882,10 @@ export function ItineraryDaysGrid({
       aria-label={t('itineraryView.daysAriaLabel')}
     >
       {sortedDays.map((day, index) => {
-        const isCollapsed = collapsedDayNumbers.has(day.dayNumber)
+        const storedExpandState = dayExpandStates.get(day.dayNumber)
+        const dayExpandState: DayExpandState =
+          storedExpandState === undefined ? 'expanded' : storedExpandState === 'collapsed' ? 'collapsed' : 'partial'
+        const isCollapsed = dayExpandState === 'collapsed'
         const dayVirtualCheckouts = virtualAccommodationCheckoutsByDay.get(day.dayNumber) ?? []
         const coverage =
             index < sortedDays.length - 1
@@ -917,20 +937,26 @@ export function ItineraryDaysGrid({
                   <button
                     type="button"
                     className={styles.dayToggleButton}
-                    onClick={() => toggleDayCollapsed(day.dayNumber)}
+                    onClick={() => cycleDayExpandState(day.dayNumber)}
                     aria-expanded={!isCollapsed}
                     aria-controls={`itinerary-day-content-${day.dayNumber}`}
                     aria-label={
-                      isCollapsed
-                        ? t('itineraryView.expandDayAria', { dayNumber: day.dayNumber })
-                        : t('itineraryView.collapseDayAria', { dayNumber: day.dayNumber })
+                      storedExpandState === undefined
+                        ? t('itineraryView.collapseDayActivitiesAria', { dayNumber: day.dayNumber })
+                        : storedExpandState === 'partial-collapsing'
+                          ? t('itineraryView.collapseDayAria', { dayNumber: day.dayNumber })
+                          : storedExpandState === 'collapsed'
+                            ? t('itineraryView.expandDayActivitiesAria', { dayNumber: day.dayNumber })
+                            : t('itineraryView.expandDayAria', { dayNumber: day.dayNumber })
                     }
                   >
-                    <ChevronRight
-                      size={19}
-                      className={`${styles.dayToggleIcon}${!isCollapsed ? ` ${styles.dayToggleIconExpanded}` : ''}`}
-                      aria-hidden="true"
-                    />
+                    {dayExpandState === 'expanded' ? (
+                      <ChevronsDown size={19} className={styles.dayToggleIcon} aria-hidden="true" />
+                    ) : dayExpandState === 'partial' ? (
+                      <ChevronDown size={19} className={styles.dayToggleIcon} aria-hidden="true" />
+                    ) : (
+                      <ChevronRight size={19} className={styles.dayToggleIcon} aria-hidden="true" />
+                    )}
                   </button>
                   <p className={styles.dayNumber}>{day.dayNumber}</p>
                 </div>
@@ -1070,7 +1096,7 @@ export function ItineraryDaysGrid({
             </header>
 
             {!isCollapsed ? (
-              <div id={`itinerary-day-content-${day.dayNumber}`}>
+              <div id={`itinerary-day-content-${day.dayNumber}`} data-day-expand={dayExpandState}>
                 {dayVirtualCheckouts.map((checkout) => (
                   <VirtualAccommodationCheckoutTile
                     key={`virtual-checkout-${checkout.sourceActivityId}-${checkout.dayNumber}`}
