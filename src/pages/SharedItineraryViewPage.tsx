@@ -11,79 +11,16 @@ import { buildLocationMapPinsFromDays } from '@/components/itinerary/location-ma
 import { Button } from '@/components/ui/button'
 import { ApiError, type SharedItineraryDetail } from '@/services/contracts'
 import { getSharedItinerary } from '@/services/itinerary-service'
-import { formatLocalDate, parseIsoDate } from '@/utils/date-format'
+import { formatLocalDate, getTodayLocalIsoDate } from '@/utils/date-format'
+import type { LoadState } from '@/utils/load-state'
+import { getOngoingProgress, getUpcomingDaysLeft } from '@/utils/trip-progress'
 
 import styles from './ItineraryViewPage.module.css'
-
-type LoadState = 'loading' | 'ready' | 'error' | 'not-found'
-
-function getTodayIsoDate(): string {
-  return new Date().toISOString().slice(0, 10)
-}
-
-function getUpcomingDaysLeft(startDate: string | undefined, todayIsoDate: string): number | null {
-  if (!startDate || startDate <= todayIsoDate) {
-    return null
-  }
-
-  const [todayYear, todayMonth, todayDay] = todayIsoDate.split('-').map(Number)
-  const [startYear, startMonth, startDay] = startDate.split('-').map(Number)
-  const todayUtc = Date.UTC(todayYear, todayMonth - 1, todayDay)
-  const startUtc = Date.UTC(startYear, startMonth - 1, startDay)
-  const millisecondsPerDay = 24 * 60 * 60 * 1000
-
-  const difference = Math.floor((startUtc - todayUtc) / millisecondsPerDay)
-  return difference > 0 ? difference : null
-}
-
-type OngoingProgress = {
-  totalHours: number
-  hoursLeft: number
-  elapsedPercent: number
-}
-
-function getOngoingProgress(
-  startDate: string | undefined,
-  endDate: string | undefined,
-  dayCount: number,
-  nowDate: Date,
-): OngoingProgress | null {
-  if (!startDate || !endDate || dayCount <= 0) {
-    return null
-  }
-
-  const start = parseIsoDate(startDate)
-  const endExclusive = parseIsoDate(endDate)
-  start.setHours(0, 0, 0, 0)
-  endExclusive.setHours(0, 0, 0, 0)
-  endExclusive.setDate(endExclusive.getDate() + 1)
-
-  if (Number.isNaN(start.getTime()) || Number.isNaN(endExclusive.getTime())) {
-    return null
-  }
-
-  if (nowDate < start || nowDate >= endExclusive) {
-    return null
-  }
-
-  const totalHours = dayCount * 24
-  const millisecondsPerHour = 60 * 60 * 1000
-  const rawHoursLeft = (endExclusive.getTime() - nowDate.getTime()) / millisecondsPerHour
-  const hoursLeft = Math.max(0, Math.min(totalHours, Math.ceil(rawHoursLeft)))
-  const elapsedHours = Math.max(0, totalHours - hoursLeft)
-  const elapsedPercent = totalHours > 0 ? (elapsedHours / totalHours) * 100 : 0
-
-  return {
-    totalHours,
-    hoursLeft,
-    elapsedPercent,
-  }
-}
 
 export function SharedItineraryViewPage(): ReactElement {
   const { shareToken } = useParams<{ shareToken: string }>()
   const { t, i18n } = useTranslation(['common', 'errors'])
-  const todayIsoDate = useMemo(() => getTodayIsoDate(), [])
+  const todayIsoDate = useMemo(() => getTodayLocalIsoDate(), [])
   const nowDate = useMemo(() => new Date(), [])
 
   const [loadState, setLoadState] = useState<LoadState>('loading')

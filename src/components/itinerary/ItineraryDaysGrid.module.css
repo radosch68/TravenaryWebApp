@@ -55,7 +55,7 @@
   scroll-margin-top: calc(var(--travenary-top-banner-offset, 0px) + 0.5rem);
   position: relative;
   border: 1px solid var(--border);
-  border-radius: calc(var(--radius) - 0.05rem);
+  border-radius: var(--radius-lg);
   background: color-mix(in oklab, var(--card) 95%, white 5%);
   overflow: visible;
   display: grid;
@@ -68,8 +68,8 @@
   content: '';
   position: absolute;
   inset: 1px;
-  border: 2px dotted color-mix(in oklab, #22c55e 70%, transparent 30%);
-  border-radius: calc(var(--radius) - 0.1rem);
+  border: 2px dotted color-mix(in oklab, var(--success) 70%, transparent 30%);
+  border-radius: var(--radius-lg);
   pointer-events: none;
 }
 
@@ -79,27 +79,27 @@
 }
 
 .dayCardSaveSuccess {
-  border-color: color-mix(in oklab, #15803d 76%, var(--border) 24%);
+  border-color: color-mix(in oklab, var(--success) 76%, var(--border) 24%);
 }
 
 .dayCardSaveError {
-  border-color: color-mix(in oklab, #dc2626 78%, var(--border) 22%);
-  background: color-mix(in oklab, #dc2626 12%, var(--card) 88%);
-  box-shadow: inset 0 0 0 3px color-mix(in oklab, #dc2626 58%, transparent 42%);
+  border-color: color-mix(in oklab, var(--destructive) 78%, var(--border) 22%);
+  background: color-mix(in oklab, var(--destructive) 12%, var(--card) 88%);
+  box-shadow: inset 0 0 0 3px color-mix(in oklab, var(--destructive) 58%, transparent 42%);
 }
 
 @keyframes daySaveSuccessFlash {
   0%,
   100% {
     border-width: 2px;
-    border-color: color-mix(in oklab, #22c55e 70%, transparent 30%);
-    box-shadow: inset 0 0 0 0 color-mix(in oklab, #22c55e 0%, transparent 100%);
+    border-color: color-mix(in oklab, var(--success) 70%, transparent 30%);
+    box-shadow: inset 0 0 0 0 color-mix(in oklab, var(--success) 0%, transparent 100%);
   }
 
   45% {
     border-width: 4px;
-    border-color: color-mix(in oklab, #22c55e 92%, transparent 8%);
-    box-shadow: inset 0 0 0 1px color-mix(in oklab, #22c55e 52%, transparent 48%);
+    border-color: color-mix(in oklab, var(--success) 92%, transparent 8%);
+    box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--success) 52%, transparent 48%);
   }
 }
 
@@ -113,10 +113,10 @@
   gap: 0.35rem;
   width: 100%;
   max-width: 100%;
-  border-radius: calc(var(--radius) - 0.28rem);
+  border-radius: var(--radius-sm);
   padding: 0.34rem 0.58rem;
   border: 1px solid transparent;
-  font-size: 0.74rem;
+  font-size: var(--font-size-xs);
 }
 
 .overnightLeft {
@@ -152,15 +152,15 @@
 }
 
 .overnightBannerCovered {
-  background: color-mix(in oklab, #0f7f69 16%, transparent);
-  border-color: color-mix(in oklab, #0f7f69 40%, transparent);
-  color: color-mix(in oklab, #0f7f69 70%, var(--foreground) 30%);
+  background: color-mix(in oklab, var(--brand) 16%, transparent);
+  border-color: color-mix(in oklab, var(--brand) 40%, transparent);
+  color: color-mix(in oklab, var(--brand) 70%, var(--foreground) 30%);
 }
 
 .overnightBannerMissing {
-  background: color-mix(in oklab, #dc2626 14%, transparent);
-  border-color: color-mix(in oklab, #dc2626 42%, transparent);
-  color: color-mix(in oklab, #b91c1c 75%, var(--foreground) 25%);
+  background: color-mix(in oklab, var(--destructive) 14%, transparent);
+  border-color: color-mix(in oklab, var(--destructive) 42%, transparent);
+  color: color-mix(in oklab, var(--destructive) 75%, var(--foreground) 25%);
 }
 
 .overnightBannerMultiple {
@@ -183,8 +183,8 @@
   gap: 0;
   margin-inline: calc(-1 * var(--day-card-padding));
   margin-top: calc(-1 * var(--day-card-padding));
-  border-top-left-radius: calc(var(--radius) - 0.08rem);
-  border-top-right-radius: calc(var(--radius) - 0.08rem);
+  border-top-left-radius: var(--radius-lg);
+  border-top-right-radius: var(--radius-lg);
   background: color-mix(in oklab, var(--muted) 70%, var(--card) 30%);
   box-shadow: 0 0.08rem 0.2rem color-mix(in oklab, var(--foreground) 10%, transparent 90%);
 }
@@ -212,7 +212,7 @@
   height: 1.74rem;
   flex: 0 0 auto;
   border: 1px solid color-mix(in oklab, var(--border) 82%, transparent 18%);
-  border-radius: calc(var(--radius) - 0.22rem);
+  border-radius: var(--radius-md);
   background: color-mix(in oklab, var(--card) 92%, transparent 8%);
   color: color-mix(in oklab, var(--foreground) 72%, var(--muted-foreground) 28%);
   cursor: pointer;
@@ -267,7 +267,7 @@
 
 .dayWeekday {
   margin: 0;
-  font-size: 0.76rem;
+  font-size: var(--font-size-sm);
   line-height: 1.1;
   color: var(--muted-foreground);
   letter-spacing: 0.08em;
@@ -277,14 +277,14 @@
 .dayIndex {
   margin: 0;
   font-family: var(--font-heading);
-  font-size: clamp(1.2rem, 2vw, 1.45rem);
+  font-size: var(--font-size-title);
   line-height: 1.15;
   letter-spacing: 0.01em;
 }
 
 .dayDate {
   margin: 0;
-  font-size: 0.98rem;
+  font-size: var(--font-size-xl);
   line-height: 1.15;
   color: color-mix(in oklab, var(--foreground) 72%, var(--muted-foreground) 28%);
   font-weight: 500;
@@ -307,11 +307,11 @@
   margin: 0;
   padding: 0.1rem 0.24rem;
   border: 1px dashed transparent;
-  border-radius: calc(var(--radius) - 0.34rem);
+  border-radius: var(--radius-sm);
   background: transparent;
   text-align: left;
   color: color-mix(in oklab, var(--foreground) 78%, var(--muted-foreground) 22%);
-  font-size: 0.8rem;
+  font-size: var(--font-size-sm);
   line-height: 1.3;
   white-space: normal;
   overflow: visible;
@@ -342,7 +342,7 @@
   margin: 0;
   padding: 0.1rem 0.24rem;
   color: color-mix(in oklab, var(--foreground) 78%, var(--muted-foreground) 22%);
-  font-size: 0.8rem;
+  font-size: var(--font-size-sm);
   line-height: 1.3;
   white-space: normal;
   overflow-wrap: anywhere;
@@ -354,11 +354,11 @@
   min-height: 2.25rem;
   padding: 0.34rem 0.48rem;
   border: 1px solid color-mix(in oklab, var(--primary) 38%, var(--border) 62%);
-  border-radius: calc(var(--radius) - 0.34rem);
+  border-radius: var(--radius-sm);
   background: color-mix(in oklab, var(--card) 94%, transparent 6%);
   color: var(--foreground);
   font: inherit;
-  font-size: 0.8rem;
+  font-size: var(--font-size-sm);
   line-height: 1.3;
 }
 
@@ -381,10 +381,10 @@
   width: 1.55rem;
   height: 1.55rem;
   border: 1px solid color-mix(in oklab, var(--border) 84%, transparent 16%);
-  border-radius: calc(var(--radius) - 0.38rem);
+  border-radius: var(--radius-sm);
   background: color-mix(in oklab, var(--card) 92%, transparent 8%);
   color: color-mix(in oklab, var(--foreground) 76%, var(--muted-foreground) 24%);
-  font-size: 0.9rem;
+  font-size: var(--font-size-lg);
   line-height: 1;
   cursor: pointer;
 }
@@ -404,12 +404,12 @@
   align-items: center;
   gap: 0.34rem;
   border: 1px solid rgba(13, 124, 102, 0.3);
-  border-radius: calc(var(--radius) - 0.2rem);
+  border-radius: var(--radius-md);
   background: rgba(13, 124, 102, 0.1);
-  color: #1d5f55;
+  color: var(--brand);
   text-decoration: none;
   padding: 0.35rem 0.54rem;
-  font-size: 0.73rem;
+  font-size: var(--font-size-xs);
   font-weight: 400;
   line-height: 1.2;
   white-space: nowrap;
@@ -439,7 +439,7 @@
   width: 1.5rem;
   height: 1.5rem;
   border: 1px solid color-mix(in oklab, var(--border) 84%, transparent 16%);
-  border-radius: 0.32rem;
+  border-radius: var(--radius-sm);
   background: color-mix(in oklab, var(--card) 88%, var(--muted) 12%);
   color: color-mix(in oklab, var(--foreground) 76%, var(--muted-foreground) 24%);
   cursor: pointer;
@@ -477,7 +477,7 @@
 .emptyActivities {
   margin: 0;
   color: var(--muted-foreground);
-  font-size: 0.88rem;
+  font-size: var(--font-size-lg);
 }
 
 .sectionList {
@@ -505,7 +505,7 @@
 }
 
 .sectionDividerLabel {
-  font-size: 0.72rem;
+  font-size: var(--font-size-xs);
   text-transform: uppercase;
   letter-spacing: 0.08em;
   color: var(--muted-foreground);
@@ -520,10 +520,8 @@
 }
 
 .activityCard {
-  --activity-accent: #8a7a68;
-  --activity-bg: transparent;
   border: 1px solid color-mix(in oklab, var(--activity-accent) 26%, var(--border) 74%);
-  border-radius: calc(var(--radius) - 0.24rem);
+  border-radius: var(--radius-md);
   background: var(--activity-bg);
   display: grid;
   gap: 0.44rem;
@@ -552,7 +550,7 @@
   padding: 0.54rem 0.62rem;
   border-bottom: 1px solid color-mix(in oklab, var(--activity-accent) 28%, var(--border) 72%);
   color: color-mix(in oklab, var(--foreground) 86%, var(--muted-foreground) 14%);
-  font-size: 0.84rem;
+  font-size: var(--font-size-md);
   line-height: 1.42;
 }
 
@@ -574,55 +572,8 @@
   padding: 0;
 }
 
-.activityCard[data-activity-type='flight'] {
-  --activity-accent: #b8860b;
-  --activity-bg: rgba(218, 165, 32, 0.03);
-}
-
-.activityCard[data-activity-type='accommodation'] {
-  --activity-accent: #7b2d8e;
-  --activity-bg: rgba(138, 43, 226, 0.03);
-}
-
-.activityCard[data-activity-type='transfer'] {
-  --activity-accent: #1a7fd4;
-  --activity-bg: rgba(30, 144, 255, 0.03);
-}
-
-.activityCard[data-activity-type='poi'] {
-  --activity-accent: #228b22;
-  --activity-bg: rgba(34, 139, 34, 0.03);
-}
-
-.activityCard[data-activity-type='carRental'] {
-  --activity-accent: #8b4513;
-  --activity-bg: rgba(139, 69, 19, 0.03);
-}
-
-.activityCard[data-activity-type='food'] {
-  --activity-accent: #c62828;
-  --activity-bg: rgba(220, 20, 60, 0.03);
-}
-
-.activityCard[data-activity-type='shopping'] {
-  --activity-accent: #c2185b;
-  --activity-bg: rgba(233, 30, 99, 0.03);
-}
-
-.activityCard[data-activity-type='tour'] {
-  --activity-accent: #00796b;
-  --activity-bg: rgba(0, 150, 136, 0.03);
-}
-
-.activityCard[data-activity-type='custom'] {
-  --activity-accent: #d2691e;
-  --activity-bg: rgba(255, 140, 0, 0.03);
-}
-
-.activityCard[data-activity-type='note'] {
-  --activity-accent: #8a7a68;
-  --activity-bg: transparent;
-}
+/* Per-type --activity-accent/--activity-bg values come from the global
+   [data-activity-type] rules in index.css. */
 
 .activityHeader {
   display: flex;
@@ -637,7 +588,7 @@
 .activityHeaderOnly {
   margin: 0;
   border-bottom: none;
-  border-radius: calc(var(--radius) - 0.24rem);
+  border-radius: var(--radius-md);
 }
 
 .activityHeaderLine {
@@ -664,7 +615,7 @@
 
 .activityTitle {
   margin: 0;
-  font-size: 0.88rem;
+  font-size: var(--font-size-lg);
   font-weight: 700;
   line-height: 1.25;
   white-space: normal;
@@ -673,7 +624,7 @@
 }
 
 .activityTime {
-  font-size: 0.78rem;
+  font-size: var(--font-size-sm);
   color: var(--muted-foreground);
   white-space: nowrap;
   text-align: right;
@@ -691,7 +642,7 @@
   border: 1px solid color-mix(in oklab, var(--border) 76%, transparent 24%);
   border-radius: 999px;
   padding: 0.08rem 0.42rem;
-  font-size: 0.7rem;
+  font-size: var(--font-size-xs);
   color: var(--muted-foreground);
   background: color-mix(in oklab, var(--card) 90%, transparent 10%);
 }
@@ -703,7 +654,7 @@
 
 .activityDescription {
   margin: 0;
-  font-size: 0.84rem;
+  font-size: var(--font-size-md);
   line-height: 1.42;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
@@ -728,7 +679,7 @@
   flex-wrap: wrap;
   cursor: pointer;
   padding: 0.34rem 0.5rem;
-  font-size: 0.82rem;
+  font-size: var(--font-size-md);
   font-weight: 400;
   line-height: 1.35;
   color: color-mix(in oklab, var(--foreground) 78%, var(--muted-foreground) 22%);
@@ -787,7 +738,7 @@
 }
 
 .accommodationGrid dt {
-  font-size: 0.84rem;
+  font-size: var(--font-size-md);
   line-height: 1.42;
   font-weight: 400;
   color: var(--muted-foreground);
@@ -799,7 +750,7 @@
   margin: 0;
   min-width: 0;
   flex: 1 1 auto;
-  font-size: 0.84rem;
+  font-size: var(--font-size-md);
   line-height: 1.42;
   font-weight: 500;
   color: color-mix(in oklab, var(--foreground) 90%, var(--muted-foreground) 10%);
@@ -837,7 +788,7 @@
   flex: 0 0 auto;
   width: 6.3rem;
   line-height: 0;
-  border-radius: 0.55rem;
+  border-radius: var(--radius-md);
   overflow: hidden;
   border: 1px solid rgba(13, 124, 102, 0.3);
   background: rgba(13, 124, 102, 0.08);
@@ -871,7 +822,7 @@
   border-radius: 999px;
   padding: 0.3rem 0.42rem;
   border: 1px solid rgba(127, 85, 29, 0.24);
-  font-size: 0.7rem;
+  font-size: var(--font-size-xs);
   line-height: 1.25;
   color: color-mix(in oklab, var(--foreground) 88%, var(--muted-foreground) 12%);
   background: rgba(245, 232, 210, 0.35);
@@ -909,7 +860,7 @@
 .metaLinkLocation {
   background: rgba(13, 124, 102, 0.1);
   border-color: rgba(13, 124, 102, 0.3);
-  color: #1d5f55;
+  color: var(--brand);
 }
 
 .metaLinkMappedLocation {

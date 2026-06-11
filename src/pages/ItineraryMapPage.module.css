@@ -5,7 +5,7 @@
 
 .mapPanel {
   border: 1px solid var(--border);
-  border-radius: var(--radius);
+  border-radius: var(--radius-lg);
   background: var(--card);
   color: var(--card-foreground);
   padding: clamp(0.75rem, 1.8vw, 1rem);
@@ -28,7 +28,7 @@
 
 .kicker {
   margin: 0;
-  font-size: 0.72rem;
+  font-size: var(--font-size-xs);
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--muted-foreground);
@@ -42,12 +42,12 @@
 .subtitle {
   margin: 0;
   color: var(--muted-foreground);
-  font-size: 0.82rem;
+  font-size: var(--font-size-md);
 }
 
 .stateCard {
   border: 1px solid var(--border);
-  border-radius: var(--radius);
+  border-radius: var(--radius-lg);
   background: var(--card);
   color: var(--card-foreground);
   padding: 1rem;
@@ -71,7 +71,7 @@
   margin-top: 0.6rem;
 }
 
-@media (max-width: 54rem) {
+@media (max-width: 56.25rem) {
   .sharedPage {
     inline-size: min(70rem, calc(100% - 1.1rem));
   }

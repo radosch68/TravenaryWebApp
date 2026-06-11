@@ -1,6 +1,6 @@
 .headerCard {
   border: 1px solid var(--border);
-  border-radius: calc(var(--radius) - 0.05rem);
+  border-radius: var(--radius-lg);
   padding: 0.9rem;
   background: color-mix(in oklab, var(--card) 90%, white 10%);
   display: grid;
@@ -15,7 +15,7 @@
 
 .kicker {
   margin: 0;
-  font-size: 0.74rem;
+  font-size: var(--font-size-xs);
   text-transform: uppercase;
   letter-spacing: 0.08em;
   color: var(--muted-foreground);
@@ -24,7 +24,7 @@
 .title {
   margin: 0.35rem 0 0;
   font-family: var(--font-heading);
-  font-size: clamp(1.1rem, 2vw, 1.55rem);
+  font-size: var(--font-size-title);
   line-height: 1.25;
 }
 
@@ -61,7 +61,7 @@
 
 .stateCard {
   border: 1px solid var(--border);
-  border-radius: calc(var(--radius) - 0.05rem);
+  border-radius: var(--radius-lg);
   background: color-mix(in oklab, var(--card) 94%, white 6%);
   padding: 0.95rem;
   display: grid;
@@ -74,7 +74,7 @@
 
 .pagination {
   border: 1px solid var(--border);
-  border-radius: calc(var(--radius) - 0.05rem);
+  border-radius: var(--radius-lg);
   background: color-mix(in oklab, var(--card) 94%, white 6%);
   padding: 0.6rem 0.8rem;
   display: flex;
@@ -86,7 +86,7 @@
 .pageLabel {
   margin: 0;
   color: var(--muted-foreground);
-  font-size: 0.86rem;
+  font-size: var(--font-size-md);
 }
 
 @media (max-width: 56.25rem) {

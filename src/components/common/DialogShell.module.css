@@ -16,7 +16,7 @@
   max-height: min(90vh, 54rem);
   overflow: hidden;
   border: 1px solid var(--border);
-  border-radius: var(--radius);
+  border-radius: var(--radius-lg);
   background: var(--card);
   box-shadow:
     0 20px 56px color-mix(in oklab, var(--foreground) 16%, transparent 84%),
@@ -64,7 +64,7 @@
 .header h3 {
   margin: 0;
   color: var(--foreground);
-  font-size: 1rem;
+  font-size: var(--font-size-xl);
   line-height: 1.2;
 }
 
@@ -73,9 +73,9 @@
   min-height: 2.25rem;
   padding: 0;
   border-radius: 999px;
-  background: color-mix(in oklab, #dc2626 10%, var(--background) 90%);
-  color: color-mix(in oklab, #b91c1c 82%, var(--foreground) 18%);
-  border: 1px solid color-mix(in oklab, #dc2626 34%, var(--border) 66%);
+  background: color-mix(in oklab, var(--destructive) 10%, var(--background) 90%);
+  color: color-mix(in oklab, var(--destructive) 82%, var(--foreground) 18%);
+  border: 1px solid color-mix(in oklab, var(--destructive) 34%, var(--border) 66%);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -85,8 +85,8 @@
 }
 
 .closeButton:hover {
-  background: color-mix(in oklab, #dc2626 16%, var(--background) 84%);
-  border-color: color-mix(in oklab, #dc2626 52%, var(--border) 48%);
+  background: color-mix(in oklab, var(--destructive) 16%, var(--background) 84%);
+  border-color: color-mix(in oklab, var(--destructive) 52%, var(--border) 48%);
 }
 
 .closeButton:focus-visible {
@@ -114,7 +114,7 @@
   border-top: 1px solid var(--border);
 }
 
-@media (max-width: 500px) {
+@media (max-width: 32.5rem) {
   .overlay {
     align-items: flex-start;
     padding: max(0.75rem, env(safe-area-inset-top)) max(0.75rem, env(safe-area-inset-right)) max(0.75rem, env(safe-area-inset-bottom)) max(0.75rem, env(safe-area-inset-left));

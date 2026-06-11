@@ -13,7 +13,7 @@
   z-index: 30;
   background: var(--card);
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: var(--radius-md);
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
   padding: 0.8rem 1rem;
   min-width: 220px;
@@ -23,7 +23,7 @@
 
 .status {
   margin: 0;
-  font-size: 0.85rem;
+  font-size: var(--font-size-md);
   color: var(--muted-foreground);
 }
 
@@ -31,10 +31,10 @@
   width: 100%;
   padding: 0.45rem 0.8rem;
   border: none;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   cursor: pointer;
   font: inherit;
-  font-size: 0.88rem;
+  font-size: var(--font-size-lg);
   background: var(--accent-foreground);
   color: var(--accent);
   transition: opacity 0.15s;
@@ -51,6 +51,6 @@
 
 .error {
   margin: 0;
-  font-size: 0.82rem;
+  font-size: var(--font-size-md);
   color: var(--destructive);
 }

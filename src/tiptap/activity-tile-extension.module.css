@@ -31,13 +31,11 @@
 }
 
 .activityDisplay {
-  --activity-accent: #8a7a68;
-  --activity-bg: transparent;
   display: grid;
   gap: 0.44rem;
   width: 100%;
   border: 1px solid color-mix(in oklab, var(--activity-accent) 26%, var(--border) 74%);
-  border-radius: calc(var(--radius) - 0.24rem);
+  border-radius: var(--radius-md);
   background: var(--activity-bg);
   padding: 0.5rem;
 }
@@ -46,55 +44,8 @@
   padding: 0;
 }
 
-.activityDisplay[data-activity-type='flight'] {
-  --activity-accent: #b8860b;
-  --activity-bg: rgba(218, 165, 32, 0.03);
-}
-
-.activityDisplay[data-activity-type='accommodation'] {
-  --activity-accent: #7b2d8e;
-  --activity-bg: rgba(138, 43, 226, 0.03);
-}
-
-.activityDisplay[data-activity-type='transfer'] {
-  --activity-accent: #1a7fd4;
-  --activity-bg: rgba(30, 144, 255, 0.03);
-}
-
-.activityDisplay[data-activity-type='poi'] {
-  --activity-accent: #228b22;
-  --activity-bg: rgba(34, 139, 34, 0.03);
-}
-
-.activityDisplay[data-activity-type='carRental'] {
-  --activity-accent: #8b4513;
-  --activity-bg: rgba(139, 69, 19, 0.03);
-}
-
-.activityDisplay[data-activity-type='food'] {
-  --activity-accent: #c62828;
-  --activity-bg: rgba(220, 20, 60, 0.03);
-}
-
-.activityDisplay[data-activity-type='shopping'] {
-  --activity-accent: #c2185b;
-  --activity-bg: rgba(233, 30, 99, 0.03);
-}
-
-.activityDisplay[data-activity-type='tour'] {
-  --activity-accent: #00796b;
-  --activity-bg: rgba(0, 150, 136, 0.03);
-}
-
-.activityDisplay[data-activity-type='custom'] {
-  --activity-accent: #d2691e;
-  --activity-bg: rgba(255, 140, 0, 0.03);
-}
-
-.activityDisplay[data-activity-type='note'] {
-  --activity-accent: #8a7a68;
-  --activity-bg: transparent;
-}
+/* Per-type --activity-accent/--activity-bg values come from the global
+   [data-activity-type] rules in index.css. */
 
 .activityHeader {
   display: flex;
@@ -109,7 +60,7 @@
 .activityHeaderOnly {
   margin: 0;
   border-bottom: none;
-  border-radius: calc(var(--radius) - 0.24rem);
+  border-radius: var(--radius-md);
 }
 
 .activityHeaderLine {
@@ -139,7 +90,7 @@
   min-width: 0;
   overflow-wrap: anywhere;
   color: var(--foreground);
-  font-size: 0.88rem;
+  font-size: var(--font-size-lg);
   font-weight: 700;
   line-height: 1.25;
   white-space: normal;
@@ -149,7 +100,7 @@
   align-self: start;
   justify-self: end;
   color: var(--muted-foreground);
-  font-size: 0.78rem;
+  font-size: var(--font-size-sm);
   text-align: right;
   white-space: nowrap;
 }
@@ -165,7 +116,7 @@
   padding: 0.08rem 0.42rem;
   background: color-mix(in oklab, var(--card) 90%, transparent 10%);
   color: var(--muted-foreground);
-  font-size: 0.7rem;
+  font-size: var(--font-size-xs);
 }
 
 .anchoredChip {
@@ -176,7 +127,7 @@
 .activityDescription {
   margin: 0;
   overflow-wrap: anywhere;
-  font-size: 0.84rem;
+  font-size: var(--font-size-md);
   line-height: 1.42;
   white-space: pre-wrap;
 }
@@ -205,7 +156,7 @@
   cursor: pointer;
   padding: 0.34rem 0.5rem;
   color: color-mix(in oklab, var(--foreground) 78%, var(--muted-foreground) 22%);
-  font-size: 0.82rem;
+  font-size: var(--font-size-md);
   font-weight: 400;
   line-height: 1.35;
   list-style: none;
@@ -260,7 +211,7 @@
 
 .accommodationGrid dt {
   color: var(--muted-foreground);
-  font-size: 0.84rem;
+  font-size: var(--font-size-md);
   font-weight: 400;
   line-height: 1.42;
   white-space: nowrap;
@@ -275,7 +226,7 @@
   text-overflow: ellipsis;
   white-space: nowrap;
   color: color-mix(in oklab, var(--foreground) 90%, var(--muted-foreground) 10%);
-  font-size: 0.84rem;
+  font-size: var(--font-size-md);
   font-weight: 500;
   line-height: 1.42;
 }
@@ -306,7 +257,7 @@
   text-align: right;
   white-space: nowrap;
   color: color-mix(in oklab, var(--foreground) 86%, var(--muted-foreground) 14%);
-  font-size: 0.82rem;
+  font-size: var(--font-size-md);
   line-height: 1.35;
 }
 
@@ -320,7 +271,7 @@
   gap: 0.26rem;
   min-width: 0;
   color: color-mix(in oklab, var(--foreground) 78%, var(--muted-foreground) 22%);
-  font-size: 0.82rem;
+  font-size: var(--font-size-md);
   line-height: 1.35;
 }
 
@@ -345,7 +296,7 @@
 
 .transferGrid dt {
   color: color-mix(in oklab, var(--foreground) 78%, var(--muted-foreground) 22%);
-  font-size: 0.84rem;
+  font-size: var(--font-size-md);
   font-weight: 400;
   line-height: 1.42;
   white-space: nowrap;
@@ -366,7 +317,7 @@
   border-color: rgba(67, 120, 170, 0.34);
   background: rgba(67, 120, 170, 0.14);
   color: #2f5578;
-  font-size: 0.7rem;
+  font-size: var(--font-size-xs);
   font-weight: 400;
   line-height: 1.25;
 }
@@ -411,7 +362,7 @@
   flex: 0 0 auto;
   width: 6.3rem;
   border: 1px solid rgba(13, 124, 102, 0.3);
-  border-radius: 0.55rem;
+  border-radius: var(--radius-md);
   overflow: hidden;
   background: rgba(13, 124, 102, 0.08);
   line-height: 0;
@@ -449,7 +400,7 @@
   padding: 0.3rem 0.42rem;
   background: rgba(245, 232, 210, 0.35);
   color: color-mix(in oklab, var(--foreground) 88%, var(--muted-foreground) 12%);
-  font-size: 0.7rem;
+  font-size: var(--font-size-xs);
   line-height: 1.25;
   overflow: hidden;
 }
@@ -485,7 +436,7 @@
 .metaLinkLocation {
   border-color: rgba(13, 124, 102, 0.3);
   background: rgba(13, 124, 102, 0.1);
-  color: #1d5f55;
+  color: var(--brand);
 }
 
 .metaLinkMappedLocation {
@@ -561,7 +512,7 @@
   gap: 0.28rem;
   min-width: 0;
   color: var(--muted-foreground);
-  font-size: 0.73rem;
+  font-size: var(--font-size-xs);
   font-weight: 400;
 }
 
@@ -569,11 +520,11 @@
 .activityEditor textarea {
   width: 100%;
   border: 1px solid var(--border);
-  border-radius: calc(var(--radius) - 0.24rem);
+  border-radius: var(--radius-md);
   background: var(--background);
   color: var(--foreground);
   padding: 0.48rem 0.56rem;
-  font-size: 0.86rem;
+  font-size: var(--font-size-md);
   font-weight: 400;
 }
 
@@ -593,10 +544,10 @@
 
 .activityEditorCancelButton {
   border: 1px solid var(--border);
-  border-radius: calc(var(--radius) - 0.24rem);
+  border-radius: var(--radius-md);
   background: color-mix(in oklab, var(--card) 92%, transparent 8%);
   color: var(--foreground);
-  font-size: 0.86rem;
+  font-size: var(--font-size-md);
   font-weight: 700;
   line-height: 1;
   padding: 0.34rem 0.62rem;
@@ -614,10 +565,10 @@
 
 .activityEditorConfirmButton {
   border: 1px solid color-mix(in oklab, var(--primary) 46%, var(--border) 54%);
-  border-radius: calc(var(--radius) - 0.2rem);
+  border-radius: var(--radius-md);
   background: color-mix(in oklab, var(--primary) 86%, var(--card) 14%);
   color: var(--primary-foreground);
-  font-size: 0.86rem;
+  font-size: var(--font-size-md);
   font-weight: 700;
   line-height: 1;
   padding: 0.48rem 0.86rem;
@@ -633,7 +584,7 @@
   outline-offset: 2px;
 }
 
-@media (max-width: 640px) {
+@media (max-width: 40rem) {
   .activityEditor {
     display: grid;
     grid-template-columns: 1fr;

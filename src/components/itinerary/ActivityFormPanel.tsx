@@ -1,7 +1,7 @@
 import type { ReactElement } from 'react'
 import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { AnchorSimple, ArrowRight, ArrowSquareOut, CaretDoubleUp, CaretDown, CaretRight, Check, MagnifyingGlass, Plus, Trash } from '@phosphor-icons/react'
+import { Anchor, ArrowRight, Check, ChevronDown, ChevronRight, ChevronsUp, ExternalLink, Plus, Search, Trash2 } from 'lucide-react'
 
 import { DialogShell } from '@/components/common/DialogShell'
 import type { PhotoSearchResult, ActivityType, AccommodationPlatform, ActivityLocation, ErrorDetail, ItineraryActivity, WebReference } from '@/services/contracts'
@@ -10,7 +10,7 @@ import { generateClientId } from '@/utils/client-id'
 import { formatLocalDate, formatLocalTime, getLocalizedTimeInputPlaceholder } from '@/utils/date-format'
 import { toGoogleMapsUrl } from '@/utils/location-links'
 import { inferReferenceTypeFromUrl } from '@/utils/reference-url'
-import { ACTIVITY_TYPE_COLOR, ACTIVITY_TYPE_ICON } from './activity-presentation'
+import { ACTIVITY_TYPE_ICON } from './activity-presentation'
 import formStyles from './ActivityFormPanel.module.css'
 import { ensureGoogleMapsScript, waitForGoogleMapsApiReady } from '@/utils/google-maps-api'
 
@@ -525,6 +525,15 @@ export function ActivityFormPanel({
     setTimeEnd(value)
   }
 
+  // The estimate effect writes transferEstimateValue itself; reading it through a
+  // ref keeps a successful fetch from re-running the effect and requesting the
+  // same route from the Directions API a second time.
+  const transferEstimateValueRef = useRef(transferEstimateValue)
+
+  useEffect(() => {
+    transferEstimateValueRef.current = transferEstimateValue
+  }, [transferEstimateValue])
+
   useEffect(() => {
     const scheduleEstimateState = (patch: {
       loading?: boolean
@@ -566,7 +575,7 @@ export function ActivityFormPanel({
 
     if (transferMot === 'plane') {
       scheduleEstimateState({ loading: false, error: null })
-      if (transferEstimateValue.trim().length === 0) {
+      if (transferEstimateValueRef.current.trim().length === 0) {
         scheduleEstimateState({ source: 'fallback' })
       }
       return
@@ -640,7 +649,7 @@ export function ActivityFormPanel({
       } catch {
         if (!cancelled) {
           setTransferEstimateError(t('common:itinerary.dayEditor.transferEstimateUnavailable'))
-          if (transferEstimateValue.trim().length === 0) {
+          if (transferEstimateValueRef.current.trim().length === 0) {
             setTransferEstimateSource('fallback')
           }
         }
@@ -654,7 +663,7 @@ export function ActivityFormPanel({
     return () => {
       cancelled = true
     }
-  }, [selectedActivityType, transferEstimateSource, transferFrom, transferTo, transferMot, transferEstimateValue, t])
+  }, [selectedActivityType, transferEstimateSource, transferFrom, transferTo, transferMot, t])
 
   const updateReferenceRow = (rowId: string, patch: Partial<Omit<ReferenceDraftRow, 'id'>>): void => {
     setReferenceRows((prev) => prev.map((row) => (row.id === rowId ? { ...row, ...patch } : row)))
@@ -1228,7 +1237,7 @@ export function ActivityFormPanel({
     }
   }
 
-  const typeColor = ACTIVITY_TYPE_COLOR[selectedActivityType]
+  const TypeBadgeIcon = ACTIVITY_TYPE_ICON[selectedActivityType]
   const hasActivitySpecificFields = selectedActivityType === 'food' || selectedActivityType === 'tour' || selectedActivityType === 'accommodation' || selectedActivityType === 'transfer'
   const activitySpecificSectionTitle = t(`common:itinerary.dayEditor.activityTypeOptions.${ACTIVITY_TYPE_LABEL_KEY[selectedActivityType]}`)
   const getReferenceRowSummary = (row: ReferenceDraftRow): string => {
@@ -1276,11 +1285,8 @@ export function ActivityFormPanel({
   }
 
   const typeBadge = (
-    <span
-      className={formStyles.typeBadge}
-      style={{ background: typeColor.bg, color: typeColor.icon, borderColor: `${typeColor.icon}26` }}
-    >
-      <span className={formStyles.typeBadgeIcon}>{ACTIVITY_TYPE_ICON[selectedActivityType]}</span>
+    <span className={formStyles.typeBadge} data-activity-type={selectedActivityType}>
+      <span className={formStyles.typeBadgeIcon}><TypeBadgeIcon size={18} /></span>
       <span>{t(`common:itinerary.dayEditor.activityTypeOptions.${ACTIVITY_TYPE_LABEL_KEY[selectedActivityType]}`)}</span>
     </span>
   )
@@ -1294,7 +1300,7 @@ export function ActivityFormPanel({
       aria-label={t('common:confirm')}
       title={t('common:confirm')}
     >
-      <Check size={16} weight="bold" aria-hidden="true" />
+      <Check size={16} strokeWidth={2.5} aria-hidden="true" />
     </button>
   )
 
@@ -1313,7 +1319,7 @@ export function ActivityFormPanel({
             aria-controls="activity-common-section-content"
             disabled={isFormDisabled}
           >
-            {commonSectionOpen ? <CaretDown size={14} weight="bold" /> : <CaretRight size={14} weight="bold" />}
+            {commonSectionOpen ? <ChevronDown size={14} strokeWidth={2.5} /> : <ChevronRight size={14} strokeWidth={2.5} />}
             <span className="activity-form-panel__section-title">{t('common:itinerary.dayEditor.commonTitle')}</span>
           </button>
         </div>
@@ -1411,7 +1417,7 @@ export function ActivityFormPanel({
                     <span className="activity-form-panel__checkbox-indicator-mark">✓</span>
                   </span>
                   <span className="activity-form-panel__anchor-label">
-                    <AnchorSimple size={14} weight="bold" className="activity-form-panel__anchor-icon" />
+                    <Anchor size={14} strokeWidth={2.5} className="activity-form-panel__anchor-icon" />
                     <span>{t('common:itinerary.dayEditor.anchorToDay', { date: formatLocalDate(owningDayDate, i18n.language) })}</span>
                   </span>
                 </label>
@@ -1433,7 +1439,7 @@ export function ActivityFormPanel({
               aria-controls="activity-details-section-content"
               disabled={isFormDisabled}
             >
-              {activityDetailsSectionOpen ? <CaretDown size={14} weight="bold" /> : <CaretRight size={14} weight="bold" />}
+              {activityDetailsSectionOpen ? <ChevronDown size={14} strokeWidth={2.5} /> : <ChevronRight size={14} strokeWidth={2.5} />}
               <span className="activity-form-panel__section-title">{activitySpecificSectionTitle}</span>
             </button>
           </div>
@@ -1719,7 +1725,7 @@ export function ActivityFormPanel({
             aria-controls="activity-reference-section-content"
             disabled={isFormDisabled}
           >
-            {referenceSectionOpen ? <CaretDown size={14} weight="bold" /> : <CaretRight size={14} weight="bold" />}
+            {referenceSectionOpen ? <ChevronDown size={14} strokeWidth={2.5} /> : <ChevronRight size={14} strokeWidth={2.5} />}
             <span className="activity-form-panel__section-title">{t('common:itinerary.dayEditor.referencesTitle')}</span>
             <span className="activity-form-panel__section-count">{referenceRows.length}</span>
           </button>
@@ -1745,7 +1751,7 @@ export function ActivityFormPanel({
                       aria-expanded={isRowOpen}
                       aria-controls={`activity-reference-row-content-${row.id}`}
                     >
-                      {isRowOpen ? <CaretDown size={13} weight="bold" /> : <CaretRight size={13} weight="bold" />}
+                      {isRowOpen ? <ChevronDown size={13} strokeWidth={2.5} /> : <ChevronRight size={13} strokeWidth={2.5} />}
                       <span className="activity-form-panel__repeatable-title">{getReferenceRowSummary(row)}</span>
                     </button>
                     <div className="activity-form-panel__repeatable-actions">
@@ -1757,7 +1763,7 @@ export function ActivityFormPanel({
                         aria-label={t('common:itinerary.dayEditor.moveRowToTop', { index: rowIndex + 1 })}
                         title={t('common:itinerary.dayEditor.moveRowToTop', { index: rowIndex + 1 })}
                       >
-                        <CaretDoubleUp size={15} />
+                        <ChevronsUp size={15} />
                       </button>
                       <button
                         type="button"
@@ -1767,7 +1773,7 @@ export function ActivityFormPanel({
                         aria-label={t('common:itinerary.dayEditor.removeRow', { index: rowIndex + 1 })}
                         title={t('common:itinerary.dayEditor.removeRow', { index: rowIndex + 1 })}
                       >
-                        <Trash size={15} />
+                        <Trash2 size={15} />
                       </button>
                     </div>
                   </div>
@@ -1819,7 +1825,7 @@ export function ActivityFormPanel({
                                 openExternalUrl(row.url.trim())
                               }}
                             >
-                              <ArrowSquareOut size={15} weight="bold" />
+                              <ExternalLink size={15} strokeWidth={2.5} />
                             </button>
                           ) : null}
                         </div>
@@ -1851,7 +1857,7 @@ export function ActivityFormPanel({
                 aria-label={t('common:itinerary.dayEditor.referencesAdd')}
                 title={t('common:itinerary.dayEditor.referencesAdd')}
               >
-                <Plus size={16} weight="bold" />
+                <Plus size={16} strokeWidth={2.5} />
               </button>
               <button
                 type="button"
@@ -1861,7 +1867,7 @@ export function ActivityFormPanel({
                 aria-label={t('common:itinerary.dayEditor.searchPhotos')}
                 title={t('common:itinerary.dayEditor.searchPhotos')}
               >
-                <MagnifyingGlass size={16} weight="bold" />
+                <Search size={16} strokeWidth={2.5} />
                 <span>{t('common:itinerary.dayEditor.searchPhotos')}</span>
               </button>
             </div>
@@ -1879,7 +1885,7 @@ export function ActivityFormPanel({
             aria-controls="activity-location-section-content"
             disabled={isFormDisabled}
           >
-            {locationSectionOpen ? <CaretDown size={14} weight="bold" /> : <CaretRight size={14} weight="bold" />}
+            {locationSectionOpen ? <ChevronDown size={14} strokeWidth={2.5} /> : <ChevronRight size={14} strokeWidth={2.5} />}
             <span className="activity-form-panel__section-title">{t('common:itinerary.dayEditor.locationsTitle')}</span>
             <span className="activity-form-panel__section-count">{locationRows.length}</span>
           </button>
@@ -1908,7 +1914,7 @@ export function ActivityFormPanel({
                       aria-expanded={isRowOpen}
                       aria-controls={`activity-location-row-content-${row.id}`}
                     >
-                      {isRowOpen ? <CaretDown size={13} weight="bold" /> : <CaretRight size={13} weight="bold" />}
+                      {isRowOpen ? <ChevronDown size={13} strokeWidth={2.5} /> : <ChevronRight size={13} strokeWidth={2.5} />}
                       {locationError ? (
                         <span
                           className="activity-form-panel__repeatable-error-indicator"
@@ -1929,7 +1935,7 @@ export function ActivityFormPanel({
                         aria-label={t('common:itinerary.dayEditor.moveRowToTop', { index: rowIndex + 1 })}
                         title={t('common:itinerary.dayEditor.moveRowToTop', { index: rowIndex + 1 })}
                       >
-                        <CaretDoubleUp size={15} />
+                        <ChevronsUp size={15} />
                       </button>
                       <button
                         type="button"
@@ -1939,7 +1945,7 @@ export function ActivityFormPanel({
                         aria-label={t('common:itinerary.dayEditor.removeRow', { index: rowIndex + 1 })}
                         title={t('common:itinerary.dayEditor.removeRow', { index: rowIndex + 1 })}
                       >
-                        <Trash size={15} />
+                        <Trash2 size={15} />
                       </button>
                     </div>
                   </div>
@@ -1997,7 +2003,7 @@ export function ActivityFormPanel({
                                 openExternalUrl(locationMapsUrl)
                               }}
                             >
-                              <ArrowSquareOut size={15} weight="bold" />
+                              <ExternalLink size={15} strokeWidth={2.5} />
                             </button>
                           ) : null}
                         </div>
@@ -2046,7 +2052,7 @@ export function ActivityFormPanel({
                 aria-label={t('common:itinerary.dayEditor.locationsAdd')}
                 title={t('common:itinerary.dayEditor.locationsAdd')}
               >
-                <Plus size={16} weight="bold" />
+                <Plus size={16} strokeWidth={2.5} />
               </button>
             </div>
           </div>
@@ -2068,7 +2074,7 @@ export function ActivityFormPanel({
             aria-label={t('common:confirm')}
             title={t('common:confirm')}
           >
-            <Check size={16} weight="bold" aria-hidden="true" />
+            <Check size={16} strokeWidth={2.5} aria-hidden="true" />
           </button>
         )}
       >
@@ -2125,7 +2131,7 @@ export function ActivityFormPanel({
                         openExternalUrl(referenceAddUrl)
                       }}
                     >
-                      <ArrowSquareOut size={15} weight="bold" />
+                      <ExternalLink size={15} strokeWidth={2.5} />
                     </button>
                   ) : null}
                 </div>
@@ -2215,7 +2221,7 @@ export function ActivityFormPanel({
                     aria-label={t('common:itinerary.dayEditor.photoSearchGo')}
                     title={t('common:itinerary.dayEditor.photoSearchGo')}
                   >
-                    <ArrowRight size={16} weight="bold" />
+                    <ArrowRight size={16} strokeWidth={2.5} />
                   </button>
                 </div>
                 <p className="activity-form-panel__help-text">
@@ -2244,7 +2250,7 @@ export function ActivityFormPanel({
             aria-label={t('common:confirm')}
             title={t('common:confirm')}
           >
-            <Check size={16} weight="bold" aria-hidden="true" />
+            <Check size={16} strokeWidth={2.5} aria-hidden="true" />
           </button>
         )}
       >
@@ -2308,7 +2314,7 @@ export function ActivityFormPanel({
                     openExternalUrl(locationAddMapsUrl)
                   }}
                 >
-                  <ArrowSquareOut size={15} weight="bold" />
+                  <ExternalLink size={15} strokeWidth={2.5} />
                 </button>
               ) : null}
             </div>

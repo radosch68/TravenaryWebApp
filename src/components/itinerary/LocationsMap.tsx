@@ -1,17 +1,7 @@
 import {
-  BedDouble,
-  BusFront,
-  Car,
-  Footprints,
-  MapPin,
   Maximize2,
   Minimize2,
-  NotebookPen,
-  Plane,
-  ShoppingBag,
   Sparkles,
-  UtensilsCrossed,
-  type LucideIcon,
 } from 'lucide-react'
 import type { ReactElement } from 'react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
@@ -21,6 +11,7 @@ import maplibregl from 'maplibre-gl'
 
 import { formatLocalTime } from '@/utils/date-format'
 
+import { ACTIVITY_TYPE_ICON } from './activity-presentation'
 import { buildGoogleMapsSearchUrl, type LocationMapPin } from './location-map-pins'
 import { resolveMapProvider } from './map-provider'
 import styles from './LocationsMap.module.css'
@@ -113,34 +104,6 @@ const MAP_STYLE: maplibregl.StyleSpecification = {
   ],
 }
 
-const ACTIVITY_MARKER_COLORS: Record<LocationMapPin['activityType'], string> = {
-  note: '#8a7a68',
-  flight: '#b8860b',
-  accommodation: '#7b2d8e',
-  transfer: '#1a7fd4',
-  poi: '#228b22',
-  carRental: '#8b4513',
-  custom: '#d2691e',
-  food: '#c62828',
-  divider: '#8a7a68',
-  shopping: '#c2185b',
-  tour: '#00796b',
-}
-
-const ACTIVITY_MARKER_ICONS: Record<LocationMapPin['activityType'], LucideIcon> = {
-  note: NotebookPen,
-  flight: Plane,
-  accommodation: BedDouble,
-  transfer: BusFront,
-  poi: MapPin,
-  carRental: Car,
-  custom: Sparkles,
-  food: UtensilsCrossed,
-  divider: Sparkles,
-  shopping: ShoppingBag,
-  tour: Footprints,
-}
-
 function createPinBadgeElement(pin: LocationMapPin, markerNumber: number): {
   markerElement: HTMLButtonElement
   markerIconRoot: Root
@@ -149,12 +112,12 @@ function createPinBadgeElement(pin: LocationMapPin, markerNumber: number): {
   markerElement.type = 'button'
   markerElement.className = styles.pin
   markerElement.setAttribute('aria-label', pin.locationLabel || pin.activityTitle)
-  markerElement.style.setProperty('--day-map-pin-color', ACTIVITY_MARKER_COLORS[pin.activityType] ?? '#8a7a68')
+  markerElement.dataset.activityType = pin.activityType
 
   const markerIconElement = document.createElement('span')
   markerIconElement.className = styles.pinIcon
   markerElement.appendChild(markerIconElement)
-  const MarkerIcon = ACTIVITY_MARKER_ICONS[pin.activityType] ?? Sparkles
+  const MarkerIcon = ACTIVITY_TYPE_ICON[pin.activityType] ?? Sparkles
   const markerIconRoot = createRoot(markerIconElement)
   markerIconRoot.render(<MarkerIcon size={12} strokeWidth={2.2} />)
 

@@ -11,17 +11,11 @@ import type { ItinerarySummary } from '@/services/contracts'
 import { listItineraries } from '@/services/itinerary-service'
 import { useProfileStore } from '@/store/profile-store'
 import { formatLocalDate, parseIsoDate } from '@/utils/date-format'
+import type { LoadState } from '@/utils/load-state'
+import { getOngoingProgress } from '@/utils/trip-progress'
 import { unsplashUrl } from '@/utils/unsplash-url'
 
 import styles from './DashboardHomePage.module.css'
-
-type TilesLoadState = 'loading' | 'ready' | 'error'
-
-type OngoingProgress = {
-  totalHours: number
-  hoursLeft: number
-  elapsedPercent: number
-}
 
 function toValidLocalDate(value?: string): Date | null {
   if (!value) {
@@ -37,51 +31,13 @@ function toValidLocalDate(value?: string): Date | null {
   return parsedDate
 }
 
-function getOngoingProgress(
-  startDate: string | undefined,
-  endDate: string | undefined,
-  dayCount: number,
-  nowDate: Date,
-): OngoingProgress | null {
-  if (!startDate || !endDate || dayCount <= 0) {
-    return null
-  }
-
-  const start = parseIsoDate(startDate)
-  const endExclusive = parseIsoDate(endDate)
-  start.setHours(0, 0, 0, 0)
-  endExclusive.setHours(0, 0, 0, 0)
-  endExclusive.setDate(endExclusive.getDate() + 1)
-
-  if (Number.isNaN(start.getTime()) || Number.isNaN(endExclusive.getTime())) {
-    return null
-  }
-
-  if (nowDate < start || nowDate >= endExclusive) {
-    return null
-  }
-
-  const totalHours = dayCount * 24
-  const millisecondsPerHour = 60 * 60 * 1000
-  const rawHoursLeft = (endExclusive.getTime() - nowDate.getTime()) / millisecondsPerHour
-  const hoursLeft = Math.max(0, Math.min(totalHours, Math.ceil(rawHoursLeft)))
-  const elapsedHours = Math.max(0, totalHours - hoursLeft)
-  const elapsedPercent = totalHours > 0 ? (elapsedHours / totalHours) * 100 : 0
-
-  return {
-    totalHours,
-    hoursLeft,
-    elapsedPercent,
-  }
-}
-
 export function DashboardHomePage(): ReactElement {
   const { t, i18n } = useTranslation('common')
   const displayName = useProfileStore((state) => state.displayName)
   const email = useProfileStore((state) => state.email)
   const backendLastOpenedItinerary = useProfileStore((state) => state.lastOpenedItinerary)
   const [itineraries, setItineraries] = useState<ItinerarySummary[]>([])
-  const [tilesLoadState, setTilesLoadState] = useState<TilesLoadState>('loading')
+  const [tilesLoadState, setTilesLoadState] = useState<LoadState>('loading')
   const [nowDate, setNowDate] = useState(() => new Date())
 
   useEffect(() => {

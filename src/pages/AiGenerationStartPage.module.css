@@ -5,7 +5,7 @@
 
 .headerCard {
   border: 1px solid var(--border);
-  border-radius: calc(var(--radius) - 0.05rem);
+  border-radius: var(--radius-lg);
   padding: 0.9rem;
   background: color-mix(in oklab, var(--card) 90%, white 10%);
   display: grid;
@@ -16,7 +16,7 @@
 
 .kicker {
   margin: 0;
-  font-size: 0.72rem;
+  font-size: var(--font-size-xs);
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--muted-foreground);
@@ -25,7 +25,7 @@
 .title {
   margin: 0.35rem 0 0;
   font-family: var(--font-heading);
-  font-size: clamp(1.1rem, 2vw, 1.55rem);
+  font-size: var(--font-size-title);
   line-height: 1.22;
 }
 
@@ -41,7 +41,7 @@
 
 .formCard {
   border: 1px solid var(--border);
-  border-radius: calc(var(--radius) - 0.05rem);
+  border-radius: var(--radius-lg);
   background: color-mix(in oklab, var(--card) 94%, white 6%);
   padding: 0.9rem;
   display: grid;
@@ -57,7 +57,7 @@
 
 .field > span,
 .fieldWide > span {
-  font-size: 0.66rem;
+  font-size: var(--font-size-2xs);
   text-transform: uppercase;
   letter-spacing: 0.06em;
   color: var(--muted-foreground);
@@ -69,7 +69,7 @@
 .fieldWide select,
 .fieldWide .fieldInput {
   border: 1px solid var(--input);
-  border-radius: calc(var(--radius) - 0.26rem);
+  border-radius: var(--radius-sm);
   background: var(--card);
   color: var(--foreground);
   font: inherit;
@@ -79,14 +79,14 @@
 .field input {
   min-height: 1.9rem;
   padding: 0.2rem 0.45rem;
-  font-size: 0.84rem;
+  font-size: var(--font-size-md);
 }
 
 .fieldWide select,
 .fieldWide .fieldInput {
   min-height: 1.9rem;
   padding: 0.2rem 0.45rem;
-  font-size: 0.84rem;
+  font-size: var(--font-size-md);
 }
 
 .fieldWide {
@@ -106,14 +106,14 @@
 
 .promptGuidanceSummary {
   margin: 0;
-  font-size: 0.82rem;
+  font-size: var(--font-size-md);
   font-weight: 700;
   color: var(--foreground);
   cursor: pointer;
 }
 
 .promptGuidanceSummary:hover {
-  color: color-mix(in oklab, var(--foreground) 85%, #0f6f5a 15%);
+  color: color-mix(in oklab, var(--foreground) 85%, var(--brand) 15%);
 }
 
 .promptGuidanceContent {
@@ -125,13 +125,13 @@
 .promptGuidanceNote {
   margin: 0;
   color: var(--muted-foreground);
-  font-size: 0.84rem;
+  font-size: var(--font-size-md);
   line-height: 1.35;
 }
 
 .promptExamplesTitle {
   margin: 0;
-  font-size: 0.8rem;
+  font-size: var(--font-size-sm);
   font-weight: 700;
   color: var(--foreground);
 }
@@ -146,7 +146,7 @@
   display: grid;
   gap: 0.2rem;
   color: var(--muted-foreground);
-  font-size: 0.84rem;
+  font-size: var(--font-size-md);
   line-height: 1.35;
 }
 
@@ -170,7 +170,7 @@
   min-height: 1.9rem;
   padding: 0 0.7rem;
   font: inherit;
-  font-size: 0.95rem;
+  font-size: var(--font-size-xl);
   cursor: pointer;
 }
 
@@ -179,7 +179,7 @@
 }
 
 .segmentedButtonActive {
-  background: #0f6f5a;
+  background: var(--brand);
   color: #fff;
   font-weight: 600;
 }
@@ -193,9 +193,9 @@
   justify-self: center;
   border: none;
   background: transparent;
-  color: #0f6f5a;
+  color: var(--brand);
   font: inherit;
-  font-size: 1rem;
+  font-size: var(--font-size-xl);
   font-weight: 600;
   cursor: pointer;
 }
@@ -228,7 +228,7 @@
   border-radius: 999px;
   background: var(--card);
   cursor: pointer;
-  font-size: 1rem;
+  font-size: var(--font-size-xl);
 }
 
 .dateRange {
@@ -245,7 +245,7 @@
 .geoError {
   margin: 0;
   color: var(--destructive);
-  font-size: 0.82rem;
+  font-size: var(--font-size-md);
 }
 
 .errorText {

@@ -5,7 +5,7 @@
 
 .heroCard {
   border: 1px solid var(--border);
-  border-radius: calc(var(--radius) - 0.05rem);
+  border-radius: var(--radius-lg);
   background: color-mix(in oklab, var(--card) 92%, white 8%);
   padding: 1rem;
   display: grid;
@@ -14,7 +14,7 @@
 
 .kicker {
   margin: 0;
-  font-size: 0.74rem;
+  font-size: var(--font-size-xs);
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--muted-foreground);
@@ -22,7 +22,7 @@
 
 .title {
   margin: 0;
-  font-size: clamp(1.18rem, 1.8vw, 1.5rem);
+  font-size: var(--font-size-title);
   line-height: 1.2;
 }
 
@@ -39,7 +39,7 @@
 
 .panel {
   border: 1px solid var(--border);
-  border-radius: calc(var(--radius) - 0.05rem);
+  border-radius: var(--radius-lg);
   background: color-mix(in oklab, var(--card) 94%, white 6%);
   padding: 0.9rem;
   display: grid;
@@ -56,7 +56,7 @@
 
 .sectionTitle {
   margin: 0;
-  font-size: 0.95rem;
+  font-size: var(--font-size-xl);
   font-weight: 650;
 }
 
@@ -83,12 +83,12 @@
 
 .definitionRow dt {
   color: var(--muted-foreground);
-  font-size: 0.82rem;
+  font-size: var(--font-size-md);
 }
 
 .definitionRow dd {
   margin: 0;
-  font-size: 0.88rem;
+  font-size: var(--font-size-lg);
   overflow-wrap: anywhere;
 }
 
@@ -103,7 +103,7 @@
 }
 
 .field label {
-  font-size: 0.82rem;
+  font-size: var(--font-size-md);
   color: var(--muted-foreground);
 }
 
@@ -112,12 +112,12 @@
   width: 100%;
   min-height: 2rem;
   border: 1px solid var(--input);
-  border-radius: calc(var(--radius) - 0.24rem);
+  border-radius: var(--radius-md);
   background: var(--background);
   color: var(--foreground);
   padding: 0.45rem 0.6rem;
   font: inherit;
-  font-size: 0.88rem;
+  font-size: var(--font-size-lg);
 }
 
 .input:focus,
@@ -130,10 +130,10 @@
 .secondaryButton,
 .dangerButton {
   min-height: 2rem;
-  border-radius: calc(var(--radius) - 0.22rem);
+  border-radius: var(--radius-md);
   border: 1px solid transparent;
   font: inherit;
-  font-size: 0.84rem;
+  font-size: var(--font-size-md);
   font-weight: 600;
   padding: 0.45rem 0.7rem;
   cursor: pointer;
@@ -172,14 +172,14 @@
 .mutedText {
   margin: 0;
   color: var(--muted-foreground);
-  font-size: 0.84rem;
+  font-size: var(--font-size-md);
 }
 
 .success,
 .error,
 .loading {
   margin: 0;
-  font-size: 0.84rem;
+  font-size: var(--font-size-md);
 }
 
 .success {
@@ -194,7 +194,7 @@
   color: var(--muted-foreground);
 }
 
-@media (max-width: 52rem) {
+@media (max-width: 56.25rem) {
   .grid {
     grid-template-columns: 1fr;
   }

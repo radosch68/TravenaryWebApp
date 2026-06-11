@@ -37,7 +37,7 @@
 
 .item {
   border: 0;
-  border-radius: calc(var(--radius-md) - 0.1rem);
+  border-radius: var(--radius-sm);
   background: transparent;
   color: var(--card-foreground);
   font: inherit;

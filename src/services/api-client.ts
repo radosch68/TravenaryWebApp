@@ -108,23 +108,27 @@ export async function refreshSessionTokens(): Promise<AuthTokens> {
       authHandlers.onRefreshSuccess(payload)
       return payload
     } catch (error) {
-      authHandlers.onRefreshFailure()
+      const apiError =
+        error instanceof ApiError
+          ? error
+          : error instanceof Error && error.name === 'AbortError'
+            ? new ApiError(408, {
+                code: 'NETWORK_TIMEOUT',
+                message: 'Request timed out',
+              })
+            : new ApiError(500, {
+                code: 'NETWORK_ERROR',
+                message: 'Unable to reach server',
+              })
 
-      if (error instanceof ApiError) {
-        throw error
+      // Only a definitive rejection of the refresh token ends the session.
+      // Timeouts, network errors, and server hiccups keep the stored token
+      // so a later refresh attempt can recover.
+      if (apiError.status === 400 || apiError.status === 401 || apiError.status === 403) {
+        authHandlers.onRefreshFailure()
       }
 
-      if (error instanceof Error && error.name === 'AbortError') {
-        throw new ApiError(408, {
-          code: 'NETWORK_TIMEOUT',
-          message: 'Request timed out',
-        })
-      }
-
-      throw new ApiError(500, {
-        code: 'NETWORK_ERROR',
-        message: 'Unable to reach server',
-      })
+      throw apiError
     }
   })()
 

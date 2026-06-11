@@ -5,7 +5,7 @@
 
 .headerCard {
   border: 1px solid var(--border);
-  border-radius: calc(var(--radius) - 0.05rem);
+  border-radius: var(--radius-lg);
   padding: 0.9rem;
   background: color-mix(in oklab, var(--card) 90%, white 10%);
   display: grid;
@@ -16,7 +16,7 @@
 
 .kicker {
   margin: 0;
-  font-size: 0.72rem;
+  font-size: var(--font-size-xs);
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--muted-foreground);
@@ -25,7 +25,7 @@
 .title {
   margin: 0.35rem 0 0;
   font-family: var(--font-heading);
-  font-size: clamp(1.1rem, 2vw, 1.55rem);
+  font-size: var(--font-size-title);
   line-height: 1.22;
 }
 
@@ -41,7 +41,7 @@
 
 .formCard {
   border: 1px solid var(--border);
-  border-radius: calc(var(--radius) - 0.05rem);
+  border-radius: var(--radius-lg);
   background: color-mix(in oklab, var(--card) 94%, white 6%);
   padding: 0.9rem;
   display: grid;
@@ -57,7 +57,7 @@
 
 .field > span,
 .fieldWide > span {
-  font-size: 0.66rem;
+  font-size: var(--font-size-2xs);
   text-transform: uppercase;
   letter-spacing: 0.06em;
   color: var(--muted-foreground);
@@ -65,13 +65,13 @@
 
 .fieldInput {
   border: 1px solid var(--input);
-  border-radius: calc(var(--radius) - 0.26rem);
+  border-radius: var(--radius-sm);
   background: var(--card);
   color: var(--foreground);
   min-height: 1.9rem;
   padding: 0.2rem 0.45rem;
   font: inherit;
-  font-size: 0.9rem;
+  font-size: var(--font-size-lg);
 }
 
 .dateGrid {
@@ -105,7 +105,7 @@
   }
 }
 
-@media (max-width: 44rem) {
+@media (max-width: 40rem) {
   .dateGrid {
     grid-template-columns: 1fr;
   }

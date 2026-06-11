@@ -5,7 +5,7 @@
 
 .heroCard {
   border: 1px solid var(--border);
-  border-radius: calc(var(--radius) - 0.05rem);
+  border-radius: var(--radius-lg);
   background: color-mix(in oklab, var(--card) 92%, white 8%);
   padding: 1rem;
   display: grid;
@@ -14,7 +14,7 @@
 
 .kicker {
   margin: 0;
-  font-size: 0.74rem;
+  font-size: var(--font-size-xs);
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--muted-foreground);
@@ -22,7 +22,7 @@
 
 .title {
   margin: 0;
-  font-size: clamp(1.18rem, 1.8vw, 1.5rem);
+  font-size: var(--font-size-title);
   line-height: 1.2;
 }
 
@@ -33,7 +33,7 @@
 
 .panel {
   border: 1px solid var(--border);
-  border-radius: calc(var(--radius) - 0.05rem);
+  border-radius: var(--radius-lg);
   background: color-mix(in oklab, var(--card) 94%, white 6%);
   padding: 0.9rem;
   display: grid;
@@ -42,14 +42,14 @@
 
 .sectionTitle {
   margin: 0;
-  font-size: 0.95rem;
+  font-size: var(--font-size-xl);
   font-weight: 650;
 }
 
 .sectionDescription {
   margin: 0;
   color: var(--muted-foreground);
-  font-size: 0.88rem;
+  font-size: var(--font-size-lg);
 }
 
 .paletteGrid {
@@ -60,7 +60,7 @@
 
 .paletteCard {
   border: 1px solid var(--border);
-  border-radius: calc(var(--radius) - 0.2rem);
+  border-radius: var(--radius-md);
   background: var(--background);
   color: var(--foreground);
   text-align: left;
@@ -84,12 +84,12 @@
 
 .paletteName {
   margin: 0;
-  font-size: 0.9rem;
+  font-size: var(--font-size-lg);
   font-weight: 600;
 }
 
 .selectedPill {
-  font-size: 0.72rem;
+  font-size: var(--font-size-xs);
   border: 1px solid var(--border);
   background: var(--muted);
   color: var(--muted-foreground);
@@ -100,7 +100,7 @@
 .paletteDescription {
   margin: 0;
   color: var(--muted-foreground);
-  font-size: 0.82rem;
+  font-size: var(--font-size-md);
 }
 
 .chipRow {
@@ -111,12 +111,12 @@
 
 .colorChip {
   min-height: 1.6rem;
-  border-radius: 0.4rem;
+  border-radius: var(--radius-sm);
   border: 1px solid color-mix(in oklab, var(--border) 70%, transparent);
   color: color-mix(in oklab, var(--foreground) 70%, white 30%);
   display: grid;
   place-items: center;
-  font-size: 0.66rem;
+  font-size: var(--font-size-2xs);
   font-weight: 700;
   letter-spacing: 0.02em;
 }

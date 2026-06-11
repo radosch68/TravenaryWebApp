@@ -1,9 +1,10 @@
-import { CheckCircle2, Layers, Loader2, RefreshCw, XCircle } from 'lucide-react'
+import { Layers, RefreshCw } from 'lucide-react'
 import type { ReactElement } from 'react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, useSearchParams } from 'react-router-dom'
 
+import { AiStatusIcon } from '@/components/common/AiStatusIcon'
 import {
   CommonListingHeader,
   CommonListingPagination,
@@ -15,6 +16,9 @@ import { Button } from '@/components/ui/button'
 import type { AiGenerationHistoryItem } from '@/services/contracts'
 import { listAiGenerationHistory } from '@/services/ai-generation-service'
 
+import { formatDateTime } from '@/utils/date-format'
+import type { LoadState } from '@/utils/load-state'
+
 import styles from './AiDraftsListPage.module.css'
 
 type SortBy = 'createdAt' | 'updatedAt' | 'generationCompletedAt' | 'draftCount'
@@ -24,25 +28,6 @@ type StatusFilter = 'all' | 'pending' | 'completed' | 'failed'
 const PAGE_SIZE_OPTIONS = [5, 10, 20, 50, 100] as const
 
 type PageSize = (typeof PAGE_SIZE_OPTIONS)[number]
-
-function formatDateTime(iso: string | undefined, language: string): string {
-  if (!iso) {
-    return ''
-  }
-
-  const date = new Date(iso)
-  if (Number.isNaN(date.getTime())) {
-    return ''
-  }
-
-  return new Intl.DateTimeFormat(language, {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  }).format(date)
-}
 
 function parsePageSize(value: string | null): PageSize {
   const parsed = Number.parseInt(value ?? '20', 10)
@@ -80,25 +65,13 @@ function getElapsedSeconds(startedAt: string | undefined, nowEpochMs: number): n
   return Math.max(0, Math.floor((nowEpochMs - startedAtMs) / 1000))
 }
 
-function renderStatusIcon(status: AiGenerationHistoryItem['status']): ReactElement {
-  if (status === 'completed') {
-    return <CheckCircle2 className={styles.statusIcon} aria-hidden="true" />
-  }
-
-  if (status === 'failed') {
-    return <XCircle className={styles.statusIcon} aria-hidden="true" />
-  }
-
-  return <Loader2 className={`${styles.statusIcon} ${styles.statusIconSpinning}`} aria-hidden="true" />
-}
-
 export function AiDraftsListPage(): ReactElement {
   const { t, i18n } = useTranslation(['ai-generation', 'common'])
   const [searchParams, setSearchParams] = useSearchParams()
   const [items, setItems] = useState<AiGenerationHistoryItem[]>([])
   const [total, setTotal] = useState(0)
   const [retentionDays, setRetentionDays] = useState<number | null>(null)
-  const [loadState, setLoadState] = useState<'idle' | 'loading' | 'ready' | 'error'>('idle')
+  const [loadState, setLoadState] = useState<LoadState>('idle')
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [isSingleColumnList, setIsSingleColumnList] = useState(true)
   const [nowEpochMs, setNowEpochMs] = useState(() => Date.now())
@@ -410,7 +383,7 @@ export function AiDraftsListPage(): ReactElement {
                   <Link to={`/ai-drafts/${item.id}`} className={styles.cardLink}>
                     <div className={`${styles.statusRail} ${styles[`statusRail_${item.status}`]}`}>
                       <span className={styles.statusText}>{t(`ai-generation:status.${item.status}`)}</span>
-                      {renderStatusIcon(item.status)}
+                      <AiStatusIcon status={item.status} className={styles.statusIcon} />
                       {runningSeconds != null ? (
                         <span className={styles.runningSecondsValue}>
                           {t('ai-generation:list.runningSeconds', { seconds: runningSeconds })}

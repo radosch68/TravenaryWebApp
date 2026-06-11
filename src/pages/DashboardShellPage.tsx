@@ -15,7 +15,9 @@ import { AppShell } from '@/components/layout/AppShell'
 import type { ItinerarySummary } from '@/services/contracts'
 import { listItineraries } from '@/services/itinerary-service'
 import { useProfileStore } from '@/store/profile-store'
-import { parseIsoDate } from '@/utils/date-format'
+import { formatShortDate, getTodayLocalIsoDate } from '@/utils/date-format'
+import type { LoadState } from '@/utils/load-state'
+import { getOngoingProgress, getUpcomingDaysLeft } from '@/utils/trip-progress'
 
 import styles from './DashboardShellPage.module.css'
 
@@ -62,12 +64,6 @@ function formatDateRange(
     return fallbackLabel
   }
 
-  const formatter = new Intl.DateTimeFormat(language, {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-  })
-
   const start = startDate ? new Date(startDate) : null
   const end = endDate ? new Date(endDate) : null
 
@@ -75,15 +71,15 @@ function formatDateRange(
   const isValidEnd = Boolean(end && !Number.isNaN(end.getTime()))
 
   if (isValidStart && isValidEnd && start && end) {
-    return `${formatter.format(start)} - ${formatter.format(end)}`
+    return `${formatShortDate(start, language)} - ${formatShortDate(end, language)}`
   }
 
   if (isValidStart && start) {
-    return formatter.format(start)
+    return formatShortDate(start, language)
   }
 
   if (isValidEnd && end) {
-    return formatter.format(end)
+    return formatShortDate(end, language)
   }
 
   return fallbackLabel
@@ -176,10 +172,6 @@ function loadListingPrefs(): ListingPrefs {
   }
 }
 
-function getTodayIsoDate(): string {
-  return new Date().toISOString().slice(0, 10)
-}
-
 function isPastItinerary(item: ItinerarySummary, todayIsoDate: string): boolean {
   if (!item.endDate) {
     return false
@@ -196,65 +188,6 @@ function isOngoingItinerary(item: ItinerarySummary, todayIsoDate: string): boole
   return item.startDate <= todayIsoDate && item.endDate >= todayIsoDate
 }
 
-function getUpcomingDaysLeft(startDate: string | undefined, todayIsoDate: string): number | null {
-  if (!startDate || startDate <= todayIsoDate) {
-    return null
-  }
-
-  const [todayYear, todayMonth, todayDay] = todayIsoDate.split('-').map(Number)
-  const [startYear, startMonth, startDay] = startDate.split('-').map(Number)
-  const todayUtc = Date.UTC(todayYear, todayMonth - 1, todayDay)
-  const startUtc = Date.UTC(startYear, startMonth - 1, startDay)
-  const millisecondsPerDay = 24 * 60 * 60 * 1000
-
-  const difference = Math.floor((startUtc - todayUtc) / millisecondsPerDay)
-  return difference > 0 ? difference : null
-}
-
-type OngoingProgress = {
-  totalHours: number
-  hoursLeft: number
-  elapsedPercent: number
-}
-
-function getOngoingProgress(
-  startDate: string | undefined,
-  endDate: string | undefined,
-  dayCount: number,
-  nowDate: Date,
-): OngoingProgress | null {
-  if (!startDate || !endDate || dayCount <= 0) {
-    return null
-  }
-
-  const start = parseIsoDate(startDate)
-  const endExclusive = parseIsoDate(endDate)
-  start.setHours(0, 0, 0, 0)
-  endExclusive.setHours(0, 0, 0, 0)
-  endExclusive.setDate(endExclusive.getDate() + 1)
-
-  if (Number.isNaN(start.getTime()) || Number.isNaN(endExclusive.getTime())) {
-    return null
-  }
-
-  if (nowDate < start || nowDate >= endExclusive) {
-    return null
-  }
-
-  const totalHours = dayCount * 24
-  const millisecondsPerHour = 60 * 60 * 1000
-  const rawHoursLeft = (endExclusive.getTime() - nowDate.getTime()) / millisecondsPerHour
-  const hoursLeft = Math.max(0, Math.min(totalHours, Math.ceil(rawHoursLeft)))
-  const elapsedHours = Math.max(0, totalHours - hoursLeft)
-  const elapsedPercent = totalHours > 0 ? (elapsedHours / totalHours) * 100 : 0
-
-  return {
-    totalHours,
-    hoursLeft,
-    elapsedPercent,
-  }
-}
-
 export function DashboardShellPage(): ReactElement {
   const { t, i18n } = useTranslation(['common', 'errors', 'ai-generation'])
   const displayName = useProfileStore((state) => state.displayName)
@@ -263,7 +196,7 @@ export function DashboardShellPage(): ReactElement {
   const [searchParams, setSearchParams] = useSearchParams()
   const [items, setItems] = useState<ItinerarySummary[]>([])
   const [total, setTotal] = useState(0)
-  const [loadState, setLoadState] = useState<'idle' | 'loading' | 'ready' | 'error'>('idle')
+  const [loadState, setLoadState] = useState<LoadState>('idle')
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [isSingleColumnList, setIsSingleColumnList] = useState(true)
   const listRef = useRef<HTMLElement | null>(null)
@@ -276,7 +209,7 @@ export function DashboardShellPage(): ReactElement {
   const sortOrder = parseOptionalSortOrder(searchParams.get('sortOrder')) ?? savedPrefs.sortOrder
   const includePast = parseOptionalIncludePast(searchParams.get('includePast')) ?? savedPrefs.includePast
   const totalPages = Math.max(1, Math.ceil(total / limit))
-  const todayIsoDate = useMemo(() => getTodayIsoDate(), [])
+  const todayIsoDate = useMemo(() => getTodayLocalIsoDate(), [])
   const nowDate = useMemo(() => new Date(), [])
 
   const setPage = useCallback(

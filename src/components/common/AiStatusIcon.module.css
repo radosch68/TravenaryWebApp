@@ -1,0 +1,13 @@
+.spinning {
+  animation: aiStatusSpin 1.2s linear infinite;
+}
+
+@keyframes aiStatusSpin {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}

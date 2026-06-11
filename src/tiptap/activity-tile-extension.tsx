@@ -2,24 +2,15 @@
 import { Node, mergeAttributes } from '@tiptap/core'
 import { NodeViewWrapper, ReactNodeViewRenderer, type NodeViewProps } from '@tiptap/react'
 import {
-  BedDouble,
-  BusFront,
   Camera,
-  Car,
   ExternalLink,
   Film,
-  Footprints,
   Link2,
   MapPin,
   MapPinned,
-  NotebookPen,
-  Plane,
   Route,
-  ShoppingBag,
   Sparkles,
   Trash2,
-  UtensilsCrossed,
-  type LucideIcon,
 } from 'lucide-react'
 import type { DragEvent as ReactDragEvent } from 'react'
 import type { PointerEvent as ReactPointerEvent } from 'react'
@@ -28,11 +19,11 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type {
   AccommodationPlatform,
   ActivityLocation,
-  ActivityType,
   ItineraryActivity,
   TransferMot,
   WebReference,
 } from '@/services/contracts'
+import { ACTIVITY_TYPE_ICON } from '@/components/itinerary/activity-presentation'
 import { ActivityFormPanel } from '@/components/itinerary/ActivityFormPanel'
 import { hasCoordinates } from '@/components/itinerary/location-map-pins'
 import { formatLocalTime } from '@/utils/date-format'
@@ -113,20 +104,6 @@ const ACTIVITY_EDITOR_ACTIVE_CHANGE_EVENT = 'travenary:activity-editor-active-ch
 export const ACTIVITY_EDITOR_CONFIRMED_EVENT = 'travenary:activity-editor-confirmed'
 export const ACTIVITY_TILE_LABELS_CHANGED_EVENT = 'travenary:activity-tile-labels-changed'
 const PHOTO_THUMBNAIL_SIZE_CHANGED_EVENT = 'travenary:photo-thumbnail-size-changed'
-
-const ACTIVITY_ICONS: Record<ActivityType, LucideIcon> = {
-  note: NotebookPen,
-  flight: Plane,
-  accommodation: BedDouble,
-  transfer: BusFront,
-  poi: MapPin,
-  carRental: Car,
-  custom: Sparkles,
-  food: UtensilsCrossed,
-  divider: Sparkles,
-  shopping: ShoppingBag,
-  tour: Footprints,
-}
 
 export type RecentlyDraggedActivity = {
   activity: ItineraryActivity
@@ -549,7 +526,7 @@ function ActivityTileDisplay({
   metaItems: string[]
   photoThumbnailSize: PhotoThumbnailSize
 }) {
-  const Icon = ACTIVITY_ICONS[activity.type] ?? Sparkles
+  const Icon = ACTIVITY_TYPE_ICON[activity.type] ?? Sparkles
   const hasAnchoredDate = typeof activity.anchorDate === 'string' && activity.anchorDate.length > 0
   const hasAccommodationSection = hasAccommodationDetails(activity)
   const hasTransferSection = hasTransferDetails(activity)

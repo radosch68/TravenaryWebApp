@@ -1,7 +1,7 @@
 .mapRoot {
   position: relative;
   border: 1px solid color-mix(in oklab, var(--border) 78%, rgba(127, 85, 29, 0.24) 22%);
-  border-radius: calc(var(--radius) - 0.1rem);
+  border-radius: var(--radius-lg);
   overflow: hidden;
   background: #fff;
 }
@@ -86,7 +86,7 @@
   block-size: 2rem;
   padding: 0;
   border: 1px solid color-mix(in oklab, var(--border) 80%, rgba(0, 0, 0, 0.2) 20%);
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   background: rgba(255, 255, 255, 0.94);
   color: var(--foreground);
   display: inline-flex;
@@ -107,7 +107,7 @@
 .error {
   margin: 0;
   padding: 0.55rem 0.7rem;
-  font-size: 0.78rem;
+  font-size: var(--font-size-sm);
   color: hsl(var(--destructive));
   background: color-mix(in oklab, hsl(var(--destructive)) 10%, white 90%);
   border-top: 1px solid color-mix(in oklab, hsl(var(--destructive)) 30%, white 70%);
@@ -124,9 +124,9 @@
   -webkit-appearance: none;
   border-radius: 999px;
   border: 1px solid #fff;
-  background: color-mix(in oklab, var(--day-map-pin-color, #8a7a68) 84%, black 16%);
+  background: color-mix(in oklab, var(--activity-accent) 84%, black 16%);
   color: #fff;
-  font-size: 0.72rem;
+  font-size: var(--font-size-xs);
   font-weight: 700;
   line-height: 1;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.32);
@@ -164,7 +164,7 @@
 }
 
 .popup {
-  font-size: 0.8rem;
+  font-size: var(--font-size-sm);
   line-height: 1.35;
   color: var(--foreground);
 }
@@ -200,7 +200,7 @@
 }
 
 .canvas :global(.maplibregl-popup-content) {
-  border-radius: 10px;
+  border-radius: var(--radius-md);
   border: 1px solid color-mix(in oklab, var(--border) 80%, rgba(0, 0, 0, 0.16) 20%);
   box-shadow: 0 12px 30px rgba(15, 23, 42, 0.18);
   padding: 0.6rem 0.68rem;

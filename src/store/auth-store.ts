@@ -86,9 +86,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   setSessionFromTokens: (tokens) => {
     tokenService.setRefreshToken(tokens.refreshToken)
-    tokenService.scheduleProactiveRefresh(tokens.expiresIn, () => {
-      get().clearSession()
-    })
+    tokenService.scheduleProactiveRefresh(tokens.expiresIn)
     set(applyTokens(tokens))
   },
 
@@ -112,10 +110,19 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     set({ refreshState: 'refreshing' })
     try {
       await refreshSessionTokens()
+    } catch {
+      // A definitive rejection already cleared the session via the configured
+      // auth handlers; a transient failure keeps the stored refresh token so
+      // the next restore attempt can recover.
+      set({ refreshState: 'failed', restorationChecked: true })
+      return
+    }
+
+    try {
       const profile = await getMe()
       await applyProfileAfterAuthentication(profile)
     } catch {
-      get().clearSession()
+      // Non-fatal: profile data will be missing until next navigation
     } finally {
       set({ restorationChecked: true })
     }

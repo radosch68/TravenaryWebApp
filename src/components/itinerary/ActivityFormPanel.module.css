@@ -34,9 +34,9 @@
   min-height: 2.25rem;
   padding: 0;
   border-radius: 999px;
-  background: color-mix(in oklab, #16a34a 10%, var(--background) 90%);
-  color: color-mix(in oklab, #15803d 82%, var(--foreground) 18%);
-  border: 1px solid color-mix(in oklab, #16a34a 34%, var(--border) 66%);
+  background: color-mix(in oklab, var(--success) 10%, var(--background) 90%);
+  color: color-mix(in oklab, var(--success) 82%, var(--foreground) 18%);
+  border: 1px solid color-mix(in oklab, var(--success) 34%, var(--border) 66%);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -45,8 +45,8 @@
 }
 
 .dialogConfirmButton:hover:not(:disabled) {
-  background: color-mix(in oklab, #16a34a 16%, var(--background) 84%);
-  border-color: color-mix(in oklab, #16a34a 52%, var(--border) 48%);
+  background: color-mix(in oklab, var(--success) 16%, var(--background) 84%);
+  border-color: color-mix(in oklab, var(--success) 52%, var(--border) 48%);
 }
 
 .dialogConfirmButton:focus-visible {
@@ -61,10 +61,10 @@
 
 .inlineCancelButton {
   border: 1px solid var(--border);
-  border-radius: calc(var(--radius) - 0.24rem);
+  border-radius: var(--radius-md);
   background: color-mix(in oklab, var(--card) 92%, transparent 8%);
   color: var(--foreground);
-  font-size: 0.86rem;
+  font-size: var(--font-size-md);
   font-weight: 700;
   line-height: 1;
   padding: 0.34rem 0.62rem;
@@ -85,9 +85,11 @@
   align-items: center;
   gap: 0.35rem;
   padding: 0.3rem 0.65rem;
-  border-radius: 8px;
-  border: 2px solid;
-  font-size: 0.78rem;
+  border-radius: var(--radius-sm);
+  border: 2px solid color-mix(in srgb, var(--activity-accent) 15%, transparent);
+  background: var(--activity-bg);
+  color: var(--activity-accent);
+  font-size: var(--font-size-sm);
   font-weight: 600;
   line-height: 1;
   white-space: nowrap;
@@ -99,11 +101,11 @@
   justify-content: center;
 }
 
-@media (max-width: 500px) {
+@media (max-width: 32.5rem) {
   .modal {
     width: min(100%, 25rem);
     max-height: calc(100dvh - 1.5rem);
-    border-radius: 14px;
+    border-radius: var(--radius-lg);
   }
 
   .nestedModal {

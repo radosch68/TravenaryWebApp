@@ -1,27 +1,19 @@
 import {
   CircleAlert,
   BedDouble,
-  BusFront,
   Camera,
-  Car,
   ChevronRight,
   ExternalLink,
   Film,
-  Footprints,
   Map,
   Link2,
   MapPin,
   MapPinned,
   MoonStar,
-  NotebookPen,
-  Plane,
   Redo2,
   Undo2,
-  ShoppingBag,
   Sparkles,
   TriangleAlert,
-  UtensilsCrossed,
-  type LucideIcon,
 } from 'lucide-react'
 import type { CSSProperties, PointerEvent as ReactPointerEvent, ReactElement } from 'react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
@@ -34,9 +26,10 @@ import {
   type DayRichTextEditorHistoryState,
   type DayRichTextSaveState,
 } from '@/components/itinerary/DayRichTextEditor'
-import type { ActivityType, DayDocumentNode, ItineraryActivity, ItineraryDay, WebReference } from '@/services/contracts'
+import type { DayDocumentNode, ItineraryActivity, ItineraryDay, WebReference } from '@/services/contracts'
+import { ACTIVITY_TYPE_ICON } from '@/components/itinerary/activity-presentation'
 import { hasCoordinates } from '@/components/itinerary/location-map-pins'
-import { formatLocalDate, formatLocalTime, formatLocalTimeRange, formatWeekday } from '@/utils/date-format'
+import { formatLocalDate, formatLocalTime, formatLocalTimeRange, formatWeekday, getTodayLocalIsoDate } from '@/utils/date-format'
 import {
   getOvernightCoverageByGapDay,
   getVirtualAccommodationCheckoutsByDay,
@@ -65,20 +58,6 @@ interface ItineraryDaysGridProps {
 
 function toSelectorAttributeValue(value: string): string {
   return value.replace(/\\/g, '\\\\').replace(/"/g, '\\"')
-}
-
-const ACTIVITY_ICONS: Record<ActivityType, LucideIcon> = {
-  note: NotebookPen,
-  flight: Plane,
-  accommodation: BedDouble,
-  transfer: BusFront,
-  poi: MapPin,
-  carRental: Car,
-  custom: Sparkles,
-  food: UtensilsCrossed,
-  divider: Sparkles,
-  shopping: ShoppingBag,
-  tour: Footprints,
 }
 
 const MAX_VISIBLE_REFERENCES = 3
@@ -165,13 +144,7 @@ export function ItineraryDaysGrid({
   const { t } = useTranslation('common')
   const gridRef = useRef<HTMLElement | null>(null)
   const activeDividerDragRef = useRef<ActiveDividerDrag | null>(null)
-  const todayIsoDate = useMemo(() => {
-    const now = new Date()
-    const year = String(now.getFullYear())
-    const month = String(now.getMonth() + 1).padStart(2, '0')
-    const day = String(now.getDate()).padStart(2, '0')
-    return `${year}-${month}-${day}`
-  }, [])
+  const todayIsoDate = useMemo(() => getTodayLocalIsoDate(), [])
 
   const sortedDays = useMemo(
     () => [...days].sort((left, right) => left.dayNumber - right.dayNumber),
@@ -637,9 +610,10 @@ export function ItineraryDaysGrid({
       return
     }
 
-    const trimmedDraft = headerSummaryDraft.trim()
-    const nextSummary = trimmedDraft.length > 0 ? trimmedDraft : undefined
-    const currentSummary = day.summary?.trim() ? day.summary.trim() : undefined
+    // Send an empty string (not undefined) when clearing, so the key survives
+    // JSON serialization and the backend actually unsets the summary.
+    const nextSummary = headerSummaryDraft.trim()
+    const currentSummary = day.summary?.trim() ?? ''
 
     if (nextSummary === currentSummary) {
       setEditingHeaderDayNumber(null)
@@ -1345,7 +1319,7 @@ function ActivityCard({
   photoThumbnailSize: PhotoThumbnailSize
 }): ReactElement {
   const { t } = useTranslation('common')
-  const Icon = ACTIVITY_ICONS[activity.type] ?? Sparkles
+  const Icon = ACTIVITY_TYPE_ICON[activity.type] ?? Sparkles
   const timeRange = formatLocalTimeRange(activity.time, activity.timeEnd, locale)
   const hasAnchoredDate = typeof activity.anchorDate === 'string' && activity.anchorDate.length > 0
   const hasAccommodationSection = hasAccommodationDetails(activity)

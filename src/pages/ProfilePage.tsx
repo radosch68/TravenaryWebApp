@@ -14,6 +14,7 @@ import {
 } from '@/services/profile-service'
 import { useAuthStore } from '@/store/auth-store'
 import { useProfileStore } from '@/store/profile-store'
+import { formatDateTime } from '@/utils/date-format'
 
 import styles from './ProfilePage.module.css'
 
@@ -98,15 +99,8 @@ export function ProfilePage() {
     return profile.authProviders.map((provider) => t(`profile:providers.${provider}`)).join(', ')
   }, [profile, t])
 
-  function formatDateTime(value?: string): string {
-    if (!value) {
-      return t('profile:fields.notAvailable')
-    }
-
-    return new Intl.DateTimeFormat(activeLocale, {
-      dateStyle: 'medium',
-      timeStyle: 'medium',
-    }).format(new Date(value))
+  function formatProfileTimestamp(value?: string): string {
+    return formatDateTime(value, activeLocale) || t('profile:fields.notAvailable')
   }
 
   async function onDisplayNameSubmit(event: FormEvent<HTMLFormElement>): Promise<void> {
@@ -306,11 +300,11 @@ export function ProfilePage() {
               </div>
               <div className={styles.definitionRow}>
                 <dt>{t('profile:fields.createdAt')}</dt>
-                <dd>{formatDateTime(profile.createdAt)}</dd>
+                <dd>{formatProfileTimestamp(profile.createdAt)}</dd>
               </div>
               <div className={styles.definitionRow}>
                 <dt>{t('profile:fields.updatedAt')}</dt>
-                <dd>{formatDateTime(profile.updatedAt)}</dd>
+                <dd>{formatProfileTimestamp(profile.updatedAt)}</dd>
               </div>
             </dl>
           </article>

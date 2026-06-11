@@ -11,9 +11,9 @@
   gap: 0.5rem;
   padding: 0.65rem 0.7rem;
   border: 1px solid rgba(13, 124, 102, 0.3);
-  border-radius: calc(var(--radius) - 0.2rem);
+  border-radius: var(--radius-md);
   background: rgba(13, 124, 102, 0.1);
-  color: #1d5f55;
+  color: var(--brand);
   text-decoration: none;
   cursor: pointer;
 }
@@ -36,7 +36,7 @@
   align-items: center;
   gap: 0.65rem;
   min-inline-size: 0;
-  color: #1d5f55;
+  color: var(--brand);
 }
 
 .mapLauncherCopy > div {
@@ -45,14 +45,14 @@
 
 .mapTitle {
   margin: 0;
-  font-size: 0.95rem;
-  color: #1d5f55;
+  font-size: var(--font-size-xl);
+  color: var(--brand);
 }
 
 .mapCount {
   margin: 0;
-  font-size: 0.76rem;
-  color: #1d5f55;
+  font-size: var(--font-size-sm);
+  color: var(--brand);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;

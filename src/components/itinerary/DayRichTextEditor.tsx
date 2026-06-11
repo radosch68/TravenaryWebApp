@@ -73,7 +73,6 @@ const AUTOSAVE_DELAY_MS = 7000
 const TOP_DROP_ZONE_PX = 36
 const SLASH_MENU_CURSOR_GAP_PX = 6
 const SLASH_MENU_EDGE_GAP_PX = 6
-const THROWAWAY_SAVE_ERROR_TRIGGER = '[[error]]'
 const USE_MODAL_ACTIVITY_EDITOR = true
 
 const SectionBreak = Node.create({
@@ -445,10 +444,6 @@ export function DayRichTextEditor({
     }
   }, [day.dayNumber])
 
-  const shouldSimulateSaveError = useCallback((): boolean => {
-    return JSON.stringify(documentNodesRef.current).includes(THROWAWAY_SAVE_ERROR_TRIGGER)
-  }, [])
-
   const saveNow = useCallback((): void => {
     const currentEditVersion = editVersionRef.current
     if (currentEditVersion === 0 || currentEditVersion === lastSavedEditVersionRef.current) {
@@ -459,12 +454,7 @@ export function DayRichTextEditor({
     saveSequenceRef.current = sequence
     setSaveState('saving')
 
-    const savePromise =
-      shouldSimulateSaveError()
-        ? Promise.reject(new Error('THROWAWAY simulated day save error'))
-        : onDaySave(buildSavePayload())
-
-    void savePromise
+    void onDaySave(buildSavePayload())
       .then(() => {
         if (saveSequenceRef.current === sequence) {
           lastSavedEditVersionRef.current = Math.max(lastSavedEditVersionRef.current, currentEditVersion)
@@ -479,7 +469,45 @@ export function DayRichTextEditor({
           setSaveState('error')
         }
       })
-  }, [buildSavePayload, onDaySave, shouldSimulateSaveError])
+  }, [buildSavePayload, onDaySave])
+
+  const saveNowRef = useRef(saveNow)
+
+  useEffect(() => {
+    saveNowRef.current = saveNow
+  }, [saveNow])
+
+  const hasUnsavedChanges = useCallback((): boolean => {
+    return editVersionRef.current !== 0 && editVersionRef.current !== lastSavedEditVersionRef.current
+  }, [])
+
+  // Flush pending edits when the editor unmounts (e.g. SPA navigation) so the
+  // 7s autosave delay cannot silently discard recent changes.
+  useEffect(() => {
+    return () => {
+      saveNowRef.current()
+    }
+  }, [])
+
+  // Closing or reloading the tab cannot reliably await the save request, so
+  // start a best-effort save and ask the browser to warn about unsaved changes.
+  useEffect(() => {
+    const onBeforeUnload = (event: BeforeUnloadEvent): void => {
+      if (!hasUnsavedChanges()) {
+        return
+      }
+
+      saveNowRef.current()
+      event.preventDefault()
+      event.returnValue = ''
+    }
+
+    window.addEventListener('beforeunload', onBeforeUnload)
+
+    return () => {
+      window.removeEventListener('beforeunload', onBeforeUnload)
+    }
+  }, [hasUnsavedChanges])
 
   useEffect(() => {
     const onActivityEditorConfirmed = (): void => {

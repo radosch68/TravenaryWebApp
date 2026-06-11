@@ -3,8 +3,51 @@ export function parseIsoDate(isoDate: string): Date {
   return new Date(year, month - 1, day)
 }
 
+export function getTodayLocalIsoDate(): string {
+  const now = new Date()
+  const year = String(now.getFullYear())
+  const month = String(now.getMonth() + 1).padStart(2, '0')
+  const day = String(now.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
 export function formatLocalDate(isoDate: string, locale: string): string {
   return new Intl.DateTimeFormat(locale, { dateStyle: 'medium' }).format(parseIsoDate(isoDate))
+}
+
+const SHORT_DATE_OPTIONS: Intl.DateTimeFormatOptions = {
+  day: 'numeric',
+  month: 'short',
+  year: 'numeric',
+}
+
+export function formatShortDate(date: Date, locale: string): string {
+  return new Intl.DateTimeFormat(locale, SHORT_DATE_OPTIONS).format(date)
+}
+
+export function formatDateTime(iso: string | undefined, locale: string): string {
+  if (!iso) {
+    return ''
+  }
+
+  const date = new Date(iso)
+  if (Number.isNaN(date.getTime())) {
+    return ''
+  }
+
+  return new Intl.DateTimeFormat(locale, {
+    ...SHORT_DATE_OPTIONS,
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(date)
+}
+
+export function formatShortWeekday(isoDate: string, locale: string): string {
+  return new Intl.DateTimeFormat(locale, { weekday: 'short' }).format(parseIsoDate(isoDate))
+}
+
+export function formatShortMonthDay(isoDate: string, locale: string): string {
+  return new Intl.DateTimeFormat(locale, { month: 'short', day: 'numeric' }).format(parseIsoDate(isoDate))
 }
 
 export function formatWeekday(isoDate: string, locale: string): string {

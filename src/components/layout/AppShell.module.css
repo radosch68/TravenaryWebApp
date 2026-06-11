@@ -123,12 +123,12 @@
 .navItem {
   width: 100%;
   border: 1px solid transparent;
-  border-radius: calc(var(--radius) - 0.2rem);
+  border-radius: var(--radius-md);
   background: transparent;
   color: var(--foreground);
   padding: 0.55rem 0.6rem;
   font: inherit;
-  font-size: 0.92rem;
+  font-size: var(--font-size-lg);
   display: flex;
   align-items: center;
   gap: 0.48rem;

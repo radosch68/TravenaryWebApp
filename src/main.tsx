@@ -7,6 +7,7 @@ import '@/i18n'
 import { applySavedPalette } from '@/utils/palette'
 
 import './index.css'
+import './styles/activity-form-panel.css'
 import App from './App.tsx'
 
 applySavedPalette()

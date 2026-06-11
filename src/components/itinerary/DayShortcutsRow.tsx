@@ -4,7 +4,7 @@ import { useId, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import type { ItineraryDay } from '@/services/contracts'
-import { parseIsoDate } from '@/utils/date-format'
+import { formatShortMonthDay, formatShortWeekday, getTodayLocalIsoDate } from '@/utils/date-format'
 
 import styles from './DayShortcutsRow.module.css'
 
@@ -20,18 +20,7 @@ interface DayShortcutItem {
   isPast: boolean
 }
 
-function getTodayIsoDate(): string {
-  const now = new Date()
-  const year = String(now.getFullYear())
-  const month = String(now.getMonth() + 1).padStart(2, '0')
-  const day = String(now.getDate()).padStart(2, '0')
-  return `${year}-${month}-${day}`
-}
-
 function buildDayShortcutItems(days: ItineraryDay[], locale: string, todayIsoDate: string): DayShortcutItem[] {
-  const weekdayFormatter = new Intl.DateTimeFormat(locale, { weekday: 'short' })
-  const monthDayFormatter = new Intl.DateTimeFormat(locale, { month: 'short', day: 'numeric' })
-
   return [...days].sort((left, right) => left.dayNumber - right.dayNumber).map((day) => {
     if (!day.date) {
       return {
@@ -42,9 +31,8 @@ function buildDayShortcutItems(days: ItineraryDay[], locale: string, todayIsoDat
       }
     }
 
-    const parsedDate = parseIsoDate(day.date)
-    const shortWeekday = weekdayFormatter.format(parsedDate)
-    const monthDayRaw = monthDayFormatter.format(parsedDate)
+    const shortWeekday = formatShortWeekday(day.date, locale)
+    const monthDayRaw = formatShortMonthDay(day.date, locale)
     const monthDay = locale.startsWith('en') ? monthDayRaw.replace(' ', ', ') : monthDayRaw
     const isToday = day.date === todayIsoDate
     const isPast = day.date < todayIsoDate
@@ -60,7 +48,7 @@ function buildDayShortcutItems(days: ItineraryDay[], locale: string, todayIsoDat
 
 export function DayShortcutsRow({ days, locale }: DayShortcutsRowProps): ReactElement | null {
   const { t } = useTranslation('common')
-  const todayIsoDate = useMemo(() => getTodayIsoDate(), [])
+  const todayIsoDate = useMemo(() => getTodayLocalIsoDate(), [])
   const [isCollapsed, setIsCollapsed] = useState(false)
   const shortcutsRegionId = useId()
   const dayShortcutItems = useMemo(

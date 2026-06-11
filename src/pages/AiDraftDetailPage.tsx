@@ -1,9 +1,10 @@
-import { ArrowBigRight, CheckCircle2, FilePlus, Loader2, RefreshCw, SlidersHorizontal, Sparkles, XCircle } from 'lucide-react'
+import { ArrowBigRight, FilePlus, RefreshCw, SlidersHorizontal, Sparkles } from 'lucide-react'
 import type { ReactElement } from 'react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 
+import { AiStatusIcon } from '@/components/common/AiStatusIcon'
 import { AppShell } from '@/components/layout/AppShell'
 import { Button } from '@/components/ui/button'
 import type {
@@ -14,28 +15,11 @@ import type {
   DraftBlockActivity,
 } from '@/services/contracts'
 import { getAiGenerationHistoryDetail, selectAiDraft } from '@/services/ai-generation-service'
+import { formatDateTime, formatShortDate } from '@/utils/date-format'
+import type { LoadState } from '@/utils/load-state'
 import { unsplashUrl } from '@/utils/unsplash-url'
 
 import styles from './AiDraftDetailPage.module.css'
-
-function formatDateTime(iso: string | undefined, language: string): string {
-  if (!iso) {
-    return ''
-  }
-
-  const date = new Date(iso)
-  if (Number.isNaN(date.getTime())) {
-    return ''
-  }
-
-  return new Intl.DateTimeFormat(language, {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  }).format(date)
-}
 
 function formatDateRange(startDate: string, endDate: string, language: string): string {
   const start = new Date(`${startDate}T00:00:00Z`)
@@ -45,13 +29,7 @@ function formatDateRange(startDate: string, endDate: string, language: string): 
     return `${startDate} - ${endDate}`
   }
 
-  const formatter = new Intl.DateTimeFormat(language, {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-  })
-
-  return `${formatter.format(start)} - ${formatter.format(end)}`
+  return `${formatShortDate(start, language)} - ${formatShortDate(end, language)}`
 }
 
 function draftDayCount(draft: AiDraftItinerary): number {
@@ -92,18 +70,6 @@ function getElapsedSeconds(startedAt: string | undefined, nowEpochMs: number): n
   }
 
   return Math.max(0, Math.floor((nowEpochMs - startedAtMs) / 1000))
-}
-
-function renderStatusIcon(status: AiGenerationHistoryDetail['status']): ReactElement {
-  if (status === 'completed') {
-    return <CheckCircle2 className={styles.statusIcon} aria-hidden="true" />
-  }
-
-  if (status === 'failed') {
-    return <XCircle className={styles.statusIcon} aria-hidden="true" />
-  }
-
-  return <Loader2 className={`${styles.statusIcon} ${styles.statusIconSpinning}`} aria-hidden="true" />
 }
 
 function hasNonEmptyString(value: unknown): value is string {
@@ -152,33 +118,45 @@ export function AiDraftDetailPage(): ReactElement {
   const navigate = useNavigate()
 
   const [detail, setDetail] = useState<AiGenerationHistoryDetail | null>(null)
-  const [loadState, setLoadState] = useState<'idle' | 'loading' | 'ready' | 'error'>('idle')
+  const [loadState, setLoadState] = useState<LoadState>('idle')
   const [actionError, setActionError] = useState<string | null>(null)
   const [creatingDraftId, setCreatingDraftId] = useState<string | null>(null)
   const [selectedPhotoIndexes, setSelectedPhotoIndexes] = useState<Record<string, number>>({})
   const [nowEpochMs, setNowEpochMs] = useState(() => Date.now())
   const lineageListRef = useRef<HTMLOListElement | null>(null)
+  const activeRequestIdRef = useRef(requestId)
+
+  useEffect(() => {
+    activeRequestIdRef.current = requestId
+  }, [requestId])
 
   const fetchDetail = useCallback(async (): Promise<void> => {
     if (!requestId) {
       return
     }
 
-    if (loadState === 'idle') {
-      setLoadState('loading')
-    }
-
     try {
       const response = await getAiGenerationHistoryDetail(requestId)
+      if (activeRequestIdRef.current !== requestId) {
+        return
+      }
+
       setDetail(response)
       setLoadState('ready')
     } catch {
-      setLoadState('error')
+      if (activeRequestIdRef.current === requestId) {
+        setLoadState('error')
+      }
     }
-  }, [loadState, requestId])
+  }, [requestId])
 
   useEffect(() => {
+    // Reset before fetching so lineage navigation to another request id does
+    // not keep showing the previous draft while the new one loads. Background
+    // polls reuse fetchDetail directly and skip this reset.
     // eslint-disable-next-line react-hooks/set-state-in-effect
+    setDetail(null)
+    setLoadState('loading')
     void fetchDetail()
   }, [fetchDetail])
 
@@ -317,7 +295,7 @@ export function AiDraftDetailPage(): ReactElement {
 
   const handleCreateItinerary = useCallback(
     async (draft: AiDraftItinerary): Promise<void> => {
-      if (!detail) {
+      if (!detail || creatingDraftId !== null) {
         return
       }
 
@@ -336,7 +314,7 @@ export function AiDraftDetailPage(): ReactElement {
         setCreatingDraftId(null)
       }
     },
-    [detail, navigate, selectedPhotoIndexes, t],
+    [creatingDraftId, detail, navigate, selectedPhotoIndexes, t],
   )
 
   if (!requestId) {
@@ -409,7 +387,7 @@ export function AiDraftDetailPage(): ReactElement {
         <section className={styles.bodyCard}>
           <div className={styles.bodyHeader}>
             <div className={styles.responseSummary}>
-              {renderStatusIcon(detail.status)}
+              <AiStatusIcon status={detail.status} className={styles.statusIcon} />
 
               <h2>{t('ai-generation:detail.draftsTitle', { count: detail.drafts.length })}</h2>
               <div className={styles.statusRow}>

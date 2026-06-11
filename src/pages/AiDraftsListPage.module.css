@@ -40,7 +40,7 @@
 
 .ttlNotice {
   margin: 0;
-  font-size: 0.78rem;
+  font-size: var(--font-size-sm);
   line-height: 1.35;
   color: var(--muted-foreground);
 }
@@ -52,7 +52,7 @@
 
 .controlLabel {
   margin: 0;
-  font-size: 0.63rem;
+  font-size: var(--font-size-2xs);
   text-transform: uppercase;
   letter-spacing: 0.06em;
   color: var(--muted-foreground);
@@ -61,12 +61,12 @@
 .controlSelect {
   min-height: 1.78rem;
   border: 1px solid var(--input);
-  border-radius: calc(var(--radius) - 0.26rem);
+  border-radius: var(--radius-sm);
   background: var(--card);
   color: var(--foreground);
   padding: 0.16rem 0.4rem;
   font: inherit;
-  font-size: 0.82rem;
+  font-size: var(--font-size-md);
 }
 
 .pageSizeSelect {
@@ -121,11 +121,11 @@
 }
 
 .cardSingleColumn {
-  border-radius: calc(var(--radius) - 0.05rem);
+  border-radius: var(--radius-lg);
 }
 
 .cardMultiColumn {
-  border-radius: calc(var(--radius) - 0.05rem);
+  border-radius: var(--radius-lg);
 }
 
 .cardLink {
@@ -154,7 +154,7 @@
 }
 
 .statusText {
-  font-size: 0.72rem;
+  font-size: var(--font-size-xs);
   text-transform: uppercase;
   letter-spacing: 0.06em;
   font-weight: 600;
@@ -168,8 +168,8 @@
 }
 
 .statusRail_completed {
-  background: color-mix(in oklab, #1f7a61 12%, transparent 88%);
-  color: color-mix(in oklab, #1f7a61 82%, #0f6f5a 18%);
+  background: color-mix(in oklab, var(--brand) 12%, transparent 88%);
+  color: var(--brand);
 }
 
 .statusRail_failed {
@@ -197,7 +197,7 @@
   justify-self: center;
   align-self: end;
   text-align: center;
-  font-size: 0.78rem;
+  font-size: var(--font-size-sm);
   line-height: 1.2;
   font-weight: 600;
   display: inline-flex;
@@ -210,20 +210,6 @@
   width: 0.82rem;
   height: 0.82rem;
   stroke-width: 2.1;
-}
-
-.statusIconSpinning {
-  animation: aiStatusSpin 1.2s linear infinite;
-}
-
-@keyframes aiStatusSpin {
-  from {
-    transform: rotate(0deg);
-  }
-
-  to {
-    transform: rotate(360deg);
-  }
 }
 
 .cardBody {
@@ -257,7 +243,7 @@
 }
 
 .metrics dt {
-  font-size: 0.68rem;
+  font-size: var(--font-size-2xs);
   text-transform: uppercase;
   letter-spacing: 0.06em;
   color: var(--muted-foreground);
@@ -265,7 +251,7 @@
 
 .metrics dd {
   margin: 0;
-  font-size: 0.86rem;
+  font-size: var(--font-size-md);
 }
 
 @media (max-width: 56.25rem) {

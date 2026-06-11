@@ -16,7 +16,7 @@
 .headerCard {
   position: relative;
   border: 1px solid var(--border);
-  border-radius: calc(var(--radius) - 0.05rem);
+  border-radius: var(--radius-lg);
   background: color-mix(in oklab, var(--card) 90%, white 10%);
   padding: 0.9rem;
   display: grid;
@@ -45,7 +45,7 @@
 
 .kicker {
   margin: 0;
-  font-size: 0.74rem;
+  font-size: var(--font-size-xs);
   text-transform: uppercase;
   letter-spacing: 0.08em;
   color: var(--muted-foreground);
@@ -54,7 +54,7 @@
 .title {
   margin: 0.35rem 0 0;
   font-family: var(--font-heading);
-  font-size: clamp(1.12rem, 2vw, 1.6rem);
+  font-size: var(--font-size-title);
   line-height: 1.24;
 }
 
@@ -62,7 +62,7 @@
   margin: 0;
   padding: 0;
   border: 1px dashed transparent;
-  border-radius: calc(var(--radius) - 0.28rem);
+  border-radius: var(--radius-sm);
   background: transparent;
   text-align: left;
   cursor: text;
@@ -91,7 +91,7 @@
   height: 2.3rem;
   padding: 0 0.64rem;
   border: 1px solid color-mix(in oklab, var(--primary) 38%, var(--border) 62%);
-  border-radius: calc(var(--radius) - 0.2rem);
+  border-radius: var(--radius-md);
   background: color-mix(in oklab, var(--card) 94%, transparent 6%);
   color: var(--foreground);
   font: inherit;
@@ -115,10 +115,10 @@
   width: 1.9rem;
   height: 1.9rem;
   border: 1px solid color-mix(in oklab, var(--border) 82%, transparent 18%);
-  border-radius: calc(var(--radius) - 0.3rem);
+  border-radius: var(--radius-sm);
   background: color-mix(in oklab, var(--card) 92%, transparent 8%);
   color: color-mix(in oklab, var(--foreground) 76%, var(--muted-foreground) 24%);
-  font-size: 0.95rem;
+  font-size: var(--font-size-xl);
   line-height: 1;
   cursor: pointer;
 }
@@ -136,7 +136,7 @@
   margin: 0.52rem 0 0;
   padding: 0.18rem 0.28rem;
   border: 1px dashed transparent;
-  border-radius: calc(var(--radius) - 0.28rem);
+  border-radius: var(--radius-sm);
   background: transparent;
   text-align: left;
   cursor: text;
@@ -165,7 +165,7 @@
   min-height: 5.3rem;
   padding: 0.48rem 0.6rem;
   border: 1px solid color-mix(in oklab, var(--primary) 36%, var(--border) 64%);
-  border-radius: calc(var(--radius) - 0.18rem);
+  border-radius: var(--radius-md);
   background: color-mix(in oklab, var(--card) 94%, transparent 6%);
   color: var(--foreground);
   font: inherit;
@@ -188,10 +188,10 @@
   width: 1.9rem;
   height: 1.9rem;
   border: 1px solid color-mix(in oklab, var(--border) 82%, transparent 18%);
-  border-radius: calc(var(--radius) - 0.3rem);
+  border-radius: var(--radius-sm);
   background: color-mix(in oklab, var(--card) 92%, transparent 8%);
   color: color-mix(in oklab, var(--foreground) 76%, var(--muted-foreground) 24%);
-  font-size: 0.95rem;
+  font-size: var(--font-size-xl);
   line-height: 1;
   cursor: pointer;
 }
@@ -247,10 +247,10 @@
   height: 1.9rem;
   padding: 0 0.42rem;
   border: 1px solid color-mix(in oklab, var(--primary) 32%, var(--border) 68%);
-  border-radius: calc(var(--radius) - 0.35rem);
+  border-radius: var(--radius-sm);
   background: color-mix(in oklab, var(--card) 94%, transparent 6%);
   color: var(--foreground);
-  font-size: 0.75rem;
+  font-size: var(--font-size-sm);
 }
 
 .metaDateInput:focus-visible {
@@ -260,17 +260,17 @@
 
 .metaDateSeparator {
   color: var(--muted-foreground);
-  font-size: 0.78rem;
+  font-size: var(--font-size-sm);
 }
 
 .metaCancelButton {
   width: 1.55rem;
   height: 1.55rem;
   border: 1px solid color-mix(in oklab, var(--border) 82%, transparent 18%);
-  border-radius: calc(var(--radius) - 0.36rem);
+  border-radius: var(--radius-sm);
   background: color-mix(in oklab, var(--card) 92%, transparent 8%);
   color: color-mix(in oklab, var(--foreground) 76%, var(--muted-foreground) 24%);
-  font-size: 0.82rem;
+  font-size: var(--font-size-md);
   line-height: 1;
   cursor: pointer;
 }
@@ -292,14 +292,14 @@
   background: color-mix(in oklab, var(--card) 92%, transparent 8%);
   color: var(--muted-foreground);
   padding: 0.12rem 0.5rem;
-  font-size: 0.74rem;
+  font-size: var(--font-size-xs);
   line-height: 1.2;
 }
 
 .metaPillUpcoming {
   border-color: color-mix(in oklab, var(--border) 70%, var(--accent) 30%);
   background: color-mix(in oklab, var(--accent) 10%, transparent 90%);
-  color: color-mix(in oklab, var(--foreground) 88%, #0f6f5a 12%);
+  color: color-mix(in oklab, var(--foreground) 88%, var(--brand) 12%);
   font-weight: 600;
 }
 
@@ -318,7 +318,7 @@
 }
 
 .ongoingProgressLabel {
-  font-size: 0.68rem;
+  font-size: var(--font-size-2xs);
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--muted-foreground);
@@ -337,8 +337,8 @@
   inset: 0 auto 0 0;
   background: linear-gradient(
     90deg,
-    color-mix(in oklab, var(--accent) 70%, #0f6f5a 30%) 0%,
-    color-mix(in oklab, var(--accent) 45%, #0f6f5a 55%) 100%
+    color-mix(in oklab, var(--accent) 70%, var(--brand) 30%) 0%,
+    color-mix(in oklab, var(--accent) 45%, var(--brand) 55%) 100%
   );
 }
 
@@ -353,7 +353,7 @@
   margin: 0.5rem 0 0;
   padding: 0.16rem 0.24rem;
   border: 1px dashed transparent;
-  border-radius: calc(var(--radius) - 0.28rem);
+  border-radius: var(--radius-sm);
   background: transparent;
   text-align: left;
   cursor: text;
@@ -382,11 +382,11 @@
   height: 2.1rem;
   padding: 0 0.56rem;
   border: 1px solid color-mix(in oklab, var(--primary) 36%, var(--border) 64%);
-  border-radius: calc(var(--radius) - 0.2rem);
+  border-radius: var(--radius-md);
   background: color-mix(in oklab, var(--card) 94%, transparent 6%);
   color: var(--foreground);
   font: inherit;
-  font-size: 0.9rem;
+  font-size: var(--font-size-lg);
 }
 
 .tagsInput:focus-visible {
@@ -398,10 +398,10 @@
   width: 1.9rem;
   height: 1.9rem;
   border: 1px solid color-mix(in oklab, var(--border) 82%, transparent 18%);
-  border-radius: calc(var(--radius) - 0.3rem);
+  border-radius: var(--radius-sm);
   background: color-mix(in oklab, var(--card) 92%, transparent 8%);
   color: color-mix(in oklab, var(--foreground) 76%, var(--muted-foreground) 24%);
-  font-size: 0.95rem;
+  font-size: var(--font-size-xl);
   line-height: 1;
   cursor: pointer;
 }
@@ -417,7 +417,7 @@
 
 .tagsPlaceholderText {
   color: var(--muted-foreground);
-  font-size: 0.82rem;
+  font-size: var(--font-size-md);
 }
 
 .tagChip {
@@ -428,7 +428,7 @@
   color: #0b5f4e;
   border-radius: 999px;
   padding: 0.12rem 0.5rem;
-  font-size: 0.72rem;
+  font-size: var(--font-size-xs);
   line-height: 1.2;
 }
 
@@ -437,7 +437,7 @@
   block-size: 100%;
   max-height: 15rem;
   object-fit: cover;
-  border-radius: calc(var(--radius) - 0.18rem);
+  border-radius: var(--radius-md);
   border: 1px solid color-mix(in oklab, var(--border) 86%, transparent 14%);
 }
 
@@ -445,7 +445,7 @@
   margin: 0;
   padding: 0;
   border: 1px dashed transparent;
-  border-radius: calc(var(--radius) - 0.1rem);
+  border-radius: var(--radius-lg);
   background: transparent;
   cursor: text;
 }
@@ -462,10 +462,10 @@
 .coverPhotoPlaceholderButton {
   min-height: 9.5rem;
   border: 1px dashed color-mix(in oklab, var(--primary) 26%, var(--border) 74%);
-  border-radius: calc(var(--radius) - 0.1rem);
+  border-radius: var(--radius-lg);
   background: color-mix(in oklab, var(--muted) 46%, var(--card) 54%);
   color: var(--muted-foreground);
-  font-size: 0.86rem;
+  font-size: var(--font-size-md);
   cursor: text;
 }
 
@@ -491,11 +491,11 @@
   height: 2rem;
   padding: 0 0.54rem;
   border: 1px solid color-mix(in oklab, var(--primary) 36%, var(--border) 64%);
-  border-radius: calc(var(--radius) - 0.2rem);
+  border-radius: var(--radius-md);
   background: color-mix(in oklab, var(--card) 94%, transparent 6%);
   color: var(--foreground);
   font: inherit;
-  font-size: 0.84rem;
+  font-size: var(--font-size-md);
 }
 
 .coverPhotoUrlInput,
@@ -516,10 +516,10 @@
   width: 1.9rem;
   height: 1.9rem;
   border: 1px solid color-mix(in oklab, var(--border) 82%, transparent 18%);
-  border-radius: calc(var(--radius) - 0.3rem);
+  border-radius: var(--radius-sm);
   background: color-mix(in oklab, var(--card) 92%, transparent 8%);
   color: color-mix(in oklab, var(--foreground) 76%, var(--muted-foreground) 24%);
-  font-size: 0.95rem;
+  font-size: var(--font-size-xl);
   line-height: 1;
   cursor: pointer;
 }
@@ -558,7 +558,7 @@
 }
 
 .photoThumbSizeLabel {
-  font-size: 0.76rem;
+  font-size: var(--font-size-sm);
   color: var(--muted-foreground);
   line-height: 1;
   margin-right: 0.08rem;
@@ -630,12 +630,12 @@
   margin: 0;
   grid-column: 1 / -1;
   color: var(--muted-foreground);
-  font-size: 0.82rem;
+  font-size: var(--font-size-md);
 }
 
 .stateCard {
   border: 1px solid var(--border);
-  border-radius: calc(var(--radius) - 0.05rem);
+  border-radius: var(--radius-lg);
   background: color-mix(in oklab, var(--card) 94%, white 6%);
   padding: 0.95rem;
   display: grid;
@@ -664,7 +664,7 @@
   min-height: 2.7rem;
   min-inline-size: 12.5rem;
   padding-inline: 1rem;
-  font-size: 1rem;
+  font-size: var(--font-size-xl);
   font-weight: 600;
 }
 
