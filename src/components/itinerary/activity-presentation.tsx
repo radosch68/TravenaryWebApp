@@ -23,7 +23,6 @@ export const ACTIVITY_TYPE_ICON: Record<ActivityType, LucideIcon> = {
   carRental: Car,
   custom: Sparkles,
   food: UtensilsCrossed,
-  divider: Sparkles,
   shopping: ShoppingBag,
   tour: Footprints,
 }

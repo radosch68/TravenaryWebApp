@@ -85,6 +85,7 @@ export interface ActivityTileLabels {
 
 export interface ActivityTileOptions {
   dayNumber: number | null
+  getOwningDayDate: () => string | undefined
   photoThumbnailSize: PhotoThumbnailSize
   getPhotoThumbnailSize: () => PhotoThumbnailSize
   useModalEditor: boolean
@@ -579,6 +580,7 @@ function ActivityTileView({ node, deleteNode, extension, selected, updateAttribu
           <ActivityFormPanel
             activity={activity ?? undefined}
             activityType={activity?.type ?? 'note'}
+            owningDayDate={options.getOwningDayDate()}
             mode={useModalEditor ? 'dialog' : 'inline'}
             disabled={isLegacySubmitting}
             transferPrefillFrom={transferPrefillFrom}
@@ -1276,6 +1278,7 @@ export const ActivityTile = Node.create<ActivityTileOptions>({
   addOptions() {
     return {
       dayNumber: null,
+      getOwningDayDate: () => undefined,
       photoThumbnailSize: 'md',
       getPhotoThumbnailSize: () => 'md',
       useModalEditor: false,

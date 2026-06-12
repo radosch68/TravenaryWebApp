@@ -60,7 +60,6 @@ export type ActivityType =
   | 'carRental'
   | 'custom'
   | 'food'
-  | 'divider'
   | 'shopping'
   | 'tour'
 

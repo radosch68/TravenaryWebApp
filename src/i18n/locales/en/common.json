@@ -261,7 +261,6 @@
       "carRental": "Car",
       "custom": "Custom",
       "food": "Food",
-      "divider": "Divider",
       "shopping": "Shopping",
       "tour": "Tour"
     },
@@ -376,8 +375,7 @@
         "shopping": "Shopping",
         "tour": "Tour",
         "note": "Note",
-        "custom": "Custom",
-        "divider": "Divider"
+        "custom": "Custom"
       },
       "fieldTitle": "Title",
       "fieldText": "Description",

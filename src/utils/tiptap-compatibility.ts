@@ -13,7 +13,7 @@ function collectTileActivities(nodes: DayDocumentNode[], activities: ItineraryAc
   nodes.forEach((node) => {
     if (node.type === 'activityTile') {
       const activity = node.attrs?.activity as ItineraryActivity | undefined
-      if (activity?.id && activity.type !== 'divider') {
+      if (activity?.id) {
         activities.push(cloneActivity(activity))
       }
     }

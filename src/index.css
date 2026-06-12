@@ -219,8 +219,7 @@ body {
   --activity-bg: rgba(255, 140, 0, 0.03);
 }
 
-[data-activity-type='note'],
-[data-activity-type='divider'] {
+[data-activity-type='note'] {
   --activity-accent: #8a7a68;
   --activity-bg: transparent;
 }

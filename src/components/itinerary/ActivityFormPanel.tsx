@@ -16,7 +16,7 @@ import { ensureGoogleMapsScript, waitForGoogleMapsApiReady } from '@/utils/googl
 
 const FULL_EDIT_TYPES: ReadonlySet<ActivityType> = new Set(['note', 'poi', 'custom', 'carRental', 'food', 'shopping', 'tour', 'accommodation'])
 const LIMITED_EDIT_FIELDS = ['title', 'text', 'time', 'timeEnd'] as const
-const EDITABLE_ACTIVITY_TYPES: readonly Exclude<ActivityType, 'divider'>[] = [
+const EDITABLE_ACTIVITY_TYPES: readonly ActivityType[] = [
   'flight',
   'transfer',
   'carRental',
@@ -39,10 +39,6 @@ const TRANSFER_MOT_OPTIONS: ReadonlyArray<'walk' | 'bike' | 'motorcycle' | 'car'
   'plane',
 ]
 
-const ANCHOR_ELIGIBLE_TYPES: ReadonlySet<ActivityType> = new Set([
-  'note', 'flight', 'accommodation', 'transfer', 'poi', 'carRental', 'custom', 'food', 'shopping', 'tour'
-])
-
 const ACTIVITY_TYPE_LABEL_KEY: Record<ActivityType, string> = {
   note: 'note',
   poi: 'poi',
@@ -54,7 +50,6 @@ const ACTIVITY_TYPE_LABEL_KEY: Record<ActivityType, string> = {
   accommodation: 'accommodation',
   flight: 'flight',
   transfer: 'transfer',
-  divider: 'divider',
 }
 
 const MAX_REFERENCE_ROWS = 10
@@ -388,8 +383,6 @@ interface ActivityFormPanelProps {
   activityType: ActivityType
   owningDayDate?: string
   transferPrefillFrom?: ActivityLocation
-  createOwnBlock?: boolean
-  blockDividerTitle?: string
   mode?: 'dialog' | 'inline'
   onSave: (payload: ActivityFormSavePayload) => Promise<void> | void
   onCancel: () => void
@@ -398,8 +391,6 @@ interface ActivityFormPanelProps {
 
 export interface ActivityFormSavePayload {
   activity: ItineraryActivity
-  createOwnBlock: boolean
-  dividerTitle: string
 }
 
 export function ActivityFormPanel({
@@ -407,8 +398,6 @@ export function ActivityFormPanel({
   activityType,
   owningDayDate,
   transferPrefillFrom,
-  createOwnBlock = false,
-  blockDividerTitle = '',
   mode = 'dialog',
   onSave,
   onCancel,
@@ -509,7 +498,7 @@ export function ActivityFormPanel({
   }
 
   const handleSelectedActivityTypeChange = (nextType: ActivityType): void => {
-    if (nextType === selectedActivityType || !EDITABLE_ACTIVITY_TYPES.includes(nextType as Exclude<ActivityType, 'divider'>)) {
+    if (nextType === selectedActivityType || !EDITABLE_ACTIVITY_TYPES.includes(nextType)) {
       return
     }
 
@@ -1128,8 +1117,7 @@ export function ActivityFormPanel({
     }
 
     // Preserve existing anchor state when this form cannot safely edit anchoring.
-    const isAnchorEligible = ANCHOR_ELIGIBLE_TYPES.has(selectedActivityType)
-    const canEditAnchoring = isAnchorEligible && Boolean(owningDayDate)
+    const canEditAnchoring = Boolean(owningDayDate)
     let resolvedAnchorDate: string | null = activity?.anchorDate ?? null
     if (canEditAnchoring) {
       resolvedAnchorDate = anchorToDay ? owningDayDate ?? null : null
@@ -1218,8 +1206,6 @@ export function ActivityFormPanel({
     try {
       await onSave({
         activity: result,
-        createOwnBlock: isCreate ? createOwnBlock : false,
-        dividerTitle: isCreate ? blockDividerTitle : '',
       })
     } catch (error) {
       const mappedLocationErrors = mapLocationSaveErrors(readErrorCauseDetails(error), locationRows)
@@ -1403,7 +1389,7 @@ export function ActivityFormPanel({
               </div>
             )}
 
-            {ANCHOR_ELIGIBLE_TYPES.has(selectedActivityType) && owningDayDate ? (
+            {owningDayDate ? (
               <div className="activity-form-panel__block-option activity-form-panel__anchor-option">
                 <label className="activity-form-panel__checkbox" htmlFor="activity-anchor-to-day">
                   <input

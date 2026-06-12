@@ -1281,9 +1281,9 @@ function DayActivitySections({
 
       {sections.map((section) => (
         <section key={`section-${section.blockIndex}`} className={styles.sectionCard}>
-          {section.dividerLabel ? (
+          {section.sectionLabel ? (
             <div className={styles.sectionDivider}>
-              <span className={styles.sectionDividerLabel}>{section.dividerLabel}</span>
+              <span className={styles.sectionDividerLabel}>{section.sectionLabel}</span>
             </div>
           ) : null}
 

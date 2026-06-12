@@ -3,7 +3,7 @@ import { toDayActivities } from '@/utils/tiptap-compatibility'
 
 export interface ItineraryActivitySection {
   blockIndex: number
-  dividerLabel?: string
+  sectionLabel?: string
   activities: ItineraryActivity[]
 }
 
@@ -28,44 +28,6 @@ export interface VirtualAccommodationCheckout {
 interface OvernightAccommodation {
   activity: ItineraryActivity
   sourceDayNumber: number
-}
-
-export function groupActivitiesForView(activities: ItineraryActivity[]): ItineraryActivitySection[] {
-  const sections: ItineraryActivitySection[] = []
-  let blockIndex = 0
-
-  let currentActivities: ItineraryActivity[] = []
-  let currentDividerLabel: string | undefined
-
-  function flushSection(): void {
-    if (currentActivities.length === 0) {
-      return
-    }
-
-    sections.push({
-      blockIndex,
-      dividerLabel: currentDividerLabel,
-      activities: currentActivities,
-    })
-
-    blockIndex += 1
-    currentActivities = []
-    currentDividerLabel = undefined
-  }
-
-  for (const activity of activities) {
-    if (activity.type === 'divider') {
-      flushSection()
-      currentDividerLabel = activity.title || undefined
-      continue
-    }
-
-    currentActivities.push(activity)
-  }
-
-  flushSection()
-
-  return sections
 }
 
 type DayDocumentToken =
@@ -104,7 +66,7 @@ function collectDayDocumentTokens(
 
     if (node.type === 'activityTile') {
       const activity = node.attrs?.activity as ItineraryActivity | undefined
-      if (activity?.id && activity.type !== 'divider') {
+      if (activity?.id) {
         tokens.push({
           kind: 'activityTile',
           activity,
@@ -125,7 +87,7 @@ export function groupDayForView(
 ): ItineraryActivitySection[] {
   const sections: ItineraryActivitySection[] = []
   let blockIndex = 0
-  let currentDividerLabel: string | undefined
+  let currentSectionLabel: string | undefined
   let currentActivities: ItineraryActivity[] = []
 
   function flushSection(): void {
@@ -135,12 +97,12 @@ export function groupDayForView(
 
     sections.push({
       blockIndex,
-      dividerLabel: currentDividerLabel,
+      sectionLabel: currentSectionLabel,
       activities: currentActivities,
     })
 
     blockIndex += 1
-    currentDividerLabel = undefined
+    currentSectionLabel = undefined
     currentActivities = []
   }
 
@@ -148,7 +110,7 @@ export function groupDayForView(
   tokens.forEach((token) => {
     if (token.kind === 'sectionBreak') {
       flushSection()
-      currentDividerLabel = token.label
+      currentSectionLabel = token.label
       return
     }
 

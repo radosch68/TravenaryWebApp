@@ -216,10 +216,10 @@
       "deleteActivity": "Smazat aktivitu",
       "deleteDialog": {
         "title": "Smazat aktivitu",
-        "message": "Chcete aktivitu smazat, nebo ji p\u0159esunout na Activity Bench?",
-        "bench": "Odlo\u017eit",
+        "message": "Chcete aktivitu smazat, nebo ji přesunout na Activity Bench?",
+        "bench": "Odložit",
         "delete": "Smazat",
-        "benchBlockedAnchored": "Ukotven\u00e9 aktivity nelze p\u0159esunout na Activity Bench."
+        "benchBlockedAnchored": "Ukotvené aktivity nelze přesunout na Activity Bench."
       },
       "titleFallback": "Aktivita bez názvu",
       "fields": {
@@ -271,7 +271,6 @@
       "carRental": "Auto",
       "custom": "Vlastní",
       "food": "Jídlo",
-      "divider": "Oddělovač",
       "shopping": "Nákupy",
       "tour": "Prohlídka"
     },
@@ -388,8 +387,7 @@
         "shopping": "Nákupy",
         "tour": "Prohlídka",
         "note": "Poznámka",
-        "custom": "Vlastní",
-        "divider": "Oddělovač"
+        "custom": "Vlastní"
       },
       "fieldTitle": "Název",
       "fieldText": "Popis",

@@ -167,7 +167,6 @@ function buildBenchSlashCommands(
   insertBenchActivity: (activity: ItineraryActivity, range?: Range) => void,
 ): SlashCommand[] {
   const benchItems = activityBench
-    .filter((activity) => activity.type !== 'divider')
     .toSorted((first, second) => {
       const typeDelta = BENCH_SLASH_TYPE_ORDER.indexOf(first.type) - BENCH_SLASH_TYPE_ORDER.indexOf(second.type)
       return typeDelta !== 0 ? typeDelta : first.title.localeCompare(second.title)
@@ -228,7 +227,7 @@ function createClientActivityId(): string {
   return `activity-${Date.now()}-${Math.random().toString(16).slice(2)}`
 }
 
-function toNewActivity(type: Exclude<ActivityType, 'divider'>, title: string): ItineraryActivity {
+function toNewActivity(type: ActivityType, title: string): ItineraryActivity {
   const activity: ItineraryActivity = {
     id: createClientActivityId(),
     type,
@@ -357,6 +356,7 @@ export function DayRichTextEditor({
   const historyStateChangeRef = useRef(onHistoryStateChange)
   const historyActionsChangeRef = useRef(onHistoryActionsChange)
   const photoThumbnailSizeRef = useRef(photoThumbnailSize)
+  const dayDateRef = useRef(day.date)
 
   useEffect(() => {
     documentNodesRef.current = documentNodes
@@ -399,6 +399,10 @@ export function DayRichTextEditor({
   useEffect(() => {
     photoThumbnailSizeRef.current = photoThumbnailSize
   }, [photoThumbnailSize])
+
+  useEffect(() => {
+    dayDateRef.current = day.date
+  }, [day.date])
 
   useEffect(() => {
     saveStateChangeRef.current?.(saveState)
@@ -855,6 +859,7 @@ export function DayRichTextEditor({
       // eslint-disable-next-line react-hooks/refs
       ActivityTile.configure({
         dayNumber: day.dayNumber,
+        getOwningDayDate: () => dayDateRef.current,
         useModalEditor: USE_MODAL_ACTIVITY_EDITOR,
         photoThumbnailSize,
         getPhotoThumbnailSize: () => photoThumbnailSizeRef.current,
@@ -1008,7 +1013,7 @@ export function DayRichTextEditor({
   }, [editor, t])
 
   const insertActivity = useCallback(
-    (type: Exclude<ActivityType, 'divider'>, range?: Range): void => {
+    (type: ActivityType, range?: Range): void => {
       if (!editor) {
         return
       }
