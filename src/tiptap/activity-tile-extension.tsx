@@ -275,7 +275,9 @@ function ActivityTileView({ node, deleteNode, extension, selected, updateAttribu
     () => (activity ? options.getActivityTypeLabel(activity) : labels.titleFallback),
     [activity, labels.titleFallback, options],
   )
-  const metaItems = useMemo(() => (activity ? options.getActivityMeta(activity) : []), [activity, options])
+  // Not memoized: must recompute on the labels-changed re-render so locale
+  // switches reformat the time range.
+  const metaItems = activity ? options.getActivityMeta(activity) : []
 
   useEffect(() => {
     const handleLabelsChanged = (): void => {
