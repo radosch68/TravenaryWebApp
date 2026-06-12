@@ -7,10 +7,12 @@ import { EditorContent, useEditor } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import { Suggestion } from '@tiptap/suggestion'
 import { computePosition, flip, offset, shift } from '@floating-ui/dom'
+import { Archive, ListPlus, Type, type LucideIcon } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { ReactElement } from 'react'
 import { useTranslation } from 'react-i18next'
 
+import { ACTIVITY_TYPE_ICON } from '@/components/itinerary/activity-presentation'
 import type { ActivityType, DayDocumentNode, ItineraryActivity, ItineraryDay } from '@/services/contracts'
 import {
   ActivityTile,
@@ -57,6 +59,17 @@ type SlashMenuPath = 'root' | 'activity' | 'format' | 'bench'
 
 type SlashCommandKind = 'group' | 'command'
 
+type SlashFormatCue =
+  | 'headingOne'
+  | 'headingTwo'
+  | 'bulletList'
+  | 'numberedList'
+  | 'quote'
+  | 'bold'
+  | 'italic'
+  | 'underline'
+  | 'link'
+
 type SlashCommand = {
   id: string
   label: string
@@ -65,6 +78,10 @@ type SlashCommand = {
   menuPath?: Exclude<SlashMenuPath, 'root'>
   parentPath?: Exclude<SlashMenuPath, 'root'>
   benchActivityId?: string
+  icon?: LucideIcon
+  activityType?: ActivityType
+  description?: string
+  formatCue?: SlashFormatCue
   run?: (range: Range) => void
 }
 
@@ -166,6 +183,7 @@ function buildBenchSlashCommands(
       label: groupLabel,
       kind: 'group',
       menuPath: 'bench',
+      icon: Archive,
       searchTerms: ['bench', 'unscheduled', 'extra'],
     },
     ...benchItems.map(
@@ -175,6 +193,9 @@ function buildBenchSlashCommands(
         kind: 'command',
         parentPath: 'bench',
         benchActivityId: activity.id,
+        icon: ACTIVITY_TYPE_ICON[activity.type],
+        activityType: activity.type,
+        description: activity.text?.trim() || undefined,
         searchTerms: ['bench', activity.type],
         run: (range) => {
           insertBenchActivity(activity, range)
@@ -1129,6 +1150,7 @@ export function DayRichTextEditor({
         label: t('itineraryView.richEditor.slash.activityGroup'),
         kind: 'group',
         menuPath: 'activity',
+        icon: ListPlus,
         searchTerms: ['activities', 'aa'],
       },
       {
@@ -1136,6 +1158,7 @@ export function DayRichTextEditor({
         label: t('itineraryView.richEditor.slash.formatGroup'),
         kind: 'group',
         menuPath: 'format',
+        icon: Type,
         searchTerms: ['text', 'style'],
       },
       {
@@ -1143,6 +1166,8 @@ export function DayRichTextEditor({
         label: t('itineraryView.richEditor.slash.accommodation'),
         kind: 'command',
         parentPath: 'activity',
+        icon: ACTIVITY_TYPE_ICON.accommodation,
+        activityType: 'accommodation',
         searchTerms: ['hotel', 'stay'],
         run: (range) => {
           insertActivity('accommodation', range)
@@ -1153,6 +1178,8 @@ export function DayRichTextEditor({
         label: t('itineraryView.richEditor.slash.flight'),
         kind: 'command',
         parentPath: 'activity',
+        icon: ACTIVITY_TYPE_ICON.flight,
+        activityType: 'flight',
         searchTerms: ['plane', 'airport'],
         run: (range) => {
           insertActivity('flight', range)
@@ -1163,6 +1190,8 @@ export function DayRichTextEditor({
         label: t('itineraryView.richEditor.slash.food'),
         kind: 'command',
         parentPath: 'activity',
+        icon: ACTIVITY_TYPE_ICON.food,
+        activityType: 'food',
         searchTerms: ['restaurant', 'meal'],
         run: (range) => {
           insertActivity('food', range)
@@ -1173,6 +1202,8 @@ export function DayRichTextEditor({
         label: t('itineraryView.richEditor.slash.note'),
         kind: 'command',
         parentPath: 'activity',
+        icon: ACTIVITY_TYPE_ICON.note,
+        activityType: 'note',
         searchTerms: ['text'],
         run: (range) => {
           insertActivity('note', range)
@@ -1183,6 +1214,8 @@ export function DayRichTextEditor({
         label: t('itineraryView.richEditor.slash.place'),
         kind: 'command',
         parentPath: 'activity',
+        icon: ACTIVITY_TYPE_ICON.poi,
+        activityType: 'poi',
         searchTerms: ['poi', 'location'],
         run: (range) => {
           insertActivity('poi', range)
@@ -1193,6 +1226,8 @@ export function DayRichTextEditor({
         label: t('itineraryView.richEditor.slash.transfer'),
         kind: 'command',
         parentPath: 'activity',
+        icon: ACTIVITY_TYPE_ICON.transfer,
+        activityType: 'transfer',
         searchTerms: ['transport', 'taxi', 'train'],
         run: (range) => {
           insertActivity('transfer', range)
@@ -1210,6 +1245,7 @@ export function DayRichTextEditor({
       },
       {
         id: 'heading-one',
+        formatCue: 'headingOne',
         label: t('itineraryView.richEditor.headingOne'),
         kind: 'command',
         parentPath: 'format',
@@ -1220,6 +1256,7 @@ export function DayRichTextEditor({
       },
       {
         id: 'heading',
+        formatCue: 'headingTwo',
         label: t('itineraryView.richEditor.slash.heading'),
         kind: 'command',
         parentPath: 'format',
@@ -1230,6 +1267,7 @@ export function DayRichTextEditor({
       },
       {
         id: 'list',
+        formatCue: 'bulletList',
         label: t('itineraryView.richEditor.slash.list'),
         kind: 'command',
         parentPath: 'format',
@@ -1240,6 +1278,7 @@ export function DayRichTextEditor({
       },
       {
         id: 'numbered-list',
+        formatCue: 'numberedList',
         label: t('itineraryView.richEditor.slash.numberedList'),
         kind: 'command',
         parentPath: 'format',
@@ -1250,6 +1289,7 @@ export function DayRichTextEditor({
       },
       {
         id: 'quote',
+        formatCue: 'quote',
         label: t('itineraryView.richEditor.slash.quote'),
         kind: 'command',
         parentPath: 'format',
@@ -1260,6 +1300,7 @@ export function DayRichTextEditor({
       },
       {
         id: 'bold',
+        formatCue: 'bold',
         label: t('itineraryView.richEditor.bold'),
         kind: 'command',
         parentPath: 'format',
@@ -1270,6 +1311,7 @@ export function DayRichTextEditor({
       },
       {
         id: 'italic',
+        formatCue: 'italic',
         label: t('itineraryView.richEditor.italic'),
         kind: 'command',
         parentPath: 'format',
@@ -1280,6 +1322,7 @@ export function DayRichTextEditor({
       },
       {
         id: 'underline',
+        formatCue: 'underline',
         label: t('itineraryView.richEditor.underline'),
         kind: 'command',
         parentPath: 'format',
@@ -1290,6 +1333,7 @@ export function DayRichTextEditor({
       },
       {
         id: 'link',
+        formatCue: 'link',
         label: t('itineraryView.richEditor.link'),
         kind: 'command',
         parentPath: 'format',
@@ -1416,7 +1460,26 @@ export function DayRichTextEditor({
                   slashCommandRunnerRef.current?.(command)
                 }}
               >
-                <span>{command.label}</span>
+                {command.icon ? (
+                  <span className={styles.slashItemIcon} data-activity-type={command.activityType} aria-hidden="true">
+                    <command.icon size={15} />
+                  </span>
+                ) : null}
+                <span className={styles.slashItemBody}>
+                  <span
+                    className={[
+                      styles.slashItemLabel,
+                      command.formatCue ? styles[`slashCue_${command.formatCue}`] : '',
+                    ]
+                      .filter(Boolean)
+                      .join(' ')}
+                  >
+                    {command.label}
+                  </span>
+                  {command.description ? (
+                    <span className={styles.slashItemDescription}>{command.description}</span>
+                  ) : null}
+                </span>
                 {command.kind === 'group' ? <span aria-hidden="true">›</span> : null}
               </button>
             ))}

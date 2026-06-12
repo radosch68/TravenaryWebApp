@@ -281,13 +281,95 @@
   align-items: center;
   justify-content: flex-start;
   gap: 0.5rem;
-  padding: 0 0.64rem;
+  padding: 0.28rem 0.64rem;
   text-align: left;
+  min-width: 0;
+  max-width: 100%;
 }
 
-.slashMenu button > span:first-child {
+.slashItemIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: var(--muted-foreground);
+}
+
+/* Activity and bench items reuse the per-type accent from the global
+   [data-activity-type] palette, matching the tiles. */
+.slashItemIcon[data-activity-type] {
+  color: var(--activity-accent);
+}
+
+.slashItemBody {
+  display: flex;
+  flex-direction: column;
+  gap: 0.08rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.slashItemLabel {
   overflow: hidden;
   text-overflow: ellipsis;
+  white-space: nowrap;
+  line-height: 1.3;
+}
+
+.slashItemDescription {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--font-size-xs);
+  color: var(--muted-foreground);
+  line-height: 1.25;
+}
+
+/* Format submenu items preview their own styling. */
+.slashCue_headingOne {
+  font-size: 1.05rem;
+  font-weight: 700;
+}
+
+.slashCue_headingTwo {
+  font-size: var(--font-size-xl);
+  font-weight: 700;
+}
+
+.slashCue_bulletList::before {
+  content: '\2022\00a0\00a0';
+  color: var(--muted-foreground);
+}
+
+.slashCue_numberedList::before {
+  content: '1.\00a0\00a0';
+  color: var(--muted-foreground);
+}
+
+.slashCue_quote {
+  border-left: 3px solid var(--border);
+  padding-left: 0.45rem;
+  font-style: italic;
+  color: color-mix(in oklab, var(--foreground) 78%, var(--muted-foreground) 22%);
+}
+
+.slashCue_bold {
+  font-weight: 700;
+}
+
+.slashCue_italic {
+  font-style: italic;
+}
+
+.slashCue_underline {
+  text-decoration: underline;
+  text-underline-offset: 0.14em;
+}
+
+.slashCue_link {
+  text-decoration: underline;
+  text-underline-offset: 0.14em;
+  color: var(--accent);
 }
 
 .slashMenu button > span:last-child:not(:first-child) {
