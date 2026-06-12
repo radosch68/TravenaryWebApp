@@ -405,12 +405,37 @@ function ActivityTileView({ node, deleteNode, extension, selected, updateAttribu
     event.dataTransfer.setData('application/x-travenary-activity-id', activity.id)
   }
 
+  function suppressEditorFocus(event: { type: string; preventDefault: () => void; stopPropagation: () => void }): void {
+    event.stopPropagation()
+    // preventDefault only on the synthesized mousedown; doing it on pointerdown
+    // makes Safari drop the subsequent click entirely.
+    if (event.type !== 'pointerdown') {
+      event.preventDefault()
+    }
+  }
+
+  // Removing the node unmounts the dialog inside the contenteditable tree;
+  // without this, iOS hands focus back to the editor and pops the keyboard.
+  function releaseEditorFocusDeferred(): void {
+    if (typeof window === 'undefined') {
+      return
+    }
+
+    window.setTimeout(() => {
+      const activeElement = document.activeElement
+      if (activeElement instanceof HTMLElement) {
+        activeElement.blur()
+      }
+    }, 0)
+  }
+
   function deleteActivity(): void {
     if (activity) {
       options.onActivityDelete(activity.id)
     }
     setIsConfirmingDelete(false)
     deleteNode()
+    releaseEditorFocusDeferred()
   }
 
   function benchActivity(): void {
@@ -419,6 +444,7 @@ function ActivityTileView({ node, deleteNode, extension, selected, updateAttribu
     }
     setIsConfirmingDelete(false)
     deleteNode()
+    releaseEditorFocusDeferred()
   }
 
   async function handleLegacyFormSave(nextActivity: ItineraryActivity): Promise<void> {
@@ -461,9 +487,27 @@ function ActivityTileView({ node, deleteNode, extension, selected, updateAttribu
           className={styles.deleteButton}
           aria-label={labels.deleteActivity}
           title={labels.deleteActivity}
+          onPointerDown={(event) => {
+            // Keep the editor from treating the press as content interaction,
+            // but do not preventDefault here: Safari would then drop the click.
+            event.stopPropagation()
+          }}
+          onMouseDown={(event) => {
+            // iOS synthesizes mousedown after touchend; preventing it stops the
+            // editor from gaining focus (and popping the keyboard) while the
+            // click still fires.
+            event.preventDefault()
+            event.stopPropagation()
+          }}
           onClick={(event) => {
             event.preventDefault()
             event.stopPropagation()
+            if (typeof document !== 'undefined') {
+              const activeElement = document.activeElement
+              if (activeElement instanceof HTMLElement) {
+                activeElement.blur()
+              }
+            }
             setIsConfirmingDelete(true)
           }}
         >
@@ -473,19 +517,30 @@ function ActivityTileView({ node, deleteNode, extension, selected, updateAttribu
         {isConfirmingDelete ? (
           <DialogShell
             title={labels.deleteDialog.title}
-            onClose={() => setIsConfirmingDelete(false)}
+            onClose={() => {
+              setIsConfirmingDelete(false)
+              releaseEditorFocusDeferred()
+            }}
             footer={
               <>
                 <button
                   type="button"
                   className={styles.deleteDialogBenchButton}
+                  onPointerDown={suppressEditorFocus}
+                  onMouseDown={suppressEditorFocus}
                   onClick={benchActivity}
                   disabled={Boolean(activity?.anchorDate)}
                   title={activity?.anchorDate ? labels.deleteDialog.benchBlockedAnchored : undefined}
                 >
                   {labels.deleteDialog.bench}
                 </button>
-                <button type="button" className={styles.deleteDialogDeleteButton} onClick={deleteActivity}>
+                <button
+                  type="button"
+                  className={styles.deleteDialogDeleteButton}
+                  onPointerDown={suppressEditorFocus}
+                  onMouseDown={suppressEditorFocus}
+                  onClick={deleteActivity}
+                >
                   {labels.deleteDialog.delete}
                 </button>
               </>

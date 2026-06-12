@@ -1,5 +1,6 @@
 import type { ReactElement, ReactNode } from 'react'
 import { useEffect, useId } from 'react'
+import { createPortal } from 'react-dom'
 import { X } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
@@ -46,7 +47,7 @@ export function DialogShell({
     return () => window.removeEventListener('keydown', handleEscape)
   }, [onClose])
 
-  return (
+  const dialog = (
     <div
       className={styles.overlay}
       role="dialog"
@@ -84,4 +85,13 @@ export function DialogShell({
       </div>
     </div>
   )
+
+  // Render outside any contenteditable ancestor (e.g. tiptap node views):
+  // inside one, iOS Safari treats dialog buttons as editable text and shows
+  // the selection callout instead of clicking them.
+  if (typeof document === 'undefined') {
+    return dialog
+  }
+
+  return createPortal(dialog, document.body)
 }
