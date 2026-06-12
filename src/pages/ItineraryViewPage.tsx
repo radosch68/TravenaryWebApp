@@ -411,6 +411,24 @@ export function ItineraryViewPage(): ReactElement {
     }
   }, [])
 
+  // Optimistically adds a benched activity to the itinerary-level bench so
+  // every day's /bench menu sees it immediately; the benching editor's next
+  // day save persists it atomically with the tile removal.
+  const handleActivityBench = useCallback((activity: ItineraryActivity): void => {
+    const currentItinerary = itineraryRef.current
+    if (!currentItinerary) {
+      return
+    }
+
+    const nextBench = [
+      ...(currentItinerary.activityBench ?? []).filter((item) => item.id !== activity.id),
+      activity,
+    ]
+    const nextItinerary = { ...currentItinerary, activityBench: nextBench }
+    itineraryRef.current = nextItinerary
+    setItinerary(nextItinerary)
+  }, [])
+
   const startTitleEdit = useCallback((): void => {
     if (!itineraryRef.current || isTitleSaving) {
       return
@@ -1295,6 +1313,7 @@ export function ItineraryViewPage(): ReactElement {
           collapseCommandMode={dayCollapseCommandMode}
           onCollapseStateChange={setDayCollapseState}
           activityBench={itinerary.activityBench}
+          onActivityBench={handleActivityBench}
           onDaySave={handleDaySave}
         />
 

@@ -24,6 +24,7 @@ import type {
   WebReference,
 } from '@/services/contracts'
 import { ACTIVITY_TYPE_ICON } from '@/components/itinerary/activity-presentation'
+import { DialogShell } from '@/components/common/DialogShell'
 import { ActivityFormPanel } from '@/components/itinerary/ActivityFormPanel'
 import { hasCoordinates } from '@/components/itinerary/location-map-pins'
 import { formatLocalTime } from '@/utils/date-format'
@@ -39,6 +40,13 @@ export interface ActivityTileLabels {
   locale: string
   activityEditorLabel: string
   deleteActivity: string
+  deleteDialog: {
+    title: string
+    message: string
+    bench: string
+    delete: string
+    benchBlockedAnchored: string
+  }
   cancelEdit: string
   confirmEdit: string
   titleFallback: string
@@ -85,6 +93,7 @@ export interface ActivityTileOptions {
   getLabels: () => ActivityTileLabels
   onActivityOpen: (activityId: string) => void
   onActivityDelete: (activityId: string) => void
+  onActivityBench: (activity: ItineraryActivity) => void
 }
 
 export type PhotoThumbnailSize = 'sm' | 'md' | 'lg'
@@ -247,6 +256,7 @@ function ActivityTileView({ node, deleteNode, extension, selected, updateAttribu
   const useModalEditor = options.useModalEditor === true
   const labels = options.getLabels()
   const [isEditing, setIsEditing] = useState(false)
+  const [isConfirmingDelete, setIsConfirmingDelete] = useState(false)
   const [isLegacySubmitting, setIsLegacySubmitting] = useState(false)
   const [photoThumbnailSize, setPhotoThumbnailSize] = useState<PhotoThumbnailSize>(() => options.getPhotoThumbnailSize())
   const [, setLabelsVersion] = useState(0)
@@ -399,6 +409,15 @@ function ActivityTileView({ node, deleteNode, extension, selected, updateAttribu
     if (activity) {
       options.onActivityDelete(activity.id)
     }
+    setIsConfirmingDelete(false)
+    deleteNode()
+  }
+
+  function benchActivity(): void {
+    if (activity) {
+      options.onActivityBench({ ...cloneActivity(activity), anchorDate: null })
+    }
+    setIsConfirmingDelete(false)
     deleteNode()
   }
 
@@ -445,11 +464,39 @@ function ActivityTileView({ node, deleteNode, extension, selected, updateAttribu
           onClick={(event) => {
             event.preventDefault()
             event.stopPropagation()
-            deleteActivity()
+            setIsConfirmingDelete(true)
           }}
         >
           <Trash2 size={16} aria-hidden="true" />
         </button>
+
+        {isConfirmingDelete ? (
+          <DialogShell
+            title={labels.deleteDialog.title}
+            onClose={() => setIsConfirmingDelete(false)}
+            footer={
+              <>
+                <button
+                  type="button"
+                  className={styles.deleteDialogBenchButton}
+                  onClick={benchActivity}
+                  disabled={Boolean(activity?.anchorDate)}
+                  title={activity?.anchorDate ? labels.deleteDialog.benchBlockedAnchored : undefined}
+                >
+                  {labels.deleteDialog.bench}
+                </button>
+                <button type="button" className={styles.deleteDialogDeleteButton} onClick={deleteActivity}>
+                  {labels.deleteDialog.delete}
+                </button>
+              </>
+            }
+          >
+            <p className={styles.deleteDialogMessage}>{labels.deleteDialog.message}</p>
+            {activity?.anchorDate ? (
+              <p className={styles.deleteDialogAnchoredNote}>{labels.deleteDialog.benchBlockedAnchored}</p>
+            ) : null}
+          </DialogShell>
+        ) : null}
 
         <div
           className={styles.activityBody}
@@ -1183,6 +1230,13 @@ export const ActivityTile = Node.create<ActivityTileOptions>({
         locale: 'en',
         activityEditorLabel: '',
         deleteActivity: '',
+        deleteDialog: {
+          title: '',
+          message: '',
+          bench: '',
+          delete: '',
+          benchBlockedAnchored: '',
+        },
         cancelEdit: '',
         confirmEdit: '',
         titleFallback: '',
@@ -1234,6 +1288,7 @@ export const ActivityTile = Node.create<ActivityTileOptions>({
       }),
       onActivityOpen: () => undefined,
       onActivityDelete: () => undefined,
+      onActivityBench: () => undefined,
     }
   },
 

@@ -214,6 +214,13 @@
       "slashMenuAria": "Menu vložení",
       "activityEditorLabel": "Detaily aktivity",
       "deleteActivity": "Smazat aktivitu",
+      "deleteDialog": {
+        "title": "Smazat aktivitu",
+        "message": "Chcete aktivitu smazat, nebo ji p\u0159esunout na Activity Bench?",
+        "bench": "Odlo\u017eit",
+        "delete": "Smazat",
+        "benchBlockedAnchored": "Ukotven\u00e9 aktivity nelze p\u0159esunout na Activity Bench."
+      },
       "titleFallback": "Aktivita bez názvu",
       "fields": {
         "title": "Název",

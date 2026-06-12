@@ -44,6 +44,7 @@ interface DayRichTextEditorProps {
   locale: string
   photoThumbnailSize: PhotoThumbnailSize
   activityBench?: ItineraryActivity[]
+  onActivityBench?: (activity: ItineraryActivity) => void
   onDaySave: (day: DaySavePayload) => Promise<void>
   onEditorActivate?: () => void
   onSaveStateChange?: (state: DayRichTextSaveState) => void
@@ -76,6 +77,9 @@ const AUTOSAVE_DELAY_MS = 7000
 const TOP_DROP_ZONE_PX = 36
 const SLASH_MENU_CURSOR_GAP_PX = 6
 const SLASH_MENU_EDGE_GAP_PX = 6
+// Hover-intent delay before a highlighted group auto-opens its submenu
+// (also used by the back item to navigate one level up).
+const SLASH_SUBMENU_HOVER_OPEN_DELAY_MS = 1000
 const USE_MODAL_ACTIVITY_EDITOR = true
 
 const SectionBreak = Node.create({
@@ -225,6 +229,7 @@ export function DayRichTextEditor({
   locale,
   photoThumbnailSize,
   activityBench,
+  onActivityBench,
   onDaySave,
   onEditorActivate,
   onSaveStateChange,
@@ -240,13 +245,21 @@ export function DayRichTextEditor({
   const [slashMenuItems, setSlashMenuItems] = useState<SlashCommand[]>([])
   const [slashMenuPath, setSlashMenuPath] = useState<SlashMenuPath>('root')
   const [slashQuery, setSlashQuery] = useState('')
-  const [slashActiveIndex, setSlashActiveIndex] = useState(0)
+  // -1 means no item is highlighted; only arrow keys or pointer hover set one.
+  const [slashActiveIndex, setSlashActiveIndex] = useState(-1)
   const [editVersion, setEditVersion] = useState(0)
   const activityTileLabels = useMemo<ActivityTileLabels>(
     () => ({
       locale,
       activityEditorLabel: t('itineraryView.richEditor.activityEditorLabel'),
       deleteActivity: t('itineraryView.richEditor.deleteActivity'),
+      deleteDialog: {
+        title: t('itineraryView.richEditor.deleteDialog.title'),
+        message: t('itineraryView.richEditor.deleteDialog.message'),
+        bench: t('itineraryView.richEditor.deleteDialog.bench'),
+        delete: t('itineraryView.richEditor.deleteDialog.delete'),
+        benchBlockedAnchored: t('itineraryView.richEditor.deleteDialog.benchBlockedAnchored'),
+      },
       cancelEdit: t('cancel'),
       confirmEdit: t('save'),
       titleFallback: t('itineraryView.richEditor.titleFallback'),
@@ -300,6 +313,11 @@ export function DayRichTextEditor({
   )
   const documentNodesRef = useRef(documentNodes)
   const activityBenchRef = useRef(activityBench)
+  const onActivityBenchRef = useRef(onActivityBench)
+  // Set once the delete dialog benches an activity in this editor; from then on
+  // day saves include the (page-owned, optimistically updated) bench so the
+  // addition persists atomically with the tile removal.
+  const benchTouchedRef = useRef(false)
   const editVersionRef = useRef(editVersion)
   const lastSavedEditVersionRef = useRef(0)
   const labelsRef = useRef<ActivityTileLabels>(activityTileLabels)
@@ -308,7 +326,7 @@ export function DayRichTextEditor({
   const slashMenuItemsRef = useRef<SlashCommand[]>([])
   const slashMenuPathRef = useRef<SlashMenuPath>('root')
   const slashQueryRef = useRef('')
-  const slashActiveIndexRef = useRef(0)
+  const slashActiveIndexRef = useRef(-1)
   const slashClientRectRef = useRef<(() => DOMRect | null) | null>(null)
   const slashCommandRunnerRef = useRef<((command: SlashCommand) => void) | null>(null)
   const slashItemRefs = useRef<Array<HTMLButtonElement | null>>([])
@@ -326,6 +344,10 @@ export function DayRichTextEditor({
   useEffect(() => {
     activityBenchRef.current = activityBench
   }, [activityBench])
+
+  useEffect(() => {
+    onActivityBenchRef.current = onActivityBench
+  }, [onActivityBench])
 
   useEffect(() => {
     editVersionRef.current = editVersion
@@ -382,19 +404,31 @@ export function DayRichTextEditor({
     setEditVersion((previousValue) => previousValue + 1)
   }, [])
 
+  const slashHoverSubmenuTimerRef = useRef<number | null>(null)
+
+  const clearSlashHoverSubmenuTimer = useCallback((): void => {
+    if (slashHoverSubmenuTimerRef.current !== null) {
+      window.clearTimeout(slashHoverSubmenuTimerRef.current)
+      slashHoverSubmenuTimerRef.current = null
+    }
+  }, [])
+
+  useEffect(() => clearSlashHoverSubmenuTimer, [clearSlashHoverSubmenuTimer])
+
   const closeSlashMenu = useCallback((): void => {
+    clearSlashHoverSubmenuTimer()
     setSlashMenuOpen(false)
     setSlashMenuPosition(null)
     setSlashMenuItems([])
     setSlashMenuPath('root')
     setSlashQuery('')
-    setSlashActiveIndex(0)
-    slashActiveIndexRef.current = 0
+    setSlashActiveIndex(-1)
+    slashActiveIndexRef.current = -1
     slashMenuPathRef.current = 'root'
     slashQueryRef.current = ''
     slashClientRectRef.current = null
     slashCommandRunnerRef.current = null
-  }, [])
+  }, [clearSlashHoverSubmenuTimer])
 
   const setSlashActiveCommandIndex = useCallback((index: number): void => {
     slashActiveIndexRef.current = index
@@ -477,6 +511,7 @@ export function DayRichTextEditor({
 
   const openSlashSubmenu = useCallback(
     (path: Exclude<SlashMenuPath, 'root'>): void => {
+      clearSlashHoverSubmenuTimer()
       slashQueryRef.current = ''
       setSlashQuery('')
       const items = getAvailableSlashCommands().filter((command) => command.parentPath === path)
@@ -484,13 +519,14 @@ export function DayRichTextEditor({
       setSlashMenuPath(path)
       setSlashMenuItems(items)
       setSlashMenuOpen(items.length > 0)
-      setSlashActiveCommandIndex(0)
+      setSlashActiveCommandIndex(-1)
       window.requestAnimationFrame(updateSlashMenuPosition)
     },
-    [getAvailableSlashCommands, setSlashActiveCommandIndex, updateSlashMenuPosition],
+    [clearSlashHoverSubmenuTimer, getAvailableSlashCommands, setSlashActiveCommandIndex, updateSlashMenuPosition],
   )
 
   const openSlashRootMenu = useCallback((): void => {
+    clearSlashHoverSubmenuTimer()
     slashQueryRef.current = ''
     setSlashQuery('')
     const items = getAvailableSlashCommands().filter((command) => command.kind === 'group')
@@ -498,9 +534,9 @@ export function DayRichTextEditor({
     setSlashMenuPath('root')
     setSlashMenuItems(items)
     setSlashMenuOpen(items.length > 0)
-    setSlashActiveCommandIndex(0)
+    setSlashActiveCommandIndex(-1)
     window.requestAnimationFrame(updateSlashMenuPosition)
-  }, [getAvailableSlashCommands, setSlashActiveCommandIndex, updateSlashMenuPosition])
+  }, [clearSlashHoverSubmenuTimer, getAvailableSlashCommands, setSlashActiveCommandIndex, updateSlashMenuPosition])
 
   const saveStateLabel = useMemo(() => {
     if (saveState === 'saving') {
@@ -529,13 +565,18 @@ export function DayRichTextEditor({
     }
 
     // Bench activities inserted via /bench keep their id; once one appears in
-    // the document, the same save removes it from the bench atomically.
+    // the document, the same save removes it from the bench atomically. The
+    // reverse direction (delete dialog's "bench" choice) updates the bench
+    // optimistically at page level and marks this editor bench-touched so the
+    // save persists it. Filtering against document ids keeps both directions
+    // self-healing: an undone removal puts the activity back in the document,
+    // which excludes it from the bench again.
     const benchItems = activityBenchRef.current ?? []
-    if (benchItems.length > 0) {
-      const documentActivityIds = getDocumentActivityIds()
-      if (benchItems.some((item) => documentActivityIds.has(item.id))) {
-        payload.activityBench = benchItems.filter((item) => !documentActivityIds.has(item.id))
-      }
+    const documentActivityIds = getDocumentActivityIds()
+    const hasConsumedBenchItems = benchItems.some((item) => documentActivityIds.has(item.id))
+
+    if (hasConsumedBenchItems || benchTouchedRef.current) {
+      payload.activityBench = benchItems.filter((item) => !documentActivityIds.has(item.id))
     }
 
     return payload
@@ -660,7 +701,7 @@ export function DayRichTextEditor({
                     setSlashMenuPath('root')
                   }
                   setSlashMenuItems(props.items)
-                  setSlashActiveCommandIndex(0)
+                  setSlashActiveCommandIndex(-1)
                   setSlashMenuOpen(props.items.length > 0)
                   window.requestAnimationFrame(updateSlashMenuPosition)
                 },
@@ -679,8 +720,8 @@ export function DayRichTextEditor({
                   setSlashMenuOpen(props.items.length > 0)
                   setSlashActiveCommandIndex(
                     normalizedQuery !== previousQuery
-                      ? 0
-                      : Math.min(slashActiveIndexRef.current, Math.max(0, props.items.length - 1)),
+                      ? -1
+                      : Math.min(slashActiveIndexRef.current, props.items.length - 1),
                   )
                   window.requestAnimationFrame(updateSlashMenuPosition)
                 },
@@ -706,7 +747,11 @@ export function DayRichTextEditor({
                   }
 
                   if (event.key === 'ArrowUp') {
-                    setSlashActiveCommandIndex((slashActiveIndexRef.current - 1 + items.length) % items.length)
+                    setSlashActiveCommandIndex(
+                      slashActiveIndexRef.current < 0
+                        ? items.length - 1
+                        : (slashActiveIndexRef.current - 1 + items.length) % items.length,
+                    )
                     return true
                   }
 
@@ -734,7 +779,8 @@ export function DayRichTextEditor({
                   }
 
                   if (event.key === 'Enter' || event.key === 'Tab') {
-                    const selectedCommand = items[slashActiveIndexRef.current]
+                    // With no highlighted item, Enter picks the top match.
+                    const selectedCommand = items[slashActiveIndexRef.current] ?? items[0]
                     if (selectedCommand) {
                       slashCommandRunnerRef.current?.(selectedCommand)
                     }
@@ -799,6 +845,11 @@ export function DayRichTextEditor({
         getLabels: () => labelsRef.current,
         onActivityOpen: () => undefined,
         onActivityDelete: () => undefined,
+        onActivityBench: (activity) => {
+          benchTouchedRef.current = true
+          onActivityBenchRef.current?.(activity)
+          markDirty()
+        },
       }),
     ],
     content: toEditorContent(day.document ?? []),
@@ -954,7 +1005,7 @@ export function DayRichTextEditor({
 
       setSlashMenuOpen(false)
       setSlashMenuPosition(null)
-      setSlashActiveIndex(0)
+      setSlashActiveIndex(-1)
       markDirty()
     },
     [editor, markDirty, t],
@@ -979,7 +1030,7 @@ export function DayRichTextEditor({
 
       setSlashMenuOpen(false)
       setSlashMenuPosition(null)
-      setSlashActiveIndex(0)
+      setSlashActiveIndex(-1)
       markDirty()
     },
     [editor, markDirty],
@@ -1294,7 +1345,15 @@ export function DayRichTextEditor({
             className={styles.slashMenu}
             role="listbox"
             aria-label={t('itineraryView.richEditor.slashMenuAria')}
-            aria-activedescendant={`slash-command-${day.dayNumber}-${slashMenuItems[slashActiveIndex]?.id}`}
+            aria-activedescendant={
+              slashActiveIndex >= 0 && slashMenuItems[slashActiveIndex]
+                ? `slash-command-${day.dayNumber}-${slashMenuItems[slashActiveIndex].id}`
+                : undefined
+            }
+            onMouseLeave={() => {
+              clearSlashHoverSubmenuTimer()
+              setSlashActiveCommandIndex(-1)
+            }}
             style={{
               left: slashMenuPosition?.left ?? SLASH_MENU_EDGE_GAP_PX,
               top: slashMenuPosition?.top ?? SLASH_MENU_EDGE_GAP_PX,
@@ -1305,6 +1364,14 @@ export function DayRichTextEditor({
                 <button
                   type="button"
                   aria-label={t('itineraryView.richEditor.slash.back')}
+                  onMouseEnter={() => {
+                    clearSlashHoverSubmenuTimer()
+                    slashHoverSubmenuTimerRef.current = window.setTimeout(() => {
+                      slashHoverSubmenuTimerRef.current = null
+                      openSlashRootMenu()
+                    }, SLASH_SUBMENU_HOVER_OPEN_DELAY_MS)
+                  }}
+                  onMouseLeave={clearSlashHoverSubmenuTimer}
                   onMouseDown={(event) => {
                     event.preventDefault()
                   }}
@@ -1315,7 +1382,9 @@ export function DayRichTextEditor({
                 <span>
                   {slashMenuPath === 'activity'
                     ? t('itineraryView.richEditor.slash.activityGroup')
-                    : t('itineraryView.richEditor.slash.formatGroup')}
+                    : slashMenuPath === 'bench'
+                      ? t('itineraryView.richEditor.slash.benchGroup')
+                      : t('itineraryView.richEditor.slash.formatGroup')}
                 </span>
               </div>
             ) : null}
@@ -1329,6 +1398,17 @@ export function DayRichTextEditor({
                 type="button"
                 role="option"
                 aria-selected={slashActiveIndex === index}
+                onMouseEnter={() => {
+                  setSlashActiveCommandIndex(index)
+                  clearSlashHoverSubmenuTimer()
+                  const submenuPath = command.menuPath
+                  if (command.kind === 'group' && submenuPath) {
+                    slashHoverSubmenuTimerRef.current = window.setTimeout(() => {
+                      slashHoverSubmenuTimerRef.current = null
+                      openSlashSubmenu(submenuPath)
+                    }, SLASH_SUBMENU_HOVER_OPEN_DELAY_MS)
+                  }
+                }}
                 onMouseDown={(event) => {
                   event.preventDefault()
                 }}

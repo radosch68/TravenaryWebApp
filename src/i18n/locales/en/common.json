@@ -204,6 +204,13 @@
       "slashMenuAria": "Insert menu",
       "activityEditorLabel": "Activity details",
       "deleteActivity": "Delete activity",
+      "deleteDialog": {
+        "title": "Delete activity",
+        "message": "Do you want to delete this activity or move it to the Activity Bench?",
+        "bench": "Bench",
+        "delete": "Delete",
+        "benchBlockedAnchored": "Anchored activities cannot be moved to the Activity Bench."
+      },
       "titleFallback": "Untitled activity",
       "fields": {
         "title": "Title",

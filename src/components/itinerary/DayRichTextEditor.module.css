@@ -245,7 +245,7 @@
 }
 
 .formatToolbar button:hover,
-.slashMenu button:hover,
+.slashMenuHeader button:hover,
 .activeCommand {
   border-color: color-mix(in oklab, var(--primary) 28%, var(--border) 72%);
   background: color-mix(in oklab, var(--primary) 10%, transparent 90%);
@@ -313,11 +313,8 @@
   line-height: 1;
 }
 
-.slashMenu button:hover {
-  border-color: color-mix(in oklab, var(--primary) 34%, var(--border) 66%);
-  background: color-mix(in oklab, var(--primary) 14%, transparent 86%);
-}
-
+/* The keyboard-active index follows mouse hover, so aria-selected is the
+   single source of item highlighting (no separate :hover rule). */
 .slashMenu button[aria-selected='true'] {
   border-color: color-mix(in oklab, var(--primary) 42%, var(--border) 58%);
   background: color-mix(in oklab, var(--primary) 18%, transparent 82%);

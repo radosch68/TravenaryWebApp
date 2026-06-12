@@ -56,6 +56,7 @@ interface ItineraryDaysGridProps {
   collapseCommandMode?: 'collapse-all' | 'expand-all'
   onCollapseStateChange?: (state: { allCollapsed: boolean; allExpanded: boolean }) => void
   activityBench?: ItineraryActivity[]
+  onActivityBench?: (activity: ItineraryActivity) => void
   onDaySave?: (day: Omit<ItineraryDay, 'date'> & { activityBench?: ItineraryActivity[] }) => Promise<void>
 }
 
@@ -147,6 +148,7 @@ export function ItineraryDaysGrid({
   collapseCommandMode,
   onCollapseStateChange,
   activityBench,
+  onActivityBench,
   onDaySave,
 }: ItineraryDaysGridProps): ReactElement {
   const { t } = useTranslation('common')
@@ -1116,6 +1118,7 @@ export function ItineraryDaysGrid({
                     locale={locale}
                     photoThumbnailSize={photoThumbnailSize}
                     activityBench={activityBench}
+                    onActivityBench={onActivityBench}
                     onDaySave={onDaySave}
                     onEditorActivate={() => handleDayEditorActivate(day.dayNumber)}
                     onDocumentDraftChange={handleDayDocumentDraftChange}
