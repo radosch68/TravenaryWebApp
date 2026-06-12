@@ -2,6 +2,7 @@
 import { Node, mergeAttributes } from '@tiptap/core'
 import { NodeViewWrapper, ReactNodeViewRenderer, type NodeViewProps } from '@tiptap/react'
 import {
+  Anchor,
   Camera,
   ExternalLink,
   Film,
@@ -672,21 +673,20 @@ function ActivityTileDisplay({
     : `${styles.activityHeader} ${styles.activityHeaderOnly}`
 
   return (
-    <div className={activityDisplayClassName} data-activity-type={activity.type}>
+    <div className={activityDisplayClassName} data-activity-type={activity.type} data-anchored={hasAnchoredDate ? 'true' : undefined}>
       <header className={activityHeaderClassName}>
         <div className={styles.activityHeaderLine}>
-          <span className={styles.activityIcon} aria-hidden="true">
-            <Icon size={18} />
+          <span className={styles.activityIcon}>
+            {hasAnchoredDate ? (
+              <span className={styles.anchorIcon} role="img" aria-label={labels.display.anchored} title={labels.display.anchored}>
+                <Anchor size={18} aria-hidden="true" />
+              </span>
+            ) : null}
+            <Icon size={18} aria-hidden="true" />
           </span>
           <p className={styles.activityTitle}>{activity.title}</p>
           {metaItems.length > 0 ? <span className={styles.activityTime}>{metaItems.join(' / ')}</span> : null}
         </div>
-
-        {hasAnchoredDate ? (
-          <div className={styles.activityHeaderNote}>
-            <span className={styles.anchoredChip}>{labels.display.anchored}</span>
-          </div>
-        ) : null}
       </header>
 
       {hasAccommodationSection ? <AccommodationDetails activity={activity} labels={labels} /> : null}

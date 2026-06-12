@@ -1,6 +1,7 @@
 import {
   CircleAlert,
   BedDouble,
+  Anchor,
   Camera,
   ChevronDown,
   ChevronRight,
@@ -1397,21 +1398,25 @@ function ActivityCard({
     : `${styles.activityHeader} ${styles.activityHeaderOnly}`
 
   return (
-    <article className={activityCardClassName} data-activity-type={activity.type} data-activity-id={activity.id}>
+    <article
+      className={activityCardClassName}
+      data-activity-type={activity.type}
+      data-activity-id={activity.id}
+      data-anchored={hasAnchoredDate ? 'true' : undefined}
+    >
       <header className={activityHeaderClassName}>
         <div className={styles.activityHeaderLine}>
-          <span className={styles.activityIcon} aria-hidden="true">
-            <Icon size={18} />
+          <span className={styles.activityIcon}>
+            {hasAnchoredDate ? (
+              <span className={styles.anchorIcon} role="img" aria-label={t('itineraryView.anchored')} title={t('itineraryView.anchored')}>
+                <Anchor size={18} aria-hidden="true" />
+              </span>
+            ) : null}
+            <Icon size={18} aria-hidden="true" />
           </span>
           <p className={styles.activityTitle}>{activity.title}</p>
           {timeRange ? <span className={styles.activityTime}>{timeRange}</span> : null}
         </div>
-
-        {hasAnchoredDate ? (
-          <div className={styles.activityHeaderNote}>
-            <span className={styles.anchoredChip}>{t('itineraryView.anchored')}</span>
-          </div>
-        ) : null}
       </header>
 
       {hasAccommodationSection ? (

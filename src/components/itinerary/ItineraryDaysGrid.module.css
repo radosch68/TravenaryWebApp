@@ -524,6 +524,18 @@
   padding: 0.5rem;
 }
 
+/* Anchored cards: stronger border drawn with an inset ring so the
+   1px border-box footprint (and header negative margins) stay intact. */
+.activityCard[data-anchored='true'] {
+  border-color: color-mix(in oklab, var(--activity-accent) 62%, var(--border) 38%);
+  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--activity-accent) 62%, var(--border) 38%);
+}
+
+.activityCard[data-anchored='true'] .activityHeader {
+  border-bottom-width: 2px;
+  border-bottom-color: color-mix(in oklab, var(--activity-accent) 62%, var(--border) 38%);
+}
+
 .virtualCheckoutTile {
   appearance: none;
   width: 100%;
@@ -612,18 +624,19 @@
   min-width: 0;
 }
 
-.activityHeaderNote {
-  display: flex;
-  justify-content: flex-start;
-  padding-left: calc(1.25rem + 0.42rem);
-}
-
 .activityIcon {
-  display: grid;
-  place-items: center;
+  display: flex;
+  align-items: center;
+  gap: 0.22rem;
   min-width: 1.25rem;
+  min-height: 1.4rem;
   color: var(--activity-accent);
   flex: 0 0 auto;
+}
+
+.anchorIcon {
+  display: grid;
+  place-items: center;
 }
 
 .activityTitle {
@@ -645,7 +658,6 @@
   align-self: start;
 }
 
-.anchoredChip,
 .detailChip,
 .metaPill,
 .moreChip {
@@ -658,11 +670,6 @@
   font-size: var(--font-size-xs);
   color: var(--muted-foreground);
   background: color-mix(in oklab, var(--card) 90%, transparent 10%);
-}
-
-.anchoredChip {
-  border-color: color-mix(in oklab, #1f1f1f 36%, transparent);
-  color: color-mix(in oklab, #1f1f1f 62%, var(--foreground) 38%);
 }
 
 .activityDescription {
