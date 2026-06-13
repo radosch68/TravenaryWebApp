@@ -18,8 +18,8 @@ import {
   Sparkles,
   TriangleAlert,
 } from 'lucide-react'
-import type { CSSProperties, PointerEvent as ReactPointerEvent, ReactElement } from 'react'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import type { CSSProperties, PointerEvent as ReactPointerEvent, ReactElement, ReactNode } from 'react'
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 
@@ -36,7 +36,6 @@ import { formatLocalDate, formatLocalTime, formatLocalTimeRange, formatWeekday, 
 import {
   getOvernightCoverageByGapDay,
   getVirtualAccommodationCheckoutsByDay,
-  groupDayForView,
   type OvernightCoverage,
   type VirtualAccommodationCheckout,
 } from '@/utils/itinerary-grouping'
@@ -44,6 +43,7 @@ import { getReferenceThumbnailUrl, toReferenceChipType } from '@/utils/reference
 import { toDayActivities } from '@/utils/tiptap-compatibility'
 
 import styles from './ItineraryDaysGrid.module.css'
+import editorStyles from './DayRichTextEditor.module.css'
 
 interface ItineraryDaysGridProps {
   days: ItineraryDay[]
@@ -1128,18 +1128,7 @@ export function ItineraryDaysGrid({
                     onSaveStateChange={(state) => setDaySaveVisualState(day.dayNumber, state)}
                   />
                 ) : (
-                  <>
-                    {day.summary ? <p className={styles.daySummary}>{day.summary}</p> : null}
-                    <DayActivitySections
-                      day={day}
-                      locale={locale}
-                      photoThumbnailSize={photoThumbnailSize}
-                      virtualCheckouts={[]}
-                      onVirtualCheckoutClick={(checkout) => {
-                        jumpToAccommodationSource(checkout.sourceDayNumber, checkout.sourceActivityId)
-                      }}
-                    />
-                  </>
+                  <DayDocumentView day={day} locale={locale} photoThumbnailSize={photoThumbnailSize} />
                 )}
 
               </div>
@@ -1246,58 +1235,172 @@ function DayStatusFooter({
   )
 }
 
-function DayActivitySections({
+function documentNodeText(nodes: DayDocumentNode[] | undefined): string {
+  if (!Array.isArray(nodes)) {
+    return ''
+  }
+
+  return nodes
+    .map((node) => (typeof node.text === 'string' ? node.text : documentNodeText(node.content)))
+    .join('')
+}
+
+function renderInlineNode(node: DayDocumentNode, key: string): ReactNode {
+  if (node.type === 'hardBreak') {
+    return <br key={key} />
+  }
+
+  if (typeof node.text !== 'string') {
+    return node.content ? <Fragment key={key}>{renderInlineNodes(node.content, key)}</Fragment> : null
+  }
+
+  let element: ReactNode = node.text
+  for (const mark of node.marks ?? []) {
+    if (mark.type === 'bold') {
+      element = <strong>{element}</strong>
+    } else if (mark.type === 'italic') {
+      element = <em>{element}</em>
+    } else if (mark.type === 'underline') {
+      element = <u>{element}</u>
+    } else if (mark.type === 'strike') {
+      element = <s>{element}</s>
+    } else if (mark.type === 'code') {
+      element = <code>{element}</code>
+    } else if (mark.type === 'link') {
+      const linkAttrs = mark.attrs as { href?: string } | undefined
+      const href = typeof linkAttrs?.href === 'string' ? linkAttrs.href : undefined
+      element = (
+        <a href={href} target="_blank" rel="noopener noreferrer">
+          {element}
+        </a>
+      )
+    }
+  }
+
+  return <Fragment key={key}>{element}</Fragment>
+}
+
+function renderInlineNodes(nodes: DayDocumentNode[] | undefined, keyPrefix: string): ReactNode {
+  if (!Array.isArray(nodes)) {
+    return null
+  }
+
+  return nodes.map((node, index) => renderInlineNode(node, `${keyPrefix}-i${index}`))
+}
+
+// Faithful read-only mirror of the day editor: walks the canonical document in
+// order and renders activity tiles, section breaks, and rich prose with the
+// same markup/classes the editor produces (reusing `.editorSurface`), so the
+// shared view matches the editable page minus the editing affordances.
+function renderDocumentBlockNode(
+  node: DayDocumentNode,
+  key: string,
+  context: { locale: string; photoThumbnailSize: PhotoThumbnailSize },
+): ReactNode {
+  switch (node.type) {
+    case 'activityTile': {
+      const activity = node.attrs?.activity as ItineraryActivity | undefined
+      if (!activity?.id) {
+        return null
+      }
+      return (
+        <ActivityCard
+          key={key}
+          activity={activity}
+          locale={context.locale}
+          photoThumbnailSize={context.photoThumbnailSize}
+        />
+      )
+    }
+    case 'sectionBreak': {
+      return (
+        <div key={key} className={editorStyles.sectionBreak} data-type="section-break">
+          {documentNodeText(node.content)}
+        </div>
+      )
+    }
+    case 'heading': {
+      const level = Math.min(3, Math.max(1, Number(node.attrs?.level) || 2))
+      const HeadingTag = `h${level}` as 'h1' | 'h2' | 'h3'
+      return <HeadingTag key={key}>{renderInlineNodes(node.content, key)}</HeadingTag>
+    }
+    case 'paragraph':
+      return <p key={key}>{renderInlineNodes(node.content, key)}</p>
+    case 'bulletList':
+      return (
+        <ul key={key}>
+          {node.content?.map((child, index) => renderDocumentBlockNode(child, `${key}-li${index}`, context))}
+        </ul>
+      )
+    case 'orderedList':
+      return (
+        <ol key={key}>
+          {node.content?.map((child, index) => renderDocumentBlockNode(child, `${key}-li${index}`, context))}
+        </ol>
+      )
+    case 'listItem':
+      return (
+        <li key={key}>
+          {node.content?.map((child, index) => renderDocumentBlockNode(child, `${key}-c${index}`, context))}
+        </li>
+      )
+    case 'blockquote':
+      return (
+        <blockquote key={key}>
+          {node.content?.map((child, index) => renderDocumentBlockNode(child, `${key}-c${index}`, context))}
+        </blockquote>
+      )
+    case 'horizontalRule':
+      return <hr key={key} />
+    case 'codeBlock':
+      return (
+        <pre key={key}>
+          <code>{documentNodeText(node.content)}</code>
+        </pre>
+      )
+    default:
+      return node.content
+        ? (
+            <Fragment key={key}>
+              {node.content.map((child, index) => renderDocumentBlockNode(child, `${key}-c${index}`, context))}
+            </Fragment>
+          )
+        : null
+  }
+}
+
+function DayDocumentView({
   day,
   locale,
   photoThumbnailSize,
-  virtualCheckouts,
-  onVirtualCheckoutClick,
 }: {
   day: Pick<ItineraryDay, 'document'>
   locale: string
   photoThumbnailSize: PhotoThumbnailSize
-  virtualCheckouts: VirtualAccommodationCheckout[]
-  onVirtualCheckoutClick: (checkout: VirtualAccommodationCheckout) => void
 }): ReactElement {
   const { t } = useTranslation('common')
+  const nodes = useMemo(() => day.document ?? [], [day.document])
 
-  const sections = useMemo(
-    () => groupDayForView(day),
-    [day],
+  const hasRenderableContent = useMemo(
+    () =>
+      nodes.some(
+        (node) =>
+          node.type === 'activityTile' ||
+          node.type === 'sectionBreak' ||
+          documentNodeText([node]).trim().length > 0,
+      ),
+    [nodes],
   )
 
-  if (sections.length === 0 && virtualCheckouts.length === 0) {
+  if (!hasRenderableContent) {
     return <p className={styles.emptyActivities}>{t('itineraryView.noActivities')}</p>
   }
 
   return (
-    <div className={styles.sectionList}>
-      {virtualCheckouts.map((checkout) => (
-        <VirtualAccommodationCheckoutTile
-          key={`virtual-checkout-${checkout.sourceActivityId}-${checkout.dayNumber}`}
-          checkout={checkout}
-          locale={locale}
-          onClick={onVirtualCheckoutClick}
-        />
-      ))}
-
-      {sections.map((section) => (
-        <section key={`section-${section.blockIndex}`} className={styles.sectionCard}>
-          {section.sectionLabel ? (
-            <div className={styles.sectionDivider}>
-              <span className={styles.sectionDividerLabel}>{section.sectionLabel}</span>
-            </div>
-          ) : null}
-
-          <ul className={styles.activityList}>
-            {section.activities.map((activity) => (
-              <li key={activity.id}>
-                <ActivityCard activity={activity} locale={locale} photoThumbnailSize={photoThumbnailSize} />
-              </li>
-            ))}
-          </ul>
-        </section>
-      ))}
+    <div className={editorStyles.editorSurface}>
+      {nodes.map((node, index) =>
+        renderDocumentBlockNode(node, `day-node-${index}`, { locale, photoThumbnailSize }),
+      )}
     </div>
   )
 }

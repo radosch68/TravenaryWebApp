@@ -2,7 +2,7 @@ import { RefreshCw } from 'lucide-react'
 import type { ReactElement } from 'react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useParams, useSearchParams } from 'react-router-dom'
 
 import { ItineraryDaysGrid } from '@/components/itinerary/ItineraryDaysGrid'
 import { DayShortcutsRow } from '@/components/itinerary/DayShortcutsRow'
@@ -10,7 +10,7 @@ import { ItineraryMapLauncher } from '@/components/itinerary/ItineraryMapLaunche
 import { buildLocationMapPinsFromDays } from '@/components/itinerary/location-map-pins'
 import { Button } from '@/components/ui/button'
 import { ApiError, type SharedItineraryDetail } from '@/services/contracts'
-import { getSharedItinerary } from '@/services/itinerary-service'
+import { getItinerary, getSharedItinerary } from '@/services/itinerary-service'
 import { formatLocalDate, getTodayLocalIsoDate } from '@/utils/date-format'
 import type { LoadState } from '@/utils/load-state'
 import { getOngoingProgress, getUpcomingDaysLeft } from '@/utils/trip-progress'
@@ -19,6 +19,11 @@ import styles from './ItineraryViewPage.module.css'
 
 export function SharedItineraryViewPage(): ReactElement {
   const { shareToken } = useParams<{ shareToken: string }>()
+  const [searchParams] = useSearchParams()
+  // Dev-only: /s/preview?itineraryId=<id> renders one of your own itineraries
+  // through the exact shared (read-only) layout, without minting a share token.
+  const devPreviewItineraryId =
+    import.meta.env.DEV && shareToken === 'preview' ? searchParams.get('itineraryId') : null
   const { t, i18n } = useTranslation(['common', 'errors'])
   const todayIsoDate = useMemo(() => getTodayLocalIsoDate(), [])
   const nowDate = useMemo(() => new Date(), [])
@@ -31,7 +36,7 @@ export function SharedItineraryViewPage(): ReactElement {
     const requestSequence = loadRequestSequenceRef.current + 1
     loadRequestSequenceRef.current = requestSequence
 
-    if (!shareToken) {
+    if (!shareToken || (shareToken === 'preview' && !devPreviewItineraryId)) {
       if (loadRequestSequenceRef.current !== requestSequence) {
         return
       }
@@ -45,7 +50,9 @@ export function SharedItineraryViewPage(): ReactElement {
     setLoadState('loading')
 
     try {
-      const payload = await getSharedItinerary(shareToken)
+      const payload = devPreviewItineraryId
+        ? await getItinerary(devPreviewItineraryId)
+        : await getSharedItinerary(shareToken)
 
       if (loadRequestSequenceRef.current !== requestSequence) {
         return
@@ -67,7 +74,7 @@ export function SharedItineraryViewPage(): ReactElement {
       setItinerary(null)
       setLoadState('error')
     }
-  }, [shareToken])
+  }, [shareToken, devPreviewItineraryId])
 
   useEffect(() => {
     const handle = window.setTimeout(() => {
