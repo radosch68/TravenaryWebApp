@@ -1142,9 +1142,10 @@ export function ItineraryDaysGrid({
                   </>
                 )}
 
-                {coverage ? <OvernightBanner coverage={coverage} onCoveredClick={jumpToCoveredAccommodation} /> : null}
               </div>
             ) : null}
+
+            {coverage ? <DayStatusFooter coverage={coverage} onCoveredClick={jumpToCoveredAccommodation} /> : null}
           </article>
         )
       })}
@@ -1175,7 +1176,7 @@ function hasMappableLocations(activities: ItineraryActivity[]): boolean {
   })
 }
 
-function OvernightBanner({
+function DayStatusFooter({
   coverage,
   onCoveredClick,
 }: {
@@ -1208,11 +1209,13 @@ function OvernightBanner({
         ? TriangleAlert
         : CircleAlert
 
+  const footerClassName = `${styles.dayFooter} ${styles[`dayFooter${toStatusClassName(coverage.status)}`]}`
+
   if (isCovered) {
     return (
       <button
         type="button"
-        className={`${styles.overnightBanner} ${styles.overnightBannerAction} ${styles[`overnightBanner${toStatusClassName(coverage.status)}`]}`}
+        className={`${footerClassName} ${styles.dayFooterAction}`}
         aria-label={bannerLabel}
         title={bannerLabel}
         onClick={() => {
@@ -1220,7 +1223,7 @@ function OvernightBanner({
         }}
       >
         <span className={styles.overnightLeft}>
-          <BannerIcon aria-hidden="true" size={14} />
+          <BannerIcon aria-hidden="true" size={15} />
           <span className={styles.overnightLabel}>{coverage.accommodationTitle}</span>
         </span>
         {nightLabel && nightFraction ? (
@@ -1234,13 +1237,11 @@ function OvernightBanner({
   }
 
   return (
-    <div
-      className={`${styles.overnightBanner} ${styles[`overnightBanner${toStatusClassName(coverage.status)}`]}`}
-      aria-label={bannerLabel}
-      title={bannerLabel}
-    >
-      <BannerIcon aria-hidden="true" size={14} />
-      <span className={styles.overnightLabel}>{bannerLabel}</span>
+    <div className={footerClassName} aria-label={bannerLabel} title={bannerLabel}>
+      <span className={styles.overnightLeft}>
+        <BannerIcon aria-hidden="true" size={15} />
+        <span className={styles.overnightLabel}>{bannerLabel}</span>
+      </span>
     </div>
   )
 }
