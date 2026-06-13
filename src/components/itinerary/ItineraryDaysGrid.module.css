@@ -477,55 +477,10 @@
   background: rgba(13, 124, 102, 0.16);
 }
 
-.daySummary {
-  margin: 0;
-  color: var(--foreground);
-  line-height: 1.45;
-}
-
 .emptyActivities {
   margin: 0;
   color: var(--muted-foreground);
   font-size: var(--font-size-lg);
-}
-
-.sectionList {
-  display: grid;
-  gap: 1.7rem;
-  margin-top: 0.95rem;
-}
-
-.sectionCard {
-  display: grid;
-  gap: 0.3rem;
-}
-
-.sectionDivider {
-  display: flex;
-  align-items: center;
-  gap: 0.45rem;
-}
-
-.sectionDivider::after {
-  content: '';
-  height: 1px;
-  flex: 1;
-  background: color-mix(in oklab, var(--border) 82%, transparent 18%);
-}
-
-.sectionDividerLabel {
-  font-size: var(--font-size-xs);
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--muted-foreground);
-}
-
-.activityList {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: grid;
-  gap: 0.46rem;
 }
 
 .activityCard {
