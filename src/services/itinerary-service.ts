@@ -98,6 +98,19 @@ export interface UpdateItineraryDayRequest {
   activityBench?: ItineraryActivity[]
 }
 
+export interface InsertItineraryDayRequest {
+  dayNumber: number
+  summary?: string
+}
+
+export type DeleteItineraryDayMode = 'delete' | 'move' | 'bench'
+
+export interface DeleteItineraryDayRequest {
+  dayNumber: number
+  mode: DeleteItineraryDayMode
+  targetDayNumber?: number
+}
+
 export async function createManualItinerary(
   payload: CreateManualItineraryRequest,
 ): Promise<{ id: string }> {
@@ -155,6 +168,38 @@ export async function updateItineraryDay(
 ): Promise<ItineraryDetail> {
   const itinerary = await apiRequest<ItineraryDetail>(`/itineraries/${itineraryId}/days/${dayNumber}`, {
     method: 'PATCH',
+    body: payload,
+    protected: true,
+  })
+
+  return {
+    ...itinerary,
+    days: itinerary.days.map((day: ItineraryDay) => normalizeDay(day)),
+  }
+}
+
+export async function insertItineraryDay(
+  itineraryId: string,
+  payload: InsertItineraryDayRequest,
+): Promise<ItineraryDetail> {
+  const itinerary = await apiRequest<ItineraryDetail>(`/itineraries/${itineraryId}/days/insert`, {
+    method: 'POST',
+    body: payload,
+    protected: true,
+  })
+
+  return {
+    ...itinerary,
+    days: itinerary.days.map((day: ItineraryDay) => normalizeDay(day)),
+  }
+}
+
+export async function deleteItineraryDay(
+  itineraryId: string,
+  payload: DeleteItineraryDayRequest,
+): Promise<ItineraryDetail> {
+  const itinerary = await apiRequest<ItineraryDetail>(`/itineraries/${itineraryId}/days/delete`, {
+    method: 'POST',
     body: payload,
     protected: true,
   })

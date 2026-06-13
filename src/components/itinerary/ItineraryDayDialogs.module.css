@@ -1,0 +1,110 @@
+.modal {
+  width: min(30rem, 100%);
+}
+
+.body {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.message {
+  margin: 0;
+  color: var(--foreground);
+  font-size: var(--font-size-md);
+  line-height: 1.45;
+}
+
+.field {
+  display: grid;
+  gap: 0.32rem;
+  font-size: var(--font-size-sm);
+  color: var(--muted-foreground);
+}
+
+.input {
+  width: 100%;
+  padding: 0.46rem 0.6rem;
+  border: 1px solid color-mix(in oklab, var(--border) 70%, transparent 30%);
+  border-radius: var(--radius-md);
+  background: var(--background);
+  color: var(--foreground);
+  font-size: var(--font-size-md);
+}
+
+.input:focus-visible {
+  outline: 2px solid color-mix(in oklab, var(--ring) 70%, transparent 30%);
+  outline-offset: 1px;
+}
+
+.choiceList {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.choice {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  font-size: var(--font-size-md);
+  color: var(--foreground);
+  line-height: 1.4;
+  cursor: pointer;
+}
+
+.choice input:disabled {
+  cursor: not-allowed;
+}
+
+.choice:has(input:disabled) {
+  color: var(--muted-foreground);
+  cursor: not-allowed;
+}
+
+.hint,
+.note {
+  margin: 0;
+  color: var(--muted-foreground);
+  font-size: var(--font-size-sm);
+  line-height: 1.4;
+}
+
+.note {
+  margin-top: 0.1rem;
+}
+
+.activities {
+  display: grid;
+  gap: 0.34rem;
+  padding-top: 0.4rem;
+  border-top: 1px solid color-mix(in oklab, var(--border) 60%, transparent 40%);
+}
+
+.activitiesLabel {
+  margin: 0;
+  font-size: var(--font-size-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted-foreground);
+}
+
+.activitiesList {
+  margin: 0;
+  padding-left: 1.1rem;
+  display: grid;
+  gap: 0.16rem;
+  color: var(--foreground);
+  font-size: var(--font-size-sm);
+}
+
+.activitiesEmpty {
+  margin: 0;
+  color: var(--muted-foreground);
+  font-size: var(--font-size-sm);
+}
+
+.error {
+  margin: 0;
+  color: var(--destructive);
+  font-size: var(--font-size-sm);
+  line-height: 1.4;
+}

@@ -219,6 +219,8 @@
 }
 
 .metaPillButton {
+  display: inline-flex;
+  align-items: stretch;
   margin: 0;
   padding: 0;
   border: 1px dashed transparent;

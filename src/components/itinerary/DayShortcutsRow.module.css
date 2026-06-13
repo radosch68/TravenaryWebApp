@@ -51,22 +51,87 @@
   display: inline-flex;
   align-items: center;
   justify-content: flex-start;
-  padding: 0.17rem 0.54rem;
+  gap: 0.3rem;
+  padding: 0.32rem 0.72rem;
   border: 1px solid color-mix(in oklab, var(--border) 76%, transparent 24%);
   border-radius: 999px;
   background: color-mix(in oklab, var(--card) 92%, transparent 8%);
   color: var(--muted-foreground);
-  font-size: var(--font-size-xs);
-  line-height: 1.2;
+  font-size: var(--font-size-sm);
+  line-height: 1.25;
+  white-space: nowrap;
+}
+
+.dayShortcutChipDeletable {
+  padding-right: 0.38rem;
+}
+
+.dayShortcutChipAnchor {
+  flex: 0 0 auto;
+  color: var(--muted-foreground);
+}
+
+.dayShortcutChip:hover,
+.dayShortcutChip:focus-within {
+  border-color: color-mix(in oklab, var(--border) 56%, var(--foreground) 44%);
+  background: var(--muted);
+  color: var(--foreground);
+}
+
+.dayShortcutChipLink {
+  color: inherit;
   text-decoration: none;
   white-space: nowrap;
 }
 
-.dayShortcutChip:hover,
-.dayShortcutChip:focus-visible {
-  border-color: color-mix(in oklab, var(--border) 56%, var(--foreground) 44%);
-  background: var(--muted);
+.dayShortcutChipLink:focus-visible {
+  outline: 2px solid color-mix(in oklab, var(--ring) 70%, transparent 30%);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+.dayDeleteButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.1rem;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: color-mix(in oklab, var(--muted-foreground) 80%, transparent 20%);
+  cursor: pointer;
+  line-height: 0;
+}
+
+.dayDeleteButton:hover,
+.dayDeleteButton:focus-visible {
+  color: var(--destructive);
+  background: color-mix(in oklab, var(--destructive) 14%, transparent 86%);
+  outline: none;
+}
+
+.dayInsertButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.4rem;
+  height: 1.4rem;
+  padding: 0;
+  border: 1px dashed color-mix(in oklab, var(--border) 60%, var(--foreground) 40%);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--muted-foreground);
+  cursor: pointer;
+  line-height: 0;
+  flex: 0 0 auto;
+}
+
+.dayInsertButton:hover,
+.dayInsertButton:focus-visible {
+  border-color: color-mix(in oklab, var(--primary) 60%, var(--border) 40%);
+  background: color-mix(in oklab, var(--primary) 12%, transparent 88%);
   color: var(--foreground);
+  outline: none;
 }
 
 .dayShortcutChipToday {

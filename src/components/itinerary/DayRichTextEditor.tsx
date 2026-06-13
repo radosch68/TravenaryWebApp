@@ -563,26 +563,6 @@ export function DayRichTextEditor({
     window.requestAnimationFrame(updateSlashMenuPosition)
   }, [clearSlashHoverSubmenuTimer, getAvailableSlashCommands, setSlashActiveCommandIndex, updateSlashMenuPosition])
 
-  const saveStateLabel = useMemo(() => {
-    if (saveState === 'saving') {
-      return t('itineraryView.richEditor.saving')
-    }
-
-    if (saveState === 'saved') {
-      return t('itineraryView.richEditor.saved')
-    }
-
-    if (saveState === 'error') {
-      return t('itineraryView.richEditor.saveError')
-    }
-
-    if (saveState === 'dirty') {
-      return t('itineraryView.richEditor.unsaved')
-    }
-
-    return t('itineraryView.richEditor.ready')
-  }, [saveState, t])
-
   const buildSavePayload = useCallback((): DaySavePayload => {
     const payload: DaySavePayload = {
       dayNumber: day.dayNumber,
@@ -1493,9 +1473,6 @@ export function DayRichTextEditor({
           </div>
         ) : null}
       </div>
-      <p className={styles.statusText} role="status">
-        {saveStateLabel}
-      </p>
     </div>
   )
 }

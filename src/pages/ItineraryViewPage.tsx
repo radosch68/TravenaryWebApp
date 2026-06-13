@@ -6,6 +6,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 
 import { ItineraryDaysGrid, type PhotoThumbnailSize } from '@/components/itinerary/ItineraryDaysGrid'
 import { DayShortcutsRow } from '@/components/itinerary/DayShortcutsRow'
+import { DeleteDayDialog, InsertDayDialog } from '@/components/itinerary/ItineraryDayDialogs'
 import { ItineraryMapLauncher } from '@/components/itinerary/ItineraryMapLauncher'
 import { ShareButton } from '@/components/itinerary/ShareButton'
 import { buildLocationMapPinsFromDays } from '@/components/itinerary/location-map-pins'
@@ -13,7 +14,15 @@ import { AppShell } from '@/components/layout/AppShell'
 import { Button } from '@/components/ui/button'
 import { ApiError, type DayDocumentNode, type ItineraryActivity, type ItineraryDay, type ItineraryDetail } from '@/services/contracts'
 import { updateLastOpenedItinerary } from '@/services/profile-service'
-import { deleteItinerary, getItinerary, updateItinerary, updateItineraryDay } from '@/services/itinerary-service'
+import {
+  deleteItinerary,
+  deleteItineraryDay,
+  getItinerary,
+  insertItineraryDay,
+  updateItinerary,
+  updateItineraryDay,
+  type DeleteItineraryDayMode,
+} from '@/services/itinerary-service'
 import { useProfileStore } from '@/store/profile-store'
 import { formatLocalDate, getTodayLocalIsoDate } from '@/utils/date-format'
 import type { LoadState } from '@/utils/load-state'
@@ -170,6 +179,7 @@ export function ItineraryViewPage(): ReactElement {
   const [isDateRangeSaving, setIsDateRangeSaving] = useState(false)
   const [dateRangeSaveError, setDateRangeSaveError] = useState(false)
   const [dateRangeValidationError, setDateRangeValidationError] = useState(false)
+  const [dateRangeConflictMessage, setDateRangeConflictMessage] = useState<string | null>(null)
   const [isTagsEditing, setIsTagsEditing] = useState(false)
   const [tagsDraft, setTagsDraft] = useState('')
   const [isTagsSaving, setIsTagsSaving] = useState(false)
@@ -539,6 +549,7 @@ export function ItineraryViewPage(): ReactElement {
 
     setDateRangeSaveError(false)
     setDateRangeValidationError(false)
+    setDateRangeConflictMessage(null)
     setDateFromDraft(currentItinerary.startDate ?? '')
     setDateToDraft(currentItinerary.endDate ?? '')
     setIsDateRangeEditing(true)
@@ -575,13 +586,18 @@ export function ItineraryViewPage(): ReactElement {
       setIsDateRangeSaving(true)
       setDateRangeSaveError(false)
       setDateRangeValidationError(false)
+      setDateRangeConflictMessage(null)
 
       try {
         const saved = await updateItinerary(currentItinerary.id, { startDate: null })
         itineraryRef.current = saved
         setItinerary(saved)
-      } catch {
-        setDateRangeSaveError(true)
+      } catch (error) {
+        if (error instanceof ApiError && error.status === 409) {
+          setDateRangeConflictMessage(t('itineraryView.dayManagement.anchorConflict'))
+        } else {
+          setDateRangeSaveError(true)
+        }
       } finally {
         setIsDateRangeSaving(false)
         setIsDateRangeEditing(false)
@@ -606,20 +622,165 @@ export function ItineraryViewPage(): ReactElement {
     setIsDateRangeSaving(true)
     setDateRangeSaveError(false)
     setDateRangeValidationError(false)
+    setDateRangeConflictMessage(null)
 
     try {
       const saved = await updateItinerary(currentItinerary.id, { startDate: nextFrom })
       itineraryRef.current = saved
       setItinerary(saved)
-    } catch {
-      setDateRangeSaveError(true)
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 409) {
+        setDateRangeConflictMessage(error.message)
+      } else {
+        setDateRangeSaveError(true)
+      }
     } finally {
       setIsDateRangeSaving(false)
       setIsDateRangeEditing(false)
       setDateFromDraft('')
       setDateToDraft('')
     }
-  }, [cancelDateRangeEdit, dateFromDraft, dateToDraft, isDateRangeSaving])
+  }, [cancelDateRangeEdit, dateFromDraft, dateToDraft, isDateRangeSaving, t])
+
+  // --- Day insert / delete -------------------------------------------------
+
+  const [insertBeforeDayNumber, setInsertBeforeDayNumber] = useState<number | null>(null)
+  const [insertDateLabel, setInsertDateLabel] = useState('')
+  const [insertSummary, setInsertSummary] = useState('')
+  const [insertBusy, setInsertBusy] = useState(false)
+  const [insertError, setInsertError] = useState<string | null>(null)
+
+  const [deleteDayNumber, setDeleteDayNumber] = useState<number | null>(null)
+  const [deleteMode, setDeleteMode] = useState<DeleteItineraryDayMode>('delete')
+  const [deleteTargetDayNumber, setDeleteTargetDayNumber] = useState<number | undefined>(undefined)
+  const [deleteBusy, setDeleteBusy] = useState(false)
+  const [deleteDayError, setDeleteDayError] = useState<string | null>(null)
+
+  const handleOpenInsertDay = useCallback((beforeDayNumber: number): void => {
+    const currentItinerary = itineraryRef.current
+    if (!currentItinerary) {
+      return
+    }
+
+    // The new day takes the slot currently held by `beforeDayNumber`; at the
+    // end it takes the day after the last day. Used only for the dialog blurb —
+    // the backend computes the authoritative dates.
+    const occupant = currentItinerary.days.find((day) => day.dayNumber === beforeDayNumber)
+    let dateLabel = ''
+    if (occupant?.date) {
+      dateLabel = formatLocalDate(occupant.date, i18n.language)
+    } else {
+      const lastDay = currentItinerary.days[currentItinerary.days.length - 1]
+      if (lastDay?.date) {
+        const next = new Date(`${lastDay.date}T00:00:00Z`)
+        next.setUTCDate(next.getUTCDate() + 1)
+        dateLabel = formatLocalDate(next.toISOString().slice(0, 10), i18n.language)
+      }
+    }
+
+    setInsertBeforeDayNumber(beforeDayNumber)
+    setInsertDateLabel(dateLabel || t('itineraryView.dayNumber', { dayNumber: beforeDayNumber }))
+    setInsertSummary('')
+    setInsertError(null)
+    setInsertBusy(false)
+  }, [i18n.language, t])
+
+  const handleCancelInsertDay = useCallback((): void => {
+    if (insertBusy) {
+      return
+    }
+    setInsertBeforeDayNumber(null)
+    setInsertSummary('')
+    setInsertError(null)
+  }, [insertBusy])
+
+  const handleConfirmInsertDay = useCallback(async (): Promise<void> => {
+    const currentItinerary = itineraryRef.current
+    if (!currentItinerary || insertBeforeDayNumber == null) {
+      return
+    }
+
+    setInsertBusy(true)
+    setInsertError(null)
+
+    try {
+      const saved = await insertItineraryDay(currentItinerary.id, {
+        dayNumber: insertBeforeDayNumber,
+        summary: insertSummary.trim() || undefined,
+      })
+      itineraryRef.current = saved
+      setItinerary(saved)
+      setInsertBeforeDayNumber(null)
+      setInsertSummary('')
+    } catch (error) {
+      setInsertError(
+        error instanceof ApiError && error.status === 409
+          ? t('itineraryView.dayManagement.anchorConflict')
+          : t('itineraryView.dayManagement.mutationFailed'),
+      )
+    } finally {
+      setInsertBusy(false)
+    }
+  }, [insertBeforeDayNumber, insertSummary, t])
+
+  const handleOpenDeleteDay = useCallback((dayNumber: number): void => {
+    setDeleteDayNumber(dayNumber)
+    setDeleteMode('delete')
+    setDeleteTargetDayNumber(undefined)
+    setDeleteDayError(null)
+    setDeleteBusy(false)
+  }, [])
+
+  const handleCancelDeleteDay = useCallback((): void => {
+    if (deleteBusy) {
+      return
+    }
+    setDeleteDayNumber(null)
+    setDeleteMode('delete')
+    setDeleteTargetDayNumber(undefined)
+    setDeleteDayError(null)
+  }, [deleteBusy])
+
+  const handleConfirmDeleteDay = useCallback(async (): Promise<void> => {
+    const currentItinerary = itineraryRef.current
+    if (!currentItinerary || deleteDayNumber == null) {
+      return
+    }
+
+    if (deleteMode === 'move' && deleteTargetDayNumber == null) {
+      setDeleteDayError(t('itineraryView.dayManagement.selectTargetDay'))
+      return
+    }
+
+    setDeleteBusy(true)
+    setDeleteDayError(null)
+
+    try {
+      const saved = await deleteItineraryDay(currentItinerary.id, {
+        dayNumber: deleteDayNumber,
+        mode: deleteMode,
+        ...(deleteMode === 'move' ? { targetDayNumber: deleteTargetDayNumber } : {}),
+      })
+      itineraryRef.current = saved
+      setItinerary(saved)
+      setDeleteDayNumber(null)
+      setDeleteMode('delete')
+      setDeleteTargetDayNumber(undefined)
+    } catch (error) {
+      setDeleteDayError(
+        error instanceof ApiError && error.status === 409
+          ? t('itineraryView.dayManagement.anchorConflict')
+          : t('itineraryView.dayManagement.mutationFailed'),
+      )
+    } finally {
+      setDeleteBusy(false)
+    }
+  }, [deleteDayNumber, deleteMode, deleteTargetDayNumber, t])
+
+  const deleteDialogDay = useMemo(
+    () => (deleteDayNumber == null ? null : itinerary?.days.find((day) => day.dayNumber === deleteDayNumber) ?? null),
+    [deleteDayNumber, itinerary?.days],
+  )
 
   const startTagsEdit = useCallback((): void => {
     const currentItinerary = itineraryRef.current
@@ -1093,6 +1254,7 @@ export function ItineraryViewPage(): ReactElement {
             ) : null}
             {dateRangeValidationError ? <p className={styles.errorText}>{t('dashboardManualStart.dateRangeError')}</p> : null}
             {dateRangeSaveError ? <p className={styles.errorText}>{t('itineraryView.retry')}</p> : null}
+            {dateRangeConflictMessage ? <p className={styles.errorText}>{dateRangeConflictMessage}</p> : null}
 
             {isTagsEditing ? (
               <form
@@ -1251,7 +1413,13 @@ export function ItineraryViewPage(): ReactElement {
             to={itineraryMapRoute}
           />
 
-          <DayShortcutsRow days={itinerary.days} locale={i18n.language} />
+          <DayShortcutsRow
+            days={itinerary.days}
+            locale={i18n.language}
+            editable
+            onInsertDay={handleOpenInsertDay}
+            onDeleteDay={handleOpenDeleteDay}
+          />
 
           {!dayCollapseState.allExpanded || !dayCollapseState.allCollapsed ? (
             <div className={styles.headerDayControls}>
@@ -1340,6 +1508,33 @@ export function ItineraryViewPage(): ReactElement {
           {deleteError ? <p className={styles.errorText}>{t('itineraryView.deleteError')}</p> : null}
         </section>
       </div>
+
+      {insertBeforeDayNumber != null ? (
+        <InsertDayDialog
+          dayDateLabel={insertDateLabel}
+          summary={insertSummary}
+          busy={insertBusy}
+          errorMessage={insertError}
+          onSummaryChange={setInsertSummary}
+          onCancel={handleCancelInsertDay}
+          onConfirm={() => void handleConfirmInsertDay()}
+        />
+      ) : null}
+
+      {deleteDialogDay ? (
+        <DeleteDayDialog
+          day={deleteDialogDay}
+          days={itinerary.days}
+          mode={deleteMode}
+          targetDayNumber={deleteTargetDayNumber}
+          busy={deleteBusy}
+          errorMessage={deleteDayError}
+          onModeChange={setDeleteMode}
+          onTargetDayNumberChange={setDeleteTargetDayNumber}
+          onCancel={handleCancelDeleteDay}
+          onConfirm={() => void handleConfirmDeleteDay()}
+        />
+      ) : null}
     </AppShell>
   )
 }
