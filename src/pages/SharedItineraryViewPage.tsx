@@ -32,6 +32,22 @@ export function SharedItineraryViewPage(): ReactElement {
   const [itinerary, setItinerary] = useState<SharedItineraryDetail | null>(null)
   const loadRequestSequenceRef = useRef(0)
 
+  // Collapse/expand-all is a view control (not editing), so it belongs in the
+  // shared read-only view too. Mirrors the owner page's command-token plumbing.
+  const [dayCollapseCommandToken, setDayCollapseCommandToken] = useState(0)
+  const [dayCollapseCommandMode, setDayCollapseCommandMode] = useState<'collapse-all' | 'expand-all' | undefined>(undefined)
+  const [dayCollapseState, setDayCollapseState] = useState({ allCollapsed: false, allExpanded: true })
+
+  const handleCollapseAllDays = useCallback((): void => {
+    setDayCollapseCommandMode('collapse-all')
+    setDayCollapseCommandToken((previousValue) => previousValue + 1)
+  }, [])
+
+  const handleExpandAllDays = useCallback((): void => {
+    setDayCollapseCommandMode('expand-all')
+    setDayCollapseCommandToken((previousValue) => previousValue + 1)
+  }, [])
+
   const loadItinerary = useCallback(async (): Promise<void> => {
     const requestSequence = loadRequestSequenceRef.current + 1
     loadRequestSequenceRef.current = requestSequence
@@ -236,6 +252,22 @@ export function SharedItineraryViewPage(): ReactElement {
               ) : null}
 
               <DayShortcutsRow days={itinerary.days} locale={i18n.language} />
+
+              {!dayCollapseState.allExpanded || !dayCollapseState.allCollapsed ? (
+                <div className={styles.headerDayControls}>
+                  {!dayCollapseState.allExpanded ? (
+                    <Button type="button" variant="outline" size="sm" onClick={handleExpandAllDays}>
+                      {t('itineraryView.expandAllDays')}
+                    </Button>
+                  ) : null}
+
+                  {!dayCollapseState.allCollapsed ? (
+                    <Button type="button" variant="outline" size="sm" onClick={handleCollapseAllDays}>
+                      {t('itineraryView.collapseAllDays')}
+                    </Button>
+                  ) : null}
+                </div>
+              ) : null}
             </section>
 
             <ItineraryDaysGrid
@@ -243,6 +275,9 @@ export function SharedItineraryViewPage(): ReactElement {
               locale={i18n.language}
               fullBleedOnMobile
               buildDayMapRoute={(dayNumber) => `/s/${shareToken}/map?dayNumber=${dayNumber}`}
+              collapseCommandToken={dayCollapseCommandToken}
+              collapseCommandMode={dayCollapseCommandMode}
+              onCollapseStateChange={setDayCollapseState}
             />
           </div>
         ) : null}
