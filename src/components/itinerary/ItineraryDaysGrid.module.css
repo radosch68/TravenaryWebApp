@@ -62,6 +62,14 @@
   gap: 0.36rem;
   padding: var(--day-card-padding);
   align-self: start;
+  /* Skip layout/paint/image-decode for off-screen days and reclaim their
+     decoded bitmaps — keeps memory bounded to days near the viewport (notably
+     on iOS Safari, where a tab over its memory ceiling is reloaded). The `auto`
+     keyword makes the browser remember each card's real height after first
+     render, so collapsed and expanded cards both reserve the right space; the
+     600px is only the pre-render estimate. */
+  content-visibility: auto;
+  contain-intrinsic-size: auto 600px;
 }
 
 .dayCardSaveOk::after {
