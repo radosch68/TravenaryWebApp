@@ -183,6 +183,7 @@
     "noDate": "Bez plánovaného data",
     "daySummaryPlaceholder": "Klepnutím přidejte shrnutí dne",
     "editDaySummaryAria": "Upravit shrnutí pro den {{dayNumber}}",
+    "editDayActivitiesAria": "Upravit den {{dayNumber}} — klepnutím začnete upravovat",
     "descriptionPlaceholder": "Klepnutím přidejte popis itineráře",
     "editTitleAria": "Upravit název itineráře",
     "editDescriptionAria": "Upravit popis itineráře",

@@ -176,6 +176,11 @@ export function ItineraryDaysGrid({
     () => new globalThis.Map(),
   )
   const [activeSavedOkDayNumber, setActiveSavedOkDayNumber] = useState<number | null>(null)
+  // Lazy editor mounting: at most one day mounts a live TipTap editor at a time
+  // (the rest render the cheap static `DayDocumentView`). Tapping a static day
+  // makes it active; switching unmounts the previous editor (which auto-saves).
+  const [activeEditorDayNumber, setActiveEditorDayNumber] = useState<number | null>(null)
+  const pendingFocusCoordsRef = useRef<{ x: number; y: number } | 'end' | null>(null)
   const [dayEditorHistoryStates, setDayEditorHistoryStates] = useState<globalThis.Map<number, DayEditorHistoryState>>(
     () => new globalThis.Map(),
   )
@@ -580,6 +585,33 @@ export function ItineraryDaysGrid({
     setActiveSavedOkDayNumber(dayNumber)
   }, [])
 
+  // Mount the editor for `dayNumber` (unmounting any other active editor, which
+  // flushes its save) and remember where the user tapped so the caret lands
+  // there once the editor mounts.
+  const activateDayEditor = useCallback(
+    (dayNumber: number, coords: { x: number; y: number } | 'end' | null): void => {
+      pendingFocusCoordsRef.current = coords
+      setActiveEditorDayNumber(dayNumber)
+      setActiveSavedOkDayNumber(dayNumber)
+    },
+    [],
+  )
+
+  const consumePendingFocusCoords = useCallback((): { x: number; y: number } | 'end' | null => {
+    const coords = pendingFocusCoordsRef.current
+    pendingFocusCoordsRef.current = null
+    return coords
+  }, [])
+
+  // Drop the active editor if its day no longer exists (deleted/renumbered) so we
+  // never try to mount an editor for a missing day.
+  useEffect(() => {
+    if (activeEditorDayNumber !== null && !sortedDays.some((day) => day.dayNumber === activeEditorDayNumber)) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setActiveEditorDayNumber(null)
+    }
+  }, [activeEditorDayNumber, sortedDays])
+
   const setDayEditorHistoryState = useCallback((dayNumber: number, state: DayEditorHistoryState): void => {
     setDayEditorHistoryStates((previousValue) => {
       const existingValue = previousValue.get(dayNumber)
@@ -904,7 +936,9 @@ export function ItineraryDaysGrid({
         const isDaySavedOk = activeSavedOkDayNumber === day.dayNumber
         const isEditingHeaderSummary = editingHeaderDayNumber === day.dayNumber
         const dayEditorHistoryState = dayEditorHistoryStates.get(day.dayNumber) ?? { canUndo: false, canRedo: false }
-        const shouldShowDayHeaderActions = Boolean((editable && onDaySave) || (hasDayMapLocations && dayMapRoute))
+        // Undo/redo only apply to the day with the live editor (lazy-mount).
+        const isEditorActiveDay = editable && Boolean(onDaySave) && activeEditorDayNumber === day.dayNumber
+        const shouldShowDayHeaderActions = Boolean(isEditorActiveDay || (hasDayMapLocations && dayMapRoute))
         const dayCardClassName = [
           styles.dayCard,
           isToday ? styles.dayCardToday : '',
@@ -977,7 +1011,7 @@ export function ItineraryDaysGrid({
 
                 {shouldShowDayHeaderActions ? (
                   <div className={styles.dayHeaderActions}>
-                    {editable && onDaySave ? (
+                    {isEditorActiveDay ? (
                       <div className={styles.dayHistoryActions} aria-label={t('itineraryView.editHistoryLabel')} role="group">
                         <button
                           type="button"
@@ -1114,19 +1148,46 @@ export function ItineraryDaysGrid({
                 ))}
 
                 {editable && onDaySave ? (
-                  <DayRichTextEditor
-                    day={day}
-                    locale={locale}
-                    photoThumbnailSize={photoThumbnailSize}
-                    activityBench={activityBench}
-                    onActivityBench={onActivityBench}
-                    onDaySave={onDaySave}
-                    onEditorActivate={() => handleDayEditorActivate(day.dayNumber)}
-                    onDocumentDraftChange={handleDayDocumentDraftChange}
-                    onHistoryStateChange={(state) => setDayEditorHistoryState(day.dayNumber, state)}
-                    onHistoryActionsChange={(actions) => setDayEditorHistoryActions(day.dayNumber, actions)}
-                    onSaveStateChange={(state) => setDaySaveVisualState(day.dayNumber, state)}
-                  />
+                  activeEditorDayNumber === day.dayNumber ? (
+                    <DayRichTextEditor
+                      day={day}
+                      locale={locale}
+                      photoThumbnailSize={photoThumbnailSize}
+                      activityBench={activityBench}
+                      onActivityBench={onActivityBench}
+                      onDaySave={onDaySave}
+                      onEditorActivate={() => handleDayEditorActivate(day.dayNumber)}
+                      onDocumentDraftChange={handleDayDocumentDraftChange}
+                      onHistoryStateChange={(state) => setDayEditorHistoryState(day.dayNumber, state)}
+                      onHistoryActionsChange={(actions) => setDayEditorHistoryActions(day.dayNumber, actions)}
+                      onSaveStateChange={(state) => setDaySaveVisualState(day.dayNumber, state)}
+                      getInitialFocusCoords={consumePendingFocusCoords}
+                    />
+                  ) : (
+                    <div
+                      className={styles.dayEditorActivator}
+                      tabIndex={0}
+                      aria-label={t('itineraryView.editDayActivitiesAria', { dayNumber: day.dayNumber })}
+                      onClick={(event) => {
+                        // Let links/buttons inside the static day behave normally.
+                        if ((event.target as HTMLElement).closest('a, button')) {
+                          return
+                        }
+                        activateDayEditor(day.dayNumber, { x: event.clientX, y: event.clientY })
+                      }}
+                      onKeyDown={(event) => {
+                        if (event.target !== event.currentTarget) {
+                          return
+                        }
+                        if (event.key === 'Enter' || event.key === ' ') {
+                          event.preventDefault()
+                          activateDayEditor(day.dayNumber, 'end')
+                        }
+                      }}
+                    >
+                      <DayDocumentView day={day} locale={locale} photoThumbnailSize={photoThumbnailSize} />
+                    </div>
+                  )
                 ) : (
                   <DayDocumentView day={day} locale={locale} photoThumbnailSize={photoThumbnailSize} />
                 )}
@@ -1553,6 +1614,7 @@ function ActivityCard({
                     href={reference.url}
                     target="_blank"
                     rel="noopener noreferrer"
+                    data-no-auto-external-icon="true"
                     className={styles.referenceThumbnailLink}
                     style={{ width: `${thumbnailPreset.widthRem}rem` }}
                     aria-label={t('itineraryView.openReferenceAria', { label: fullLinkLabel })}
@@ -1591,6 +1653,7 @@ function ActivityCard({
                 href={reference.url}
                 target="_blank"
                 rel="noopener noreferrer"
+                data-no-auto-external-icon="true"
                 className={referenceChipClassName}
                 aria-label={t('itineraryView.openReferenceAria', { label: fullLinkLabel })}
               >
@@ -1648,6 +1711,7 @@ function ActivityCard({
                 href={mapUrl}
                 target="_blank"
                 rel="noopener noreferrer"
+                data-no-auto-external-icon="true"
                 className={locationLinkClassName}
                 aria-label={t('itineraryView.openMapAria', { label: fullLocationLabel })}
               >

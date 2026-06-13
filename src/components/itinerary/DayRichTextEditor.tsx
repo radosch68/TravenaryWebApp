@@ -53,6 +53,10 @@ interface DayRichTextEditorProps {
   onDocumentDraftChange?: (dayNumber: number, document: DayDocumentNode[]) => void
   onHistoryStateChange?: (state: DayRichTextEditorHistoryState) => void
   onHistoryActionsChange?: (actions: DayRichTextEditorHistoryActions | null) => void
+  // One-shot focus intent for lazy-mount: `{ x, y }` drops the caret where the
+  // user tapped the static day; `'end'` focuses the document end (keyboard
+  // activation); `null` mounts without grabbing focus (e.g. a plain remount).
+  getInitialFocusCoords?: () => { x: number; y: number } | 'end' | null
 }
 
 type SlashMenuPath = 'root' | 'activity' | 'format' | 'bench'
@@ -256,6 +260,7 @@ export function DayRichTextEditor({
   onDocumentDraftChange,
   onHistoryStateChange,
   onHistoryActionsChange,
+  getInitialFocusCoords,
 }: DayRichTextEditorProps): ReactElement {
   const { t } = useTranslation('common')
   const [documentNodes, setDocumentNodes] = useState<DayDocumentNode[]>(() => cloneDocument(day.document ?? []))
@@ -908,6 +913,47 @@ export function DayRichTextEditor({
       onEditorActivate?.()
     },
   })
+
+  const getInitialFocusCoordsRef = useRef(getInitialFocusCoords)
+  useEffect(() => {
+    getInitialFocusCoordsRef.current = getInitialFocusCoords
+  }, [getInitialFocusCoords])
+
+  // On mount, drop the caret where the user tapped the static day (lazy-mount).
+  // The static view uses the same `.editorSurface` layout, so the tap's viewport
+  // coordinates map cleanly onto a document position; fall back to the doc end.
+  useEffect(() => {
+    if (!editor) {
+      return
+    }
+
+    const focusIntent = getInitialFocusCoordsRef.current?.()
+    if (!focusIntent) {
+      return
+    }
+
+    const raf = window.requestAnimationFrame(() => {
+      if (editor.isDestroyed) {
+        return
+      }
+
+      if (focusIntent === 'end') {
+        editor.commands.focus('end')
+        return
+      }
+
+      const position = editor.view.posAtCoords({ left: focusIntent.x, top: focusIntent.y })
+      if (position) {
+        editor.chain().setTextSelection(position.pos).focus().run()
+      } else {
+        editor.commands.focus('end')
+      }
+    })
+
+    return () => {
+      window.cancelAnimationFrame(raf)
+    }
+  }, [editor])
 
   const emitHistoryState = useCallback((activeEditor = editor): void => {
     if (!activeEditor) {

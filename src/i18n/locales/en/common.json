@@ -173,6 +173,7 @@
     "noDate": "No planned date",
     "daySummaryPlaceholder": "Tap to add day summary",
     "editDaySummaryAria": "Edit summary for Day {{dayNumber}}",
+    "editDayActivitiesAria": "Edit Day {{dayNumber}} — tap to start editing",
     "descriptionPlaceholder": "Tap to add itinerary description",
     "editTitleAria": "Edit itinerary title",
     "editDescriptionAria": "Edit itinerary description",

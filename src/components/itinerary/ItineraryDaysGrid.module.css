@@ -188,6 +188,18 @@
   white-space: nowrap;
 }
 
+/* Inactive (lazy-mounted) day: the static document mirror is clickable to
+   summon the real editor; the text cursor signals it is editable. */
+.dayEditorActivator {
+  cursor: text;
+  border-radius: var(--radius-md);
+}
+
+.dayEditorActivator:focus-visible {
+  outline: 2px solid color-mix(in oklab, var(--ring) 70%, transparent 30%);
+  outline-offset: 2px;
+}
+
 .dayHeader {
   position: sticky;
   top: var(--travenary-top-banner-offset, 0px);
