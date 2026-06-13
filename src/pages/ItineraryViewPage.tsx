@@ -2,7 +2,7 @@ import { RefreshCw, Trash2 } from 'lucide-react'
 import type { ReactElement } from 'react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useNavigate, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 
 import { ItineraryDaysGrid, type PhotoThumbnailSize } from '@/components/itinerary/ItineraryDaysGrid'
 import { DayShortcutsRow } from '@/components/itinerary/DayShortcutsRow'
@@ -1012,6 +1012,17 @@ export function ItineraryViewPage(): ReactElement {
               <p className={styles.kicker}>{t('itineraryView.ownerKicker')}</p>
 
               <div className={styles.headerTopActions}>
+                {import.meta.env.DEV ? (
+                  <Link
+                    className={styles.devPreviewLink}
+                    to={`/s/preview?itineraryId=${itinerary.id}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    title={t('itineraryView.devPreviewSharedHint')}
+                  >
+                    {t('itineraryView.devPreviewShared')}
+                  </Link>
+                ) : null}
                 <ShareButton
                   itineraryId={itinerary.id}
                   hasShareLink={itinerary.hasShareLink}

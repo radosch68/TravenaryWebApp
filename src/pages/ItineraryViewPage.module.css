@@ -40,7 +40,29 @@
   display: flex;
   align-items: center;
   justify-content: flex-end;
+  gap: 0.5rem;
   margin-top: -0.08rem;
+}
+
+/* Dev-only shortcut to the public shared-view preview. Dashed outline marks it
+   as a non-production affordance so it is never mistaken for a shipping control. */
+.devPreviewLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.28rem;
+  border: 1px dashed color-mix(in oklab, var(--muted-foreground) 55%, transparent 45%);
+  border-radius: var(--radius-md);
+  padding: 0.2rem 0.5rem;
+  font-size: var(--font-size-xs);
+  font-weight: 500;
+  color: var(--muted-foreground);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.devPreviewLink:hover {
+  border-color: color-mix(in oklab, var(--primary) 45%, var(--border) 55%);
+  color: color-mix(in oklab, var(--foreground) 80%, var(--muted-foreground) 20%);
 }
 
 .kicker {

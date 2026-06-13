@@ -171,6 +171,8 @@
   "itineraryView": {
     "ownerKicker": "Náhled itineráře",
     "sharedKicker": "Sdílený itinerář",
+    "devPreviewShared": "Náhled sdíleného",
+    "devPreviewSharedHint": "Pouze pro vývoj: otevře veřejný sdílený náhled tohoto itineráře v nové záložce",
     "dayNumber": "Den {{dayNumber}}",
     "dayCount_one": "{{count}} den",
     "dayCount_few": "{{count}} dny",

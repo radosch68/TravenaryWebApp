@@ -163,6 +163,8 @@
   "itineraryView": {
     "ownerKicker": "Itinerary view",
     "sharedKicker": "Shared itinerary",
+    "devPreviewShared": "Preview shared",
+    "devPreviewSharedHint": "Dev only: open the public shared view for this itinerary in a new tab",
     "dayNumber": "Day {{dayNumber}}",
     "dayCount_one": "{{count}} day",
     "dayCount_other": "{{count}} days",
