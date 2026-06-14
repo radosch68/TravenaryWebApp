@@ -236,6 +236,33 @@ function toPrefillLocation(location: ActivityLocation | undefined): ActivityLoca
   }
 }
 
+// The location a following transfer's origin should inherit from this activity:
+// a transfer hands off its destination (where the traveler arrived, whether or
+// not it's map-pinned), every other activity hands off its last map-enabled
+// location.
+function toPrefillLocationForActivity(activity: ItineraryActivity | undefined): ActivityLocation | undefined {
+  if (!activity) {
+    return undefined
+  }
+
+  if (activity.type === 'transfer') {
+    const arrival = toPrefillLocation(activity.details?.to)
+    if (arrival) {
+      return arrival
+    }
+  }
+
+  const locations = activity.locations ?? []
+  for (let index = locations.length - 1; index >= 0; index -= 1) {
+    const prefill = toPrefillLocation(locations[index])
+    if (prefill && prefill.showOnMap) {
+      return prefill
+    }
+  }
+
+  return undefined
+}
+
 function findLastMapEnabledLocationBeforePosition(editor: NodeViewProps['editor'], getPos?: NodeViewProps['getPos']): ActivityLocation | undefined {
   if (!editor || typeof getPos !== 'function') {
     return undefined
@@ -262,14 +289,11 @@ function findLastMapEnabledLocationBeforePosition(editor: NodeViewProps['editor'
       return true
     }
 
-    const activity = node.attrs?.activity as ItineraryActivity | undefined
-    const locations = activity?.locations ?? []
-    for (let index = locations.length - 1; index >= 0; index -= 1) {
-      const prefill = toPrefillLocation(locations[index])
-      if (prefill && prefill.showOnMap) {
-        found = prefill
-        return false
-      }
+    const candidate = toPrefillLocationForActivity(node.attrs?.activity as ItineraryActivity | undefined)
+    if (candidate) {
+      // Keep scanning: later (closer-preceding) activities overwrite, so the
+      // surviving match is the one nearest the new transfer — "whichever is newer".
+      found = candidate
     }
 
     return true

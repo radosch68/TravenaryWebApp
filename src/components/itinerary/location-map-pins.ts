@@ -1,4 +1,4 @@
-import type { ItineraryActivity, ItineraryDay } from '@/services/contracts'
+import type { ActivityLocation, ItineraryActivity, ItineraryDay } from '@/services/contracts'
 import { toDayActivities } from '@/utils/tiptap-compatibility'
 
 export interface LocationMapPin {
@@ -28,6 +28,32 @@ export function hasCoordinates(coordinates?: number[]): coordinates is [number, 
   )
 }
 
+// Every map-eligible location an activity contributes, each tagged with a
+// stable key for pin ids. A transfer keeps its endpoints in `details.from`/
+// `details.to` (not in `locations[]`), so they must be folded in explicitly or
+// a map-flagged transfer endpoint would never become a pin.
+function collectActivityMapLocations(activity: ItineraryActivity): Array<{ location: ActivityLocation; key: string }> {
+  const collected = (activity.locations ?? []).map((location, index) => ({ location, key: String(index) }))
+
+  if (activity.type === 'transfer') {
+    const { from, to } = activity.details ?? {}
+    if (from) {
+      collected.push({ location: from, key: 'from' })
+    }
+    if (to) {
+      collected.push({ location: to, key: 'to' })
+    }
+  }
+
+  return collected
+}
+
+export function activityHasMapPin(activity: ItineraryActivity): boolean {
+  return collectActivityMapLocations(activity).some(
+    ({ location }) => location.showOnMap === true && hasCoordinates(location.coordinates),
+  )
+}
+
 export function buildLocationMapPinsFromActivities(
   activities: ItineraryActivity[],
   idPrefix = '',
@@ -37,16 +63,14 @@ export function buildLocationMapPinsFromActivities(
   const resolvedPrefix = idPrefix ? `${idPrefix}-` : ''
 
   for (const activity of activities) {
-    const locations = activity.locations ?? []
-
-    locations.forEach((location, locationIndex) => {
+    for (const { location, key } of collectActivityMapLocations(activity)) {
       if (!location.showOnMap || !hasCoordinates(location.coordinates)) {
-        return
+        continue
       }
 
       const [longitude, latitude] = location.coordinates
       pins.push({
-        id: `${resolvedPrefix}${activity.id}-${locationIndex}`,
+        id: `${resolvedPrefix}${activity.id}-${key}`,
         longitude,
         latitude,
         dayNumber,
@@ -55,7 +79,7 @@ export function buildLocationMapPinsFromActivities(
         activityTime: activity.time,
         locationLabel: location.caption?.trim(),
       })
-    })
+    }
   }
 
   return pins

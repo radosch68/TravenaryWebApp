@@ -22,7 +22,7 @@ import {
   type DayRichTextSaveState,
 } from '@/components/itinerary/DayRichTextEditor'
 import type { DayDocumentNode, ItineraryActivity, ItineraryDay } from '@/services/contracts'
-import { hasCoordinates } from '@/components/itinerary/location-map-pins'
+import { activityHasMapPin } from '@/components/itinerary/location-map-pins'
 import { formatLocalDate, formatLocalTime, formatLocalTimeRange, formatWeekday, getTodayLocalIsoDate } from '@/utils/date-format'
 import {
   getOvernightCoverageByGapDay,
@@ -1203,10 +1203,7 @@ export function ItineraryDaysGrid({
 }
 
 function hasMappableLocations(activities: ItineraryActivity[]): boolean {
-  return activities.some((activity) => {
-    const locations = activity.locations ?? []
-    return locations.some((location) => location.showOnMap && hasCoordinates(location.coordinates))
-  })
+  return activities.some((activity) => activityHasMapPin(activity))
 }
 
 function DayStatusFooter({

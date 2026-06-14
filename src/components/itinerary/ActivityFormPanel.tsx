@@ -197,6 +197,12 @@ function createEmptyLocationRow(): LocationDraftRow {
   }
 }
 
+// A newly created transfer's destination defaults to show-on-map so the day's
+// map banner picks it up without extra clicks; the user can still uncheck it.
+function createTransferToDraftRow(): LocationDraftRow {
+  return { ...createEmptyLocationRow(), showOnMap: true }
+}
+
 function toTransferRouteLocationDraft(location?: ActivityLocation): LocationDraftRow {
   const longitude = typeof location?.coordinates?.[0] === 'number'
     ? String(location.coordinates[0])
@@ -257,6 +263,29 @@ function toTransferRouteEndpoint(row: LocationDraftRow): { lat: number; lng: num
 
   const address = row.address.trim()
   return address.length > 0 ? address : null
+}
+
+// Format a leg duration (seconds) as a locale-independent clock value, e.g.
+// 9900 -> "2:45", 600 -> "0:10".
+function formatTransferDuration(seconds: number): string {
+  const totalMinutes = Math.round(seconds / 60)
+  const hours = Math.floor(totalMinutes / 60)
+  const minutes = totalMinutes % 60
+  return `${hours}:${String(minutes).padStart(2, '0')}`
+}
+
+// Format a leg distance (meters) in kilometers, e.g. 18200 -> "18 km",
+// 2340 -> "2.3 km". Computed from the numeric value so the unit stays metric
+// regardless of the Google API's locale-driven default.
+function formatTransferDistance(meters: number): string {
+  const km = meters / 1000
+  return km < 10 ? `${km.toFixed(1)} km` : `${Math.round(km)} km`
+}
+
+// Average speed across the leg in km/h, e.g. 18200 m over 900 s -> "73 km/h".
+function formatTransferAvgSpeed(meters: number, seconds: number): string {
+  const kmh = (meters / 1000) / (seconds / 3600)
+  return `${Math.round(kmh)} km/h`
 }
 
 function toRowOpenState(rows: Array<{ id: string }>): Record<string, boolean> {
@@ -447,9 +476,12 @@ export function ActivityFormPanel({
   const [transferFrom, setTransferFrom] = useState<LocationDraftRow>(() => (activity?.type === 'transfer' || (!activity && activityType === 'transfer'))
     ? toTransferRouteLocationDraft(activity?.details?.from ?? transferPrefillFrom)
     : createEmptyLocationRow())
-  const [transferTo, setTransferTo] = useState<LocationDraftRow>(() => activity?.type === 'transfer'
-    ? toTransferRouteLocationDraft(activity.details?.to)
-    : createEmptyLocationRow())
+  const [transferTo, setTransferTo] = useState<LocationDraftRow>(() => {
+    if (activity?.type === 'transfer') {
+      return toTransferRouteLocationDraft(activity.details?.to)
+    }
+    return !activity && activityType === 'transfer' ? createTransferToDraftRow() : createEmptyLocationRow()
+  })
   const [transferMot, setTransferMot] = useState<TransferRouteDraft['mot']>(() => activity?.details?.mot ?? 'car')
   const [transferEstimateValue, setTransferEstimateValue] = useState(() => activity?.details?.estimate?.value ?? '')
   const [transferEstimateSource, setTransferEstimateSource] = useState<TransferEstimateDraft['source']>(activity?.details?.estimate?.source ?? 'google')
@@ -499,7 +531,7 @@ export function ActivityFormPanel({
     setContactEmail('')
     setBookingRef('')
     setTransferFrom(nextType === 'transfer' ? toTransferRouteLocationDraft(transferPrefillFrom) : createEmptyLocationRow())
-    setTransferTo(createEmptyLocationRow())
+    setTransferTo(nextType === 'transfer' ? createTransferToDraftRow() : createEmptyLocationRow())
     setTransferMot('car')
     setTransferEstimateValue('')
     setTransferEstimateSource('google')
@@ -611,7 +643,7 @@ export function ActivityFormPanel({
               : mapsApi.TravelMode?.TRANSIT ?? 'TRANSIT'
 
         const directionsService = new mapsApi.DirectionsService()
-        const result = await new Promise<{ routes?: Array<{ legs?: Array<{ distance?: { text?: string; value?: number }; duration?: { text?: string } }> }> } | null>((resolve, reject) => {
+        const result = await new Promise<{ routes?: Array<{ legs?: Array<{ distance?: { text?: string; value?: number }; duration?: { text?: string; value?: number } }> }> } | null>((resolve, reject) => {
           directionsService.route(
             {
               origin,
@@ -635,9 +667,17 @@ export function ActivityFormPanel({
         }
 
         const leg = result?.routes?.[0]?.legs?.[0]
-        const distanceText = leg?.distance?.text?.trim() ?? ''
-        const durationText = leg?.duration?.text?.trim() ?? ''
-        const nextEstimate = [durationText, distanceText].filter(Boolean).join(' • ')
+        const distanceMeters = leg?.distance?.value
+        const durationSeconds = leg?.duration?.value
+        const hasDistance = typeof distanceMeters === 'number' && distanceMeters > 0
+        const hasDuration = typeof durationSeconds === 'number' && durationSeconds > 0
+
+        const estimateParts = [
+          hasDuration ? formatTransferDuration(durationSeconds) : '',
+          hasDistance ? formatTransferDistance(distanceMeters) : '',
+          hasDistance && hasDuration ? formatTransferAvgSpeed(distanceMeters, durationSeconds) : '',
+        ].filter(Boolean)
+        const nextEstimate = estimateParts.join(' • ')
 
         if (nextEstimate.length === 0) {
           throw new Error('empty_estimate')
