@@ -10,6 +10,7 @@ import { computePosition, flip, offset, shift } from '@floating-ui/dom'
 import { Archive, ListPlus, Type, type LucideIcon } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { ReactElement } from 'react'
+import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
 
 import { ACTIVITY_TYPE_ICON } from '@/components/itinerary/activity-presentation'
@@ -19,6 +20,7 @@ import {
   ACTIVITY_EDITOR_CONFIRMED_EVENT,
   ACTIVITY_TILE_LABELS_CHANGED_EVENT,
   createActivityTileNode,
+  requestActivityAutoEdit,
   type ActivityTileLabels,
   type PhotoThumbnailSize,
 } from '@/tiptap/activity-tile-extension'
@@ -1053,6 +1055,9 @@ export function DayRichTextEditor({
         command.deleteRange(range)
       }
 
+      // Open this new activity's editor as soon as its tile mounts.
+      requestActivityAutoEdit(activity.id)
+
       command
         .insertContent([createActivityTileNode(activity), { type: 'paragraph' }])
         .run()
@@ -1416,7 +1421,7 @@ export function DayRichTextEditor({
       <div className={styles.editorWrap}>
         <EditorContent editor={editor} />
 
-        {slashMenuOpen ? (
+        {slashMenuOpen ? createPortal((
           <div
             ref={slashMenuRef}
             className={styles.slashMenu}
@@ -1517,7 +1522,7 @@ export function DayRichTextEditor({
               </button>
             ))}
           </div>
-        ) : null}
+        ), document.body) : null}
       </div>
     </div>
   )

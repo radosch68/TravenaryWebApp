@@ -124,6 +124,15 @@ export type RecentlyDraggedActivity = {
 
 let recentlyDraggedActivity: RecentlyDraggedActivity | null = null
 let activeEditingActivityId: string | null = null
+// When a freshly-inserted activity should open its editor as soon as its tile
+// mounts. Module-level (like recentlyDraggedActivity) to avoid a dispatch/mount
+// race between insertion and the React node view rendering.
+let pendingAutoEditActivityId: string | null = null
+
+/** Request that the tile for `activityId` opens its editor when it next mounts. */
+export function requestActivityAutoEdit(activityId: string): void {
+  pendingAutoEditActivityId = activityId
+}
 
 function cloneActivity(activity: ItineraryActivity): ItineraryActivity {
   return {
@@ -308,6 +317,18 @@ function ActivityTileView({ node, deleteNode, extension, selected, updateAttribu
       setActiveEditingActivity(activityId)
     }
   }
+
+  // Open the editor immediately for a just-created activity (see
+  // requestActivityAutoEdit). Runs once when this tile's id is known.
+  useEffect(() => {
+    if (activityId && pendingAutoEditActivityId === activityId) {
+      pendingAutoEditActivityId = null
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      openActivityEditor()
+    }
+    // openActivityEditor is stable enough for this one-shot mount check.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activityId])
 
   useEffect(() => {
     if (!isEditing) {
@@ -691,6 +712,8 @@ function ActivityTileDisplay({
         </div>
       </header>
 
+      {activity.text ? <p className={styles.activityDescription}>{activity.text}</p> : null}
+
       {hasAccommodationSection ? <AccommodationDetails activity={activity} labels={labels} /> : null}
       {hasTransferSection ? <TransferDetails activity={activity} labels={labels} /> : null}
 
@@ -703,8 +726,6 @@ function ActivityTileDisplay({
           ))}
         </div>
       ) : null}
-
-      {activity.text ? <p className={styles.activityDescription}>{activity.text}</p> : null}
 
       {visibleReferenceChips.length > 0 || visiblePhotoThumbnails.length > 0 ? (
         <div className={styles.metaGroup}>

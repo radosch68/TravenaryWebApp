@@ -671,6 +671,95 @@
   border-bottom: 1px solid color-mix(in oklab, var(--activity-accent) 28%, var(--border) 72%);
 }
 
+/* Transfer details — mirrors the editor tile so static and edit modes match. */
+.transferDetails {
+  margin: -0.12rem -0.5rem 0;
+  border-bottom: 1px solid color-mix(in oklab, var(--activity-accent) 28%, var(--border) 72%);
+}
+
+/* Drop the separator border when a details section is the tile's last child
+   (otherwise it leaves an empty band above the card's bottom padding). */
+.activityCard > .transferDetails:last-child,
+.activityCard > .accommodationDetails:last-child {
+  border-bottom: none;
+}
+
+.transferSummary {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  column-gap: 0.5rem;
+  padding: 0.34rem 0.5rem;
+}
+
+.transferSummaryLeft {
+  min-width: 0;
+}
+
+.transferSummaryRight {
+  justify-self: end;
+  text-align: right;
+  white-space: nowrap;
+  color: color-mix(in oklab, var(--foreground) 86%, var(--muted-foreground) 14%);
+  font-size: var(--font-size-md);
+  line-height: 1.35;
+}
+
+.transferSummaryItem {
+  display: flex;
+  align-items: center;
+  gap: 0.26rem;
+  min-width: 0;
+  color: color-mix(in oklab, var(--foreground) 78%, var(--muted-foreground) 22%);
+  font-size: var(--font-size-md);
+  line-height: 1.35;
+}
+
+.transferGrid {
+  display: flex;
+  flex-direction: column;
+  gap: 0.28rem;
+  margin: 0;
+  padding: 0 0.5rem 0.42rem;
+}
+
+.transferRow {
+  display: flex;
+  align-items: center;
+  gap: 0.34rem;
+  min-width: 0;
+}
+
+.transferGrid dt {
+  color: color-mix(in oklab, var(--foreground) 78%, var(--muted-foreground) 22%);
+  font-size: var(--font-size-md);
+  font-weight: 400;
+  line-height: 1.42;
+  white-space: nowrap;
+  flex: 0 0 auto;
+}
+
+.transferGrid dd {
+  margin: 0;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.transferEstimateChip {
+  border-color: rgba(67, 120, 170, 0.34);
+  background: rgba(67, 120, 170, 0.14);
+  color: #2f5578;
+  font-size: var(--font-size-xs);
+  font-weight: 400;
+  line-height: 1.25;
+}
+
+.transferEstimateChip:hover,
+.transferEstimateChip:focus-visible {
+  border-color: rgba(67, 120, 170, 0.5);
+  background: rgba(67, 120, 170, 0.2);
+}
+
 .accommodationSummary {
   display: flex;
   align-items: center;

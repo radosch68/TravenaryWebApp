@@ -14,6 +14,7 @@ import {
   MapPinned,
   MoonStar,
   Redo2,
+  Route,
   Undo2,
   Sparkles,
   TriangleAlert,
@@ -29,7 +30,7 @@ import {
   type DayRichTextEditorHistoryState,
   type DayRichTextSaveState,
 } from '@/components/itinerary/DayRichTextEditor'
-import type { DayDocumentNode, ItineraryActivity, ItineraryDay, WebReference } from '@/services/contracts'
+import type { ActivityLocation, DayDocumentNode, ItineraryActivity, ItineraryDay, WebReference } from '@/services/contracts'
 import { ACTIVITY_TYPE_ICON } from '@/components/itinerary/activity-presentation'
 import { hasCoordinates } from '@/components/itinerary/location-map-pins'
 import { formatLocalDate, formatLocalTime, formatLocalTimeRange, formatWeekday, getTodayLocalIsoDate } from '@/utils/date-format'
@@ -1521,7 +1522,8 @@ function ActivityCard({
   const timeRange = formatLocalTimeRange(activity.time, activity.timeEnd, locale)
   const hasAnchoredDate = typeof activity.anchorDate === 'string' && activity.anchorDate.length > 0
   const hasAccommodationSection = hasAccommodationDetails(activity)
-  const detailItems = activity.type === 'accommodation' ? [] : toActivityDetailItems(activity, t)
+  const hasTransferSection = hasTransferDetails(activity)
+  const detailItems = activity.type === 'accommodation' || activity.type === 'transfer' ? [] : toActivityDetailItems(activity, t)
   const thumbnailPreset = PHOTO_THUMBNAIL_PRESETS[photoThumbnailSize] ?? PHOTO_THUMBNAIL_PRESETS.md
 
   const references = activity.references ?? []
@@ -1548,6 +1550,7 @@ function ActivityCard({
 
   const hasBodyContent =
     hasAccommodationSection ||
+    hasTransferSection ||
     detailItems.length > 0 ||
     Boolean(activity.text?.trim()) ||
     visiblePhotoThumbnails.length > 0 ||
@@ -1584,8 +1587,14 @@ function ActivityCard({
         </div>
       </header>
 
+      {activity.text ? <p className={styles.activityDescription}>{activity.text}</p> : null}
+
       {hasAccommodationSection ? (
         <AccommodationDetails activity={activity} locale={locale} />
+      ) : null}
+
+      {hasTransferSection ? (
+        <TransferDetailsReadonly activity={activity} t={t} />
       ) : null}
 
       {detailItems.length > 0 ? (
@@ -1597,8 +1606,6 @@ function ActivityCard({
           ))}
         </div>
       ) : null}
-
-      {activity.text ? <p className={styles.activityDescription}>{activity.text}</p> : null}
 
       {visibleReferenceChips.length > 0 || visiblePhotoThumbnails.length > 0 ? (
         <div className={styles.metaGroup}>
@@ -1835,6 +1842,123 @@ function hasAccommodationDetails(activity: ItineraryActivity): boolean {
   ].some((value) => value !== undefined && String(value).trim() !== '')
 }
 
+function hasTransferDetails(activity: ItineraryActivity): boolean {
+  if (activity.type !== 'transfer' || !activity.details) {
+    return false
+  }
+
+  const details = activity.details
+  return Boolean(details.from || details.to || details.mot || details.estimate?.value?.trim())
+}
+
+// Read-only mirror of the editor tile's TransferDetails: clickable From/To map
+// chips and an estimate/directions chip, so the static day matches the editor.
+function ReadonlyLocationChip({
+  location,
+  t,
+}: {
+  location: ActivityLocation
+  t: (key: string, options?: Record<string, unknown>) => string
+}): ReactElement {
+  const mapUrl = toGoogleMapsUrl({ coordinates: location.coordinates, address: location.address })
+  const coordinatesLabel = toCoordinatesLabel(location.coordinates)
+  const fullLabel =
+    location.caption?.trim() || location.address?.trim() || coordinatesLabel || t('itineraryView.locationFallback')
+  const displayLabel = toDisplayLabel(fullLabel)
+  const LocationIcon = location.showOnMap ? MapPinned : MapPin
+  const mappedClass = location.showOnMap ? ` ${styles.metaLinkMappedLocation}` : ''
+
+  if (!mapUrl) {
+    return (
+      <span className={`${styles.metaChip} ${styles.metaLinkLocation}${mappedClass}`}>
+        <LocationIcon aria-hidden="true" size={12} />
+        <span>{displayLabel}</span>
+      </span>
+    )
+  }
+
+  return (
+    <a
+      href={mapUrl}
+      target="_blank"
+      rel="noopener noreferrer"
+      data-no-auto-external-icon="true"
+      className={`${styles.metaLink} ${styles.metaLinkLocation}${mappedClass}`}
+      aria-label={t('itineraryView.openMapAria', { label: fullLabel })}
+    >
+      <LocationIcon aria-hidden="true" size={12} />
+      <span>{displayLabel}</span>
+      <ExternalLink aria-hidden="true" size={12} />
+    </a>
+  )
+}
+
+function TransferDetailsReadonly({
+  activity,
+  t,
+}: {
+  activity: ItineraryActivity
+  t: (key: string, options?: Record<string, unknown>) => string
+}): ReactElement | null {
+  if (activity.type !== 'transfer' || !activity.details) {
+    return null
+  }
+
+  const details = activity.details
+  const motLabel = details.mot ? t(`itineraryView.transferMot.${details.mot}`) : ''
+  const estimateValue =
+    details.estimate?.value?.trim() ||
+    (details.estimate?.source === 'fallback' ? t('itineraryView.transferEstimateUnavailable') : '')
+  const directionsUrl = toGoogleMapsDirectionsUrl({ from: details.from, to: details.to, mot: details.mot })
+
+  return (
+    <section className={styles.transferDetails}>
+      <div className={styles.transferSummary}>
+        <div className={styles.transferSummaryLeft}>
+          <span className={styles.transferSummaryItem}>
+            <span>{t('itineraryView.transferRouteTo')}: </span>
+            {details.to ? <ReadonlyLocationChip location={details.to} t={t} /> : <strong>-</strong>}
+          </span>
+        </div>
+
+        <div className={styles.transferSummaryRight}>
+          {motLabel || estimateValue ? (
+            <>
+              {motLabel ? <span>{motLabel}: </span> : null}
+              {estimateValue ? (
+                directionsUrl ? (
+                  <a
+                    href={directionsUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    data-no-auto-external-icon="true"
+                    className={`${styles.metaLink} ${styles.transferEstimateChip}`}
+                  >
+                    <Route aria-hidden="true" size={12} />
+                    <span>{estimateValue}</span>
+                    <ExternalLink aria-hidden="true" size={12} />
+                  </a>
+                ) : (
+                  <span>{estimateValue}</span>
+                )
+              ) : null}
+            </>
+          ) : (
+            <strong>-</strong>
+          )}
+        </div>
+      </div>
+
+      <dl className={styles.transferGrid}>
+        <div className={styles.transferRow}>
+          <dt>{t('itineraryView.transferRouteFrom')}:</dt>
+          <dd>{details.from ? <ReadonlyLocationChip location={details.from} t={t} /> : <strong>-</strong>}</dd>
+        </div>
+      </dl>
+    </section>
+  )
+}
+
 function AccommodationDetails({
   activity,
   locale,
@@ -2001,4 +2125,61 @@ function toCoordinatesLabel(coordinates?: number[]): string {
   }
 
   return `${longitude.toFixed(4)}, ${latitude.toFixed(4)}`
+}
+
+function toLocationQuery(location: ActivityLocation): string | null {
+  if (Array.isArray(location.coordinates) && location.coordinates.length === 2) {
+    const [longitude, latitude] = location.coordinates
+    if (Number.isFinite(longitude) && Number.isFinite(latitude)) {
+      return `${latitude},${longitude}`
+    }
+  }
+
+  return location.address?.trim() || null
+}
+
+function motToGoogleMapsTravelmode(mot?: string): string | null {
+  switch (mot) {
+    case 'walk':
+      return 'walking'
+    case 'bike':
+      return 'bicycling'
+    case 'car':
+    case 'motorcycle':
+      return 'driving'
+    case 'bus':
+    case 'train':
+    case 'plane':
+      return 'transit'
+    default:
+      return null
+  }
+}
+
+function toGoogleMapsDirectionsUrl({
+  from,
+  to,
+  mot,
+}: {
+  from?: ActivityLocation
+  to?: ActivityLocation
+  mot?: string
+}): string | null {
+  if (!from || !to) {
+    return null
+  }
+
+  const originQuery = toLocationQuery(from)
+  const destinationQuery = toLocationQuery(to)
+  if (!originQuery || !destinationQuery) {
+    return null
+  }
+
+  const params = new URLSearchParams({ api: '1', origin: originQuery, destination: destinationQuery })
+  const travelmode = motToGoogleMapsTravelmode(mot)
+  if (travelmode) {
+    params.set('travelmode', travelmode)
+  }
+
+  return `https://www.google.com/maps/dir/?${params.toString()}`
 }

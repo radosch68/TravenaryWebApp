@@ -1,5 +1,5 @@
 import type { ReactElement } from 'react'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Anchor, ArrowRight, Check, ChevronDown, ChevronRight, ChevronsUp, ExternalLink, Plus, Search, Trash2 } from 'lucide-react'
 
@@ -420,6 +420,16 @@ export function ActivityFormPanel({
   const [time, setTime] = useState(() => useNativeTimeInput ? (activity?.time ?? '') : formatLocalTime(activity?.time, i18n.language))
   const [timeEnd, setTimeEnd] = useState(() => useNativeTimeInput ? (activity?.timeEnd ?? '') : formatLocalTime(activity?.timeEnd, i18n.language))
   const [cuisine, setCuisine] = useState(activity?.details?.cuisine ?? '')
+  // Cuisine combobox suggestions: a localized, comma-separated list rendered as
+  // a <datalist>. The field stays free-text — these are only autocomplete hints.
+  const cuisineSuggestions = useMemo(
+    () =>
+      t('common:itinerary.dayEditor.fieldCuisineSuggestions')
+        .split(',')
+        .map((item) => item.trim())
+        .filter((item) => item.length > 0),
+    [t],
+  )
   const [guidanceMode, setGuidanceMode] = useState<'selfGuided' | 'guided'>(activity?.details?.guidanceMode ?? 'selfGuided')
   const [anchorToDay, setAnchorToDay] = useState(() => {
     if (isCreate) return false
@@ -1438,10 +1448,17 @@ export function ActivityFormPanel({
                   <input
                     id="activity-cuisine"
                     type="text"
+                    list="activity-cuisine-options"
                     value={cuisine}
                     onChange={(e) => setCuisine(e.target.value)}
                     disabled={isFormDisabled}
+                    autoComplete="off"
                   />
+                  <datalist id="activity-cuisine-options">
+                    {cuisineSuggestions.map((suggestion) => (
+                      <option key={suggestion} value={suggestion} />
+                    ))}
+                  </datalist>
                 </div>
               ) : null}
 

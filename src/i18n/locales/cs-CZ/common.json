@@ -426,6 +426,7 @@
       "fieldTime": "Čas začátku",
       "fieldTimeEnd": "Čas konce",
       "fieldCuisine": "Kuchyně",
+      "fieldCuisineSuggestions": "Italská,Francouzská,Španělská,Řecká,Mexická,Americká,Japonská,Čínská,Thajská,Vietnamská,Korejská,Indická,Turecká,Libanonská,Marocká,Tapas,Mořské plody,Steakhouse,Vegetariánská,Veganská,Street food,Kavárna,Pekárna,Pizza,Sushi,Grilování,Středomořská,Česká,Místní",
       "fieldGuidanceMode": "Průvodce",
       "guidanceModeSelfGuided": "Na vlastní pěst",
       "guidanceModeGuided": "S průvodcem",

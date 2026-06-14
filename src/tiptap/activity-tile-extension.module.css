@@ -263,6 +263,13 @@
   border-bottom: 1px solid color-mix(in oklab, var(--activity-accent) 28%, var(--border) 72%);
 }
 
+/* When a details section is the tile's last child, its separator border would
+   leave an empty band above the tile's bottom padding — drop it. */
+.activityDisplay > .transferDetails:last-child,
+.activityDisplay > .accommodationDetails:last-child {
+  border-bottom: none;
+}
+
 .transferSummary {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;

@@ -413,6 +413,7 @@
       "fieldTime": "Start time",
       "fieldTimeEnd": "End time",
       "fieldCuisine": "Cuisine",
+      "fieldCuisineSuggestions": "Italian,French,Spanish,Greek,Mexican,American,Japanese,Chinese,Thai,Vietnamese,Korean,Indian,Turkish,Lebanese,Moroccan,Spanish Tapas,Seafood,Steakhouse,Vegetarian,Vegan,Street Food,Café,Bakery,Pizza,Sushi,Barbecue,Mediterranean,Czech,Local",
       "fieldGuidanceMode": "Guidance",
       "guidanceModeSelfGuided": "Self-guided",
       "guidanceModeGuided": "Guided",
