@@ -256,21 +256,6 @@
   transition: transform 0.14s ease;
 }
 
-.dayHeaderMain {
-  display: flex;
-  align-items: center;
-  gap: 0.62rem;
-  min-width: 0;
-  flex: 1 1 auto;
-}
-
-.dayHeaderMeta {
-  min-width: 0;
-  display: grid;
-  gap: 0.24rem;
-  width: 100%;
-}
-
 .dayNumber {
   margin: 0;
   font-family: var(--font-heading);
@@ -295,14 +280,6 @@
   text-transform: uppercase;
 }
 
-.dayIndex {
-  margin: 0;
-  font-family: var(--font-heading);
-  font-size: var(--font-size-title);
-  line-height: 1.15;
-  letter-spacing: 0.01em;
-}
-
 .dayDate {
   margin: 0;
   font-size: var(--font-size-xl);
@@ -310,11 +287,6 @@
   color: color-mix(in oklab, var(--foreground) 72%, var(--muted-foreground) 28%);
   font-weight: 500;
   white-space: nowrap;
-}
-
-.dayHeaderSummary {
-  min-width: 0;
-  width: 100%;
 }
 
 .dayHeaderSummaryRow {
@@ -504,18 +476,6 @@
   padding: 0.5rem;
 }
 
-/* Anchored cards: stronger border drawn with an inset ring so the
-   1px border-box footprint (and header negative margins) stay intact. */
-.activityCard[data-anchored='true'] {
-  border-color: color-mix(in oklab, var(--activity-accent) 62%, var(--border) 38%);
-  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--activity-accent) 62%, var(--border) 38%);
-}
-
-.activityCard[data-anchored='true'] .activityHeader {
-  border-bottom-width: 2px;
-  border-bottom-color: color-mix(in oklab, var(--activity-accent) 62%, var(--border) 38%);
-}
-
 .virtualCheckoutTile {
   appearance: none;
   width: 100%;
@@ -556,53 +516,8 @@
   background: color-mix(in oklab, var(--activity-accent) 10%, transparent);
 }
 
-.activityCardHeaderOnly {
-  padding: 0;
-}
-
 /* Per-type --activity-accent/--activity-bg values come from the global
    [data-activity-type] rules in index.css. */
-
-.activityHeader {
-  display: flex;
-  flex-direction: column;
-  gap: 0.12rem;
-  margin: -0.5rem -0.5rem 0;
-  padding: 0.34rem 0.5rem 0.3rem;
-  border-bottom: 1px solid color-mix(in oklab, var(--activity-accent) 28%, var(--border) 72%);
-  background: color-mix(in oklab, var(--activity-accent) 10%, transparent);
-}
-
-.activityHeaderOnly {
-  margin: 0;
-  border-bottom: none;
-  border-radius: var(--radius-md);
-}
-
-/* Partially expanded day: day text stays visible, activity cards collapse to
-   their headers (mirrors the header-only styles above). Virtual checkout
-   tiles are already compact and keep their full content. */
-[data-day-expand='partial'] .activityCard:not(.virtualCheckoutTile) {
-  padding: 0;
-}
-
-[data-day-expand='partial'] .activityCard:not(.virtualCheckoutTile) > :not(.activityHeader) {
-  display: none;
-}
-
-[data-day-expand='partial'] .activityCard:not(.virtualCheckoutTile) .activityHeader {
-  margin: 0;
-  border-bottom: none;
-  border-radius: var(--radius-md);
-}
-
-.activityHeaderLine {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
-  align-items: start;
-  column-gap: 0.42rem;
-  min-width: 0;
-}
 
 .activityIcon {
   display: flex;
@@ -614,11 +529,6 @@
   flex: 0 0 auto;
 }
 
-.anchorIcon {
-  display: grid;
-  place-items: center;
-}
-
 .activityTitle {
   margin: 0;
   font-size: var(--font-size-lg);
@@ -627,340 +537,6 @@
   white-space: normal;
   overflow-wrap: anywhere;
   min-width: 0;
-}
-
-.activityTime {
-  font-size: var(--font-size-sm);
-  color: var(--muted-foreground);
-  white-space: nowrap;
-  text-align: right;
-  justify-self: end;
-  align-self: start;
-}
-
-.detailChip,
-.metaPill,
-.moreChip {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.2rem;
-  border: 1px solid color-mix(in oklab, var(--border) 76%, transparent 24%);
-  border-radius: 999px;
-  padding: 0.08rem 0.42rem;
-  font-size: var(--font-size-xs);
-  color: var(--muted-foreground);
-  background: color-mix(in oklab, var(--card) 90%, transparent 10%);
-}
-
-.activityDescription {
-  margin: 0;
-  font-size: var(--font-size-md);
-  line-height: 1.42;
-  white-space: pre-wrap;
-  overflow-wrap: anywhere;
-}
-
-.detailList {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.28rem;
-}
-
-.accommodationDetails {
-  margin: -0.12rem -0.5rem 0;
-  border-bottom: 1px solid color-mix(in oklab, var(--activity-accent) 28%, var(--border) 72%);
-}
-
-/* Transfer details — mirrors the editor tile so static and edit modes match. */
-.transferDetails {
-  margin: -0.12rem -0.5rem 0;
-  border-bottom: 1px solid color-mix(in oklab, var(--activity-accent) 28%, var(--border) 72%);
-}
-
-/* Drop the separator border when a details section is the tile's last child
-   (otherwise it leaves an empty band above the card's bottom padding). */
-.activityCard > .transferDetails:last-child,
-.activityCard > .accommodationDetails:last-child {
-  border-bottom: none;
-}
-
-.transferSummary {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: center;
-  column-gap: 0.5rem;
-  padding: 0.34rem 0.5rem;
-}
-
-.transferSummaryLeft {
-  min-width: 0;
-}
-
-.transferSummaryRight {
-  justify-self: end;
-  text-align: right;
-  white-space: nowrap;
-  color: color-mix(in oklab, var(--foreground) 86%, var(--muted-foreground) 14%);
-  font-size: var(--font-size-md);
-  line-height: 1.35;
-}
-
-.transferSummaryItem {
-  display: flex;
-  align-items: center;
-  gap: 0.26rem;
-  min-width: 0;
-  color: color-mix(in oklab, var(--foreground) 78%, var(--muted-foreground) 22%);
-  font-size: var(--font-size-md);
-  line-height: 1.35;
-}
-
-.transferGrid {
-  display: flex;
-  flex-direction: column;
-  gap: 0.28rem;
-  margin: 0;
-  padding: 0 0.5rem 0.42rem;
-}
-
-.transferRow {
-  display: flex;
-  align-items: center;
-  gap: 0.34rem;
-  min-width: 0;
-}
-
-.transferGrid dt {
-  color: color-mix(in oklab, var(--foreground) 78%, var(--muted-foreground) 22%);
-  font-size: var(--font-size-md);
-  font-weight: 400;
-  line-height: 1.42;
-  white-space: nowrap;
-  flex: 0 0 auto;
-}
-
-.transferGrid dd {
-  margin: 0;
-  min-width: 0;
-  flex: 1 1 auto;
-}
-
-.transferEstimateChip {
-  border-color: rgba(67, 120, 170, 0.34);
-  background: rgba(67, 120, 170, 0.14);
-  color: #2f5578;
-  font-size: var(--font-size-xs);
-  font-weight: 400;
-  line-height: 1.25;
-}
-
-.transferEstimateChip:hover,
-.transferEstimateChip:focus-visible {
-  border-color: rgba(67, 120, 170, 0.5);
-  background: rgba(67, 120, 170, 0.2);
-}
-
-.accommodationSummary {
-  display: flex;
-  align-items: center;
-  column-gap: 0.55rem;
-  row-gap: 0.26rem;
-  flex-wrap: wrap;
-  cursor: pointer;
-  padding: 0.34rem 0.5rem;
-  font-size: var(--font-size-md);
-  font-weight: 400;
-  line-height: 1.35;
-  color: color-mix(in oklab, var(--foreground) 78%, var(--muted-foreground) 22%);
-  user-select: none;
-  list-style: none;
-}
-
-.accommodationSummary::-webkit-details-marker {
-  display: none;
-}
-
-.accommodationSummary::before {
-  content: '';
-  flex: 0 0 auto;
-  width: 0;
-  height: 0;
-  margin-left: -0.18rem;
-  border-top: 0.28rem solid transparent;
-  border-bottom: 0.28rem solid transparent;
-  border-left: 0.42rem solid currentColor;
-  transition: transform 0.12s ease;
-}
-
-.accommodationDetails[open] .accommodationSummary::before {
-  transform: rotate(90deg);
-}
-
-.accommodationSummaryItem {
-  flex: 0 0 auto;
-  white-space: nowrap;
-}
-
-.accommodationSummaryItem:nth-child(3) {
-  margin-left: auto;
-  text-align: right;
-}
-
-.accommodationSummaryItem strong {
-  font-weight: 700;
-}
-
-.accommodationGrid {
-  display: flex;
-  flex-direction: column;
-  gap: 0.28rem;
-  margin: 0;
-  padding: 0 0.5rem 0.42rem;
-}
-
-.accommodationRow {
-  display: flex;
-  align-items: baseline;
-  gap: 0.34rem;
-  min-width: 0;
-  white-space: nowrap;
-}
-
-.accommodationGrid dt {
-  font-size: var(--font-size-md);
-  line-height: 1.42;
-  font-weight: 400;
-  color: var(--muted-foreground);
-  white-space: nowrap;
-  flex: 0 0 auto;
-}
-
-.accommodationGrid dd {
-  margin: 0;
-  min-width: 0;
-  flex: 1 1 auto;
-  font-size: var(--font-size-md);
-  line-height: 1.42;
-  font-weight: 500;
-  color: color-mix(in oklab, var(--foreground) 90%, var(--muted-foreground) 10%);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.accommodationGrid dd strong {
-  font-weight: 700;
-}
-
-.metaGroup {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.28rem;
-}
-
-.metaGroupLocations {
-  width: 100%;
-  justify-content: flex-end;
-}
-
-.referenceThumbnails {
-  display: inline-flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.3rem;
-  max-width: 100%;
-}
-
-.referenceThumbnailLink {
-  display: inline-block;
-  flex: 0 0 auto;
-  width: 6.3rem;
-  line-height: 0;
-  border-radius: var(--radius-md);
-  overflow: hidden;
-  border: 1px solid rgba(13, 124, 102, 0.3);
-  background: rgba(13, 124, 102, 0.08);
-}
-
-.referenceThumbnailImage {
-  display: block;
-  width: 100%;
-  height: auto;
-}
-
-.metaPill {
-  max-width: 100%;
-}
-
-.metaPill span,
-.metaChip span,
-.moreChip,
-.metaLink span {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.metaLink,
-.metaChip {
-  max-width: 100%;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.24rem;
-  border-radius: 999px;
-  padding: 0.3rem 0.42rem;
-  border: 1px solid rgba(127, 85, 29, 0.24);
-  font-size: var(--font-size-xs);
-  line-height: 1.25;
-  color: color-mix(in oklab, var(--foreground) 88%, var(--muted-foreground) 12%);
-  background: rgba(245, 232, 210, 0.35);
-  overflow: hidden;
-}
-
-.metaLink {
-  text-decoration: none;
-}
-
-.metaLinkReferencePhoto {
-  background: rgba(67, 120, 170, 0.14);
-  border-color: rgba(54, 102, 148, 0.34);
-  color: #2f5578;
-}
-
-.metaLinkReferenceVideo {
-  background: rgba(125, 84, 150, 0.12);
-  border-color: rgba(98, 62, 120, 0.3);
-  color: #5f436f;
-}
-
-.metaLinkReferenceWebpage {
-  background: rgba(112, 103, 92, 0.12);
-  border-color: rgba(112, 103, 92, 0.32);
-  color: #5a534a;
-}
-
-.metaLinkReferenceNoType {
-  background: rgba(135, 129, 120, 0.12);
-  border-color: rgba(118, 112, 104, 0.28);
-  color: #696057;
-}
-
-.metaLinkLocation {
-  background: rgba(13, 124, 102, 0.1);
-  border-color: rgba(13, 124, 102, 0.3);
-  color: var(--brand);
-}
-
-.metaLinkMappedLocation {
-  border-width: 1.5px;
-  border-color: rgba(13, 124, 102, 0.5);
-  background: rgba(13, 124, 102, 0.14);
-  font-weight: 600;
-}
-
-.metaLink:hover {
-  text-decoration: underline;
 }
 
 @media (min-width: 64rem) {

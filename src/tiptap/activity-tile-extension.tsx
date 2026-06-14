@@ -84,6 +84,76 @@ export interface ActivityTileLabels {
   }
 }
 
+type TranslateFn = (key: string, options?: Record<string, unknown>) => string
+
+/**
+ * Single source of truth for the activity-tile label bundle, shared by the
+ * editor (which feeds it into the NodeView, outside the i18n provider) and the
+ * read-only tile renderer.
+ */
+export function buildActivityTileLabels(t: TranslateFn, locale: string): ActivityTileLabels {
+  return {
+    locale,
+    activityEditorLabel: t('itineraryView.richEditor.activityEditorLabel'),
+    deleteActivity: t('itineraryView.richEditor.deleteActivity'),
+    deleteDialog: {
+      title: t('itineraryView.richEditor.deleteDialog.title'),
+      message: t('itineraryView.richEditor.deleteDialog.message'),
+      bench: t('itineraryView.richEditor.deleteDialog.bench'),
+      delete: t('itineraryView.richEditor.deleteDialog.delete'),
+      benchBlockedAnchored: t('itineraryView.richEditor.deleteDialog.benchBlockedAnchored'),
+    },
+    cancelEdit: t('cancel'),
+    confirmEdit: t('save'),
+    titleFallback: t('itineraryView.richEditor.titleFallback'),
+    fields: {
+      title: t('itineraryView.richEditor.fields.title'),
+      time: t('itineraryView.richEditor.fields.time'),
+      notes: t('itineraryView.richEditor.fields.notes'),
+    },
+    display: {
+      anchored: t('itineraryView.anchored'),
+      nights: (count) => t('itineraryView.nights', { count }),
+      guidanceGuided: t('itineraryView.guidanceGuided'),
+      guidanceSelfGuided: t('itineraryView.guidanceSelfGuided'),
+      cuisineLabel: (cuisine) => t('itineraryView.cuisineLabel', { cuisine }),
+      transferRouteFrom: t('itineraryView.transferRouteFrom'),
+      transferRouteTo: t('itineraryView.transferRouteTo'),
+      transferMotLabel: t('itineraryView.transferMotLabel'),
+      transferMotOptions: {
+        walk: t('itineraryView.transferMot.walk'),
+        bike: t('itineraryView.transferMot.bike'),
+        motorcycle: t('itineraryView.transferMot.motorcycle'),
+        car: t('itineraryView.transferMot.car'),
+        bus: t('itineraryView.transferMot.bus'),
+        train: t('itineraryView.transferMot.train'),
+        plane: t('itineraryView.transferMot.plane'),
+      },
+      transferEstimateLabel: t('itineraryView.transferEstimateLabel'),
+      transferEstimateUnavailable: t('itineraryView.transferEstimateUnavailable'),
+      accommodationSummaryNights: t('itineraryView.accommodationSummaryNights'),
+      accommodationSummaryCheckIn: t('itineraryView.accommodationSummaryCheckIn'),
+      accommodationSummaryCheckOut: t('itineraryView.accommodationSummaryCheckOut'),
+      accommodationSummaryEmpty: t('itineraryView.accommodationSummaryEmpty'),
+      accommodationFieldGuests: t('itineraryView.accommodationFieldGuests'),
+      accommodationFieldPlatform: t('itineraryView.accommodationFieldPlatform'),
+      accommodationFieldContactPhone: t('itineraryView.accommodationFieldContactPhone'),
+      accommodationFieldContactEmail: t('itineraryView.accommodationFieldContactEmail'),
+      accommodationFieldBookingRef: t('itineraryView.accommodationFieldBookingRef'),
+      platformOptions: {
+        booking: t('itineraryView.platformOptions.booking'),
+        airbnb: t('itineraryView.platformOptions.airbnb'),
+        agoda: t('itineraryView.platformOptions.agoda'),
+        direct: t('itineraryView.platformOptions.direct'),
+        other: t('itineraryView.platformOptions.other'),
+      },
+      locationFallback: t('itineraryView.locationFallback'),
+      openReferenceAria: (label) => t('itineraryView.openReferenceAria', { label }),
+      openMapAria: (label) => t('itineraryView.openMapAria', { label }),
+    },
+  }
+}
+
 export interface ActivityTileOptions {
   dayNumber: number | null
   getOwningDayDate: () => string | undefined
@@ -643,7 +713,7 @@ function ActivityTileFallback({
   )
 }
 
-function ActivityTileDisplay({
+export function ActivityTileDisplay({
   activity,
   labels,
   metaItems,
