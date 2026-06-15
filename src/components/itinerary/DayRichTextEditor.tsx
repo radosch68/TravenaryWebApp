@@ -2,7 +2,10 @@ import { Extension, Node, mergeAttributes, type JSONContent, type Range } from '
 import Link from '@tiptap/extension-link'
 import Placeholder from '@tiptap/extension-placeholder'
 import Underline from '@tiptap/extension-underline'
+import { Plugin } from '@tiptap/pm/state'
 import { TextSelection } from '@tiptap/pm/state'
+import { Decoration, DecorationSet } from '@tiptap/pm/view'
+import type { EditorState } from '@tiptap/pm/state'
 import { EditorContent, useEditor } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import { Suggestion } from '@tiptap/suggestion'
@@ -25,9 +28,14 @@ import {
   type ActivityTileLabels,
   type PhotoThumbnailSize,
 } from '@/tiptap/activity-tile-extension'
-import { formatLocalTimeRange } from '@/utils/date-format'
+import { formatLocalTime, formatLocalTimeRange } from '@/utils/date-format'
+import {
+  getVirtualCheckoutActivityIndex,
+  type VirtualAccommodationCheckout,
+} from '@/utils/itinerary-grouping'
 import { toDayActivities } from '@/utils/tiptap-compatibility'
 
+import gridStyles from './ItineraryDaysGrid.module.css'
 import styles from './DayRichTextEditor.module.css'
 
 type DaySavePayload = Omit<ItineraryDay, 'date'> & { activityBench?: ItineraryActivity[] }
@@ -51,6 +59,10 @@ interface DayRichTextEditorProps {
   activityBench?: ItineraryActivity[]
   onActivityBench?: (activity: ItineraryActivity) => void
   onDaySave: (day: DaySavePayload) => Promise<void>
+  // Derived, read-only accommodation checkout markers for this day, rendered as
+  // non-editable widget decorations positioned chronologically by checkout time.
+  virtualCheckouts?: VirtualAccommodationCheckout[]
+  onVirtualCheckoutClick?: (checkout: VirtualAccommodationCheckout) => void
   onEditorActivate?: () => void
   onSaveStateChange?: (state: DayRichTextSaveState) => void
   onDocumentDraftChange?: (dayNumber: number, document: DayDocumentNode[]) => void
@@ -251,6 +263,116 @@ function toNewActivity(type: ActivityType, title: string): ItineraryActivity {
   return activity
 }
 
+// --- Virtual accommodation checkout decoration -----------------------------
+// The checkout tile is a derived, read-only marker with no document node. In the
+// live editor it is injected as a ProseMirror widget so it sits chronologically
+// among the day's activity tiles (matching the static read-only view) yet stays
+// non-editable, non-deletable and non-draggable. Built as plain DOM because
+// widget decorations render outside the React tree.
+const VIRTUAL_CHECKOUT_REFRESH_META = 'refreshVirtualCheckouts'
+
+interface VirtualCheckoutDecorationData {
+  checkouts: VirtualAccommodationCheckout[]
+  locale: string
+  checkOutLabel: string
+  emptyLabel: string
+  onClick?: (checkout: VirtualAccommodationCheckout) => void
+}
+
+// Lucide "bed-double" (size 18), inlined so the widget DOM renders the same icon
+// as <BedDouble size={18} /> in the static checkout tile without needing React.
+const BED_DOUBLE_ICON_SVG =
+  '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 20v-8a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v8"/><path d="M4 10V6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v4"/><path d="M12 4v6"/><path d="M2 18h20"/></svg>'
+
+function buildVirtualCheckoutWidget(
+  checkout: VirtualAccommodationCheckout,
+  data: VirtualCheckoutDecorationData,
+): HTMLElement {
+  const time = formatLocalTime(checkout.checkOutUntil, data.locale) || data.emptyLabel
+  const title = `${checkout.accommodationTitle} - ${data.checkOutLabel}: ${time}`
+
+  const button = document.createElement('button')
+  button.type = 'button'
+  button.className = `${gridStyles.activityCard} ${gridStyles.virtualCheckoutTile}`
+  button.dataset.activityType = 'accommodation'
+  button.contentEditable = 'false'
+  button.setAttribute('aria-label', title)
+  button.title = title
+
+  const body = document.createElement('div')
+  body.className = gridStyles.virtualCheckoutBody
+  const bodyText = document.createElement('span')
+  bodyText.append(`${data.checkOutLabel}: `)
+  const strong = document.createElement('strong')
+  strong.textContent = time
+  bodyText.append(strong)
+  body.append(bodyText)
+
+  const footer = document.createElement('footer')
+  footer.className = gridStyles.virtualCheckoutFooter
+  const icon = document.createElement('span')
+  icon.className = gridStyles.activityIcon
+  icon.setAttribute('aria-hidden', 'true')
+  icon.innerHTML = BED_DOUBLE_ICON_SVG
+  const titleText = document.createElement('span')
+  titleText.className = gridStyles.activityTitle
+  titleText.textContent = checkout.accommodationTitle
+  footer.append(icon, titleText)
+
+  button.append(body, footer)
+  // Keep the editor selection intact; the tile only jumps to its parent.
+  button.addEventListener('mousedown', (event) => event.preventDefault())
+  button.addEventListener('click', (event) => {
+    event.preventDefault()
+    data.onClick?.(checkout)
+  })
+
+  return button
+}
+
+function buildVirtualCheckoutDecorations(
+  state: EditorState,
+  data: VirtualCheckoutDecorationData,
+): DecorationSet {
+  if (data.checkouts.length === 0) {
+    return DecorationSet.empty
+  }
+
+  const activityTiles: Array<{ pos: number; endPos: number; time?: string; timeEnd?: string }> = []
+  state.doc.forEach((node, offset) => {
+    if (node.type.name === 'activityTile') {
+      const activity = node.attrs?.activity as ItineraryActivity | undefined
+      if (activity?.id) {
+        activityTiles.push({ pos: offset, endPos: offset + node.nodeSize, time: activity.time, timeEnd: activity.timeEnd })
+      }
+    }
+  })
+
+  const activityTimes = activityTiles.map((tile) => ({ time: tile.time, timeEnd: tile.timeEnd }))
+  const sortedCheckouts = [...data.checkouts].sort((a, b) =>
+    (a.checkOutUntil ?? '').localeCompare(b.checkOutUntil ?? ''),
+  )
+
+  const decorations = sortedCheckouts.map((checkout) => {
+    const activityIndex = getVirtualCheckoutActivityIndex(activityTimes, checkout.checkOutUntil)
+    let pos: number
+    if (activityTiles.length === 0 || activityIndex === 0) {
+      pos = 0
+    } else if (activityIndex < activityTiles.length) {
+      pos = activityTiles[activityIndex].pos
+    } else {
+      pos = activityTiles[activityTiles.length - 1].endPos
+    }
+
+    return Decoration.widget(pos, () => buildVirtualCheckoutWidget(checkout, data), {
+      side: -1,
+      key: `virtual-checkout-${checkout.sourceActivityId}-${checkout.dayNumber}`,
+    })
+  })
+
+  return DecorationSet.create(state.doc, decorations)
+}
+
 export function DayRichTextEditor({
   day,
   locale,
@@ -258,6 +380,8 @@ export function DayRichTextEditor({
   activityBench,
   onActivityBench,
   onDaySave,
+  virtualCheckouts,
+  onVirtualCheckoutClick,
   onEditorActivate,
   onSaveStateChange,
   onDocumentDraftChange,
@@ -280,6 +404,21 @@ export function DayRichTextEditor({
     () => buildActivityTileLabels(t, locale),
     [locale, t],
   )
+  const virtualCheckoutLabels = useMemo(
+    () => ({
+      checkOut: t('itineraryView.accommodationSummaryCheckOut'),
+      empty: t('itineraryView.accommodationSummaryEmpty'),
+    }),
+    [t],
+  )
+  const virtualCheckoutDataRef = useRef<VirtualCheckoutDecorationData>({
+    checkouts: virtualCheckouts ?? [],
+    locale,
+    checkOutLabel: virtualCheckoutLabels.checkOut,
+    emptyLabel: virtualCheckoutLabels.empty,
+    onClick: onVirtualCheckoutClick,
+  })
+  const hadVirtualCheckoutsRef = useRef((virtualCheckouts ?? []).length > 0)
   const documentNodesRef = useRef(documentNodes)
   const activityBenchRef = useRef(activityBench)
   const onActivityBenchRef = useRef(onActivityBench)
@@ -616,6 +755,27 @@ export function DayRichTextEditor({
     }
   }, [saveNow])
 
+  const virtualCheckoutExtension = useMemo(
+    () =>
+      // Reads live checkout data from a ref so prop changes don't recreate the editor.
+      // eslint-disable-next-line react-hooks/refs
+      Extension.create({
+        name: 'virtualAccommodationCheckouts',
+
+        addProseMirrorPlugins() {
+          return [
+            new Plugin({
+              props: {
+                decorations: (state) =>
+                  buildVirtualCheckoutDecorations(state, virtualCheckoutDataRef.current),
+              },
+            }),
+          ]
+        },
+      }),
+    [],
+  )
+
   const slashCommandExtension = useMemo(
     () =>
       // TipTap Suggestion callbacks run outside React render, so refs bridge
@@ -783,6 +943,7 @@ export function DayRichTextEditor({
       }),
       SectionBreak,
       slashCommandExtension,
+      virtualCheckoutExtension,
       // TipTap node views are not React descendants of this component, so refs bridge
       // current day state into the extension callbacks without recreating the editor.
       // eslint-disable-next-line react-hooks/refs
@@ -862,6 +1023,33 @@ export function DayRichTextEditor({
   useEffect(() => {
     getInitialFocusCoordsRef.current = getInitialFocusCoords
   }, [getInitialFocusCoords])
+
+  // The click handler identity changes every render but is only read on click,
+  // so keep it in the ref without forcing a decoration refresh.
+  useEffect(() => {
+    virtualCheckoutDataRef.current.onClick = onVirtualCheckoutClick
+  }, [onVirtualCheckoutClick])
+
+  // Refresh the checkout widgets when their data changes while the editor is
+  // idle (locale switch, or a cross-day accommodation edit). A stepless meta
+  // transaction re-runs the decorations prop without a document change, so it
+  // won't trigger autosave (onUpdate is gated on docChanged).
+  useEffect(() => {
+    const checkouts = virtualCheckouts ?? []
+    virtualCheckoutDataRef.current = {
+      ...virtualCheckoutDataRef.current,
+      checkouts,
+      locale,
+      checkOutLabel: virtualCheckoutLabels.checkOut,
+      emptyLabel: virtualCheckoutLabels.empty,
+    }
+
+    const hadCheckouts = hadVirtualCheckoutsRef.current
+    hadVirtualCheckoutsRef.current = checkouts.length > 0
+    if (editor && (checkouts.length > 0 || hadCheckouts)) {
+      editor.view.dispatch(editor.state.tr.setMeta(VIRTUAL_CHECKOUT_REFRESH_META, true))
+    }
+  }, [editor, virtualCheckouts, locale, virtualCheckoutLabels])
 
   // On mount, drop the caret where the user tapped the static day (lazy-mount).
   // The static view uses the same `.editorSurface` layout, so the tap's viewport

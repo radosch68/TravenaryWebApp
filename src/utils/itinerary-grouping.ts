@@ -87,6 +87,34 @@ export function getOvernightCoverageByGapDay(days: ItineraryDay[]): Map<number, 
   )
 }
 
+// Index among a day's activity tiles (in document order) before which a virtual
+// checkout tile should render, so it sits chronologically by time. The checkout
+// must not fall after any activity whose start OR end time is at/after the
+// checkout time — i.e. an activity spanning the checkout (e.g. 10:30–11:15 vs an
+// 11:11 checkout) keeps the checkout ahead of it ("better checkout early than
+// late"). Since end ≥ start, each tile is compared by its end time when present,
+// else its start ("HH:MM"). Untimed tiles don't anchor (skipped). A missing
+// checkout time, or a checkout at/before every tile, returns 0 (render first);
+// when no tile reaches the checkout, returns the tile count (render last).
+export function getVirtualCheckoutActivityIndex(
+  activities: ReadonlyArray<{ time?: string; timeEnd?: string }>,
+  checkOutUntil?: string,
+): number {
+  const checkout = checkOutUntil?.trim()
+  if (!checkout) {
+    return 0
+  }
+
+  for (let index = 0; index < activities.length; index += 1) {
+    const anchorTime = activities[index].timeEnd?.trim() || activities[index].time?.trim()
+    if (anchorTime && anchorTime >= checkout) {
+      return index
+    }
+  }
+
+  return activities.length
+}
+
 export function getVirtualAccommodationCheckoutsByDay(
   days: ItineraryDay[],
 ): Map<number, VirtualAccommodationCheckout[]> {

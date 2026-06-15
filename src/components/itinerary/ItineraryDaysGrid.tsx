@@ -27,6 +27,7 @@ import { formatLocalDate, formatLocalTime, formatLocalTimeRange, formatWeekday, 
 import {
   getOvernightCoverageByGapDay,
   getVirtualAccommodationCheckoutsByDay,
+  getVirtualCheckoutActivityIndex,
   type OvernightCoverage,
   type VirtualAccommodationCheckout,
 } from '@/utils/itinerary-grouping'
@@ -1119,17 +1120,6 @@ export function ItineraryDaysGrid({
 
             {!isCollapsed ? (
               <div id={`itinerary-day-content-${day.dayNumber}`} data-day-expand={dayExpandState}>
-                {dayVirtualCheckouts.map((checkout) => (
-                  <VirtualAccommodationCheckoutTile
-                    key={`virtual-checkout-${checkout.sourceActivityId}-${checkout.dayNumber}`}
-                    checkout={checkout}
-                    locale={locale}
-                    onClick={() => {
-                      jumpToAccommodationSource(checkout.sourceDayNumber, checkout.sourceActivityId)
-                    }}
-                  />
-                ))}
-
                 {editable && onDaySave ? (
                   activeEditorDayNumber === day.dayNumber ? (
                     <DayRichTextEditor
@@ -1139,6 +1129,10 @@ export function ItineraryDaysGrid({
                       activityBench={activityBench}
                       onActivityBench={onActivityBench}
                       onDaySave={onDaySave}
+                      virtualCheckouts={dayVirtualCheckouts}
+                      onVirtualCheckoutClick={(checkout) =>
+                        jumpToAccommodationSource(checkout.sourceDayNumber, checkout.sourceActivityId)
+                      }
                       onEditorActivate={() => handleDayEditorActivate(day.dayNumber)}
                       onDocumentDraftChange={handleDayDocumentDraftChange}
                       onHistoryStateChange={(state) => setDayEditorHistoryState(day.dayNumber, state)}
@@ -1168,11 +1162,27 @@ export function ItineraryDaysGrid({
                         }
                       }}
                     >
-                      <DayDocumentView day={day} locale={locale} photoThumbnailSize={photoThumbnailSize} />
+                      <DayDocumentView
+                        day={day}
+                        locale={locale}
+                        photoThumbnailSize={photoThumbnailSize}
+                        checkouts={dayVirtualCheckouts}
+                        onCheckoutClick={(checkout) =>
+                          jumpToAccommodationSource(checkout.sourceDayNumber, checkout.sourceActivityId)
+                        }
+                      />
                     </div>
                   )
                 ) : (
-                  <DayDocumentView day={day} locale={locale} photoThumbnailSize={photoThumbnailSize} />
+                  <DayDocumentView
+                    day={day}
+                    locale={locale}
+                    photoThumbnailSize={photoThumbnailSize}
+                    checkouts={dayVirtualCheckouts}
+                    onCheckoutClick={(checkout) =>
+                      jumpToAccommodationSource(checkout.sourceDayNumber, checkout.sourceActivityId)
+                    }
+                  />
                 )}
 
               </div>
@@ -1410,14 +1420,68 @@ function renderDocumentBlockNode(
   }
 }
 
+// Group each day's virtual checkout tiles by the document node index they should
+// render before, plus any that lead the day (no activities, or a checkout time
+// at/before the first activity). Chronological position comes from
+// getVirtualCheckoutActivityIndex over the activity tiles in document order;
+// "after the last tile" is modelled as rendering before the node that follows it.
+function planVirtualCheckoutPlacement(
+  nodes: DayDocumentNode[],
+  checkouts: VirtualAccommodationCheckout[],
+): { leading: VirtualAccommodationCheckout[]; beforeNodeIndex: Record<number, VirtualAccommodationCheckout[]> } {
+  const leading: VirtualAccommodationCheckout[] = []
+  const beforeNodeIndex: Record<number, VirtualAccommodationCheckout[]> = {}
+
+  if (checkouts.length === 0) {
+    return { leading, beforeNodeIndex }
+  }
+
+  const activityNodeIndices: number[] = []
+  const activityTimes: Array<{ time?: string; timeEnd?: string }> = []
+  nodes.forEach((node, index) => {
+    const activity = node.attrs?.activity as ItineraryActivity | undefined
+    if (node.type === 'activityTile' && activity?.id) {
+      activityNodeIndices.push(index)
+      activityTimes.push({ time: activity.time, timeEnd: activity.timeEnd })
+    }
+  })
+
+  const sortedCheckouts = [...checkouts].sort((a, b) =>
+    (a.checkOutUntil ?? '').localeCompare(b.checkOutUntil ?? ''),
+  )
+
+  const pushBefore = (nodeIndex: number, checkout: VirtualAccommodationCheckout): void => {
+    (beforeNodeIndex[nodeIndex] ??= []).push(checkout)
+  }
+
+  for (const checkout of sortedCheckouts) {
+    const activityIndex = getVirtualCheckoutActivityIndex(activityTimes, checkout.checkOutUntil)
+    if (activityNodeIndices.length === 0 || activityIndex === 0) {
+      leading.push(checkout)
+    } else if (activityIndex < activityNodeIndices.length) {
+      pushBefore(activityNodeIndices[activityIndex], checkout)
+    } else {
+      // After the last activity tile: render before whatever follows it, or at
+      // the document end when nothing does.
+      pushBefore(activityNodeIndices[activityNodeIndices.length - 1] + 1, checkout)
+    }
+  }
+
+  return { leading, beforeNodeIndex }
+}
+
 function DayDocumentView({
   day,
   locale,
   photoThumbnailSize,
+  checkouts = [],
+  onCheckoutClick,
 }: {
   day: Pick<ItineraryDay, 'document'>
   locale: string
   photoThumbnailSize: PhotoThumbnailSize
+  checkouts?: VirtualAccommodationCheckout[]
+  onCheckoutClick?: (checkout: VirtualAccommodationCheckout) => void
 }): ReactElement {
   const { t } = useTranslation('common')
   const nodes = useMemo(() => day.document ?? [], [day.document])
@@ -1433,15 +1497,29 @@ function DayDocumentView({
     [nodes],
   )
 
-  if (!hasRenderableContent) {
+  const placement = useMemo(() => planVirtualCheckoutPlacement(nodes, checkouts), [nodes, checkouts])
+
+  if (!hasRenderableContent && checkouts.length === 0) {
     return <p className={styles.emptyActivities}>{t('itineraryView.noActivities')}</p>
   }
 
+  const renderCheckout = (checkout: VirtualAccommodationCheckout): ReactElement => (
+    <VirtualAccommodationCheckoutTile
+      key={`virtual-checkout-${checkout.sourceActivityId}-${checkout.dayNumber}`}
+      checkout={checkout}
+      locale={locale}
+      onClick={() => onCheckoutClick?.(checkout)}
+    />
+  )
+
   return (
     <div className={editorStyles.editorSurface}>
-      {nodes.map((node, index) =>
+      {placement.leading.map(renderCheckout)}
+      {nodes.flatMap((node, index) => [
+        ...(placement.beforeNodeIndex[index] ?? []).map(renderCheckout),
         renderDocumentBlockNode(node, `day-node-${index}`, { locale, photoThumbnailSize }),
-      )}
+      ])}
+      {(placement.beforeNodeIndex[nodes.length] ?? []).map(renderCheckout)}
     </div>
   )
 }
