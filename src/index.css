@@ -194,7 +194,7 @@ body {
   --activity-bg: rgba(34, 139, 34, 0.03);
 }
 
-[data-activity-type='carRental'] {
+[data-activity-type='rental'] {
   --activity-accent: #8b4513;
   --activity-bg: rgba(139, 69, 19, 0.03);
 }

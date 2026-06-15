@@ -176,7 +176,7 @@ const BENCH_SLASH_TYPE_ORDER: ActivityType[] = [
   'accommodation',
   'flight',
   'transfer',
-  'carRental',
+  'rental',
   'custom',
   'note',
 ]

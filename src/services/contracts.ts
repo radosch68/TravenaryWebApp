@@ -57,13 +57,14 @@ export type ActivityType =
   | 'accommodation'
   | 'transfer'
   | 'poi'
-  | 'carRental'
+  | 'rental'
   | 'custom'
   | 'food'
   | 'shopping'
   | 'tour'
 
 export type AccommodationPlatform = 'booking' | 'airbnb' | 'agoda' | 'direct' | 'other'
+export type RentalType = 'bike' | 'motorcycle' | 'car' | 'other'
 export type TransferMot = 'walk' | 'bike' | 'motorcycle' | 'car' | 'bus' | 'train' | 'plane'
 
 export interface TransferLocation {
@@ -95,6 +96,9 @@ export interface ActivityDetails {
   contactPhone?: string
   contactEmail?: string
   bookingRef?: string
+  rentalType?: RentalType
+  days?: number
+  returnUntil?: string
 }
 
 export interface ActivityLocation {
@@ -194,7 +198,7 @@ export type GenerationRequestStatus = 'pending' | 'completed' | 'failed'
 
 export interface DraftActivityObject {
   title: string
-  type: 'note' | 'poi' | 'food' | 'custom' | 'accommodation' | 'transfer' | 'flight' | 'carRental'
+  type: 'note' | 'poi' | 'food' | 'custom' | 'accommodation' | 'transfer' | 'flight' | 'rental'
   time?: string | null
   timeEnd?: string | null
   description?: string | null

@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { Anchor, ArrowRight, Check, ChevronDown, ChevronRight, ChevronsUp, ExternalLink, Plus, Search, Trash2 } from 'lucide-react'
 
 import { DialogShell } from '@/components/common/DialogShell'
-import type { PhotoSearchResult, ActivityType, AccommodationPlatform, ActivityLocation, ErrorDetail, ItineraryActivity, WebReference } from '@/services/contracts'
+import type { PhotoSearchResult, ActivityType, AccommodationPlatform, RentalType, ActivityLocation, ErrorDetail, ItineraryActivity, WebReference } from '@/services/contracts'
 import { searchPhotos } from '@/services/itinerary-service'
 import { generateClientId } from '@/utils/client-id'
 import { formatLocalDate, formatLocalTime, getLocalizedTimeInputPlaceholder } from '@/utils/date-format'
@@ -14,12 +14,12 @@ import { ACTIVITY_TYPE_ICON } from './activity-presentation'
 import formStyles from './ActivityFormPanel.module.css'
 import { ensureGoogleMapsScript, waitForGoogleMapsApiReady } from '@/utils/google-maps-api'
 
-const FULL_EDIT_TYPES: ReadonlySet<ActivityType> = new Set(['note', 'poi', 'custom', 'carRental', 'food', 'shopping', 'tour', 'accommodation'])
+const FULL_EDIT_TYPES: ReadonlySet<ActivityType> = new Set(['note', 'poi', 'custom', 'rental', 'food', 'shopping', 'tour', 'accommodation'])
 const LIMITED_EDIT_FIELDS = ['title', 'text', 'time', 'timeEnd'] as const
 const EDITABLE_ACTIVITY_TYPES: readonly ActivityType[] = [
   'flight',
   'transfer',
-  'carRental',
+  'rental',
   'accommodation',
   'poi',
   'food',
@@ -43,7 +43,7 @@ const ACTIVITY_TYPE_LABEL_KEY: Record<ActivityType, string> = {
   note: 'note',
   poi: 'poi',
   custom: 'custom',
-  carRental: 'carRental',
+  rental: 'rental',
   food: 'food',
   shopping: 'shopping',
   tour: 'tour',
@@ -473,6 +473,9 @@ export function ActivityFormPanel({
   const [contactPhone, setContactPhone] = useState(activity?.details?.contactPhone ?? '')
   const [contactEmail, setContactEmail] = useState(activity?.details?.contactEmail ?? '')
   const [bookingRef, setBookingRef] = useState(activity?.details?.bookingRef ?? '')
+  const [rentalType, setRentalType] = useState<RentalType | ''>(activity?.details?.rentalType ?? '')
+  const [rentalDaysInput, setRentalDaysInput] = useState(() => activity?.details?.days?.toString() ?? '')
+  const [returnUntil, setReturnUntil] = useState(() => useNativeTimeInput ? (activity?.details?.returnUntil ?? '') : formatLocalTime(activity?.details?.returnUntil, i18n.language))
   const [transferFrom, setTransferFrom] = useState<LocationDraftRow>(() => (activity?.type === 'transfer' || (!activity && activityType === 'transfer'))
     ? toTransferRouteLocationDraft(activity?.details?.from ?? transferPrefillFrom)
     : createEmptyLocationRow())
@@ -518,7 +521,7 @@ export function ActivityFormPanel({
   const isFormDisabled = disabled || isSubmitting
 
   const resetTypeSpecificFields = (nextType: ActivityType): void => {
-    setActivityDetailsSectionOpen(nextType === 'food' || nextType === 'tour' || nextType === 'accommodation')
+    setActivityDetailsSectionOpen(nextType === 'food' || nextType === 'tour' || nextType === 'accommodation' || nextType === 'rental')
     setCuisine('')
     setGuidanceMode('selfGuided')
     setNightsInput('1')
@@ -530,6 +533,9 @@ export function ActivityFormPanel({
     setContactPhone('')
     setContactEmail('')
     setBookingRef('')
+    setRentalType('')
+    setRentalDaysInput('')
+    setReturnUntil('')
     setTransferFrom(nextType === 'transfer' ? toTransferRouteLocationDraft(transferPrefillFrom) : createEmptyLocationRow())
     setTransferTo(nextType === 'transfer' ? createTransferToDraftRow() : createEmptyLocationRow())
     setTransferMot('car')
@@ -1250,6 +1256,14 @@ export function ActivityFormPanel({
       if (contactEmail.trim()) accDetails!.contactEmail = contactEmail.trim()
       if (bookingRef.trim()) accDetails!.bookingRef = bookingRef.trim()
       result.details = accDetails
+    } else if (selectedActivityType === 'rental') {
+      const rentalDetails: ItineraryActivity['details'] = {}
+      if (rentalType) rentalDetails!.rentalType = rentalType
+      const parsedDays = parseInt(rentalDaysInput, 10)
+      if (Number.isFinite(parsedDays) && parsedDays >= 1) rentalDetails!.days = parsedDays
+      const normReturnUntil = normalizeTimeValue(returnUntil)
+      if (normReturnUntil) rentalDetails!.returnUntil = normReturnUntil
+      result.details = Object.keys(rentalDetails!).length > 0 ? rentalDetails : undefined
     }
 
     setIsSubmitting(true)
@@ -1274,7 +1288,7 @@ export function ActivityFormPanel({
   }
 
   const TypeBadgeIcon = ACTIVITY_TYPE_ICON[selectedActivityType]
-  const hasActivitySpecificFields = selectedActivityType === 'food' || selectedActivityType === 'tour' || selectedActivityType === 'accommodation' || selectedActivityType === 'transfer'
+  const hasActivitySpecificFields = selectedActivityType === 'food' || selectedActivityType === 'tour' || selectedActivityType === 'accommodation' || selectedActivityType === 'transfer' || selectedActivityType === 'rental'
   const activitySpecificSectionTitle = t(`common:itinerary.dayEditor.activityTypeOptions.${ACTIVITY_TYPE_LABEL_KEY[selectedActivityType]}`)
   const getReferenceRowSummary = (row: ReferenceDraftRow): string => {
     return row.caption.trim() || row.url.trim()
@@ -1750,6 +1764,66 @@ export function ActivityFormPanel({
                       onChange={(e) => setBookingRef(e.target.value)}
                       disabled={isFormDisabled}
                     />
+                  </div>
+                </>
+              ) : null}
+
+              {selectedActivityType === 'rental' ? (
+                <>
+                  <div className="activity-form-panel__field">
+                    <label htmlFor="activity-rental-type">{t('common:itinerary.dayEditor.fieldRentalType')}</label>
+                    <select
+                      id="activity-rental-type"
+                      value={rentalType}
+                      onChange={(e) => setRentalType(e.target.value as RentalType | '')}
+                      disabled={isFormDisabled}
+                    >
+                      <option value="">—</option>
+                      <option value="bike">{t('common:itinerary.dayEditor.rentalTypeOptions.bike')}</option>
+                      <option value="motorcycle">{t('common:itinerary.dayEditor.rentalTypeOptions.motorcycle')}</option>
+                      <option value="car">{t('common:itinerary.dayEditor.rentalTypeOptions.car')}</option>
+                      <option value="other">{t('common:itinerary.dayEditor.rentalTypeOptions.other')}</option>
+                    </select>
+                  </div>
+
+                  <div className="activity-form-panel__field-row activity-form-panel__field-row--time">
+                    <div className="activity-form-panel__field">
+                      <label htmlFor="activity-rental-days">{t('common:itinerary.dayEditor.fieldRentalDays')}</label>
+                      <input
+                        id="activity-rental-days"
+                        type="text"
+                        inputMode="numeric"
+                        pattern="[0-9]*"
+                        value={rentalDaysInput}
+                        onChange={(e) => {
+                          const raw = e.target.value
+                          if (/^\d*$/.test(raw)) setRentalDaysInput(raw)
+                        }}
+                        onBlur={() => {
+                          const parsed = parseInt(rentalDaysInput, 10)
+                          if (!Number.isFinite(parsed) || parsed < 1) {
+                            setRentalDaysInput('')
+                            return
+                          }
+                          setRentalDaysInput(String(parsed))
+                        }}
+                        disabled={isFormDisabled}
+                      />
+                    </div>
+                    <div className="activity-form-panel__field">
+                      <label htmlFor="activity-return-until">{t('common:itinerary.dayEditor.fieldReturnUntil')}</label>
+                      <input
+                        id="activity-return-until"
+                        type={timeInputType}
+                        value={returnUntil}
+                        onChange={(e) => setReturnUntil(e.target.value)}
+                        inputMode={timeInputMode}
+                        placeholder={useNativeTimeInput ? undefined : timePlaceholder}
+                        autoComplete="off"
+                        disabled={isFormDisabled}
+                        step={useNativeTimeInput ? 60 : undefined}
+                      />
+                    </div>
                   </div>
                 </>
               ) : null}

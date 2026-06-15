@@ -1,7 +1,7 @@
 import {
   BedDouble,
-  Car,
   Footprints,
+  KeyRound,
   MapPin,
   NotebookPen,
   Plane,
@@ -20,7 +20,7 @@ export const ACTIVITY_TYPE_ICON: Record<ActivityType, LucideIcon> = {
   accommodation: BedDouble,
   transfer: Route,
   poi: MapPin,
-  carRental: Car,
+  rental: KeyRound,
   custom: Sparkles,
   food: UtensilsCrossed,
   shopping: ShoppingBag,
