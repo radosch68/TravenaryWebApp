@@ -1,4 +1,5 @@
-import type { ItineraryActivity, ItineraryDay } from '@/services/contracts'
+import { getSpanActivityConfig } from '@/components/itinerary/span-activity'
+import type { ActivityType, ItineraryActivity, ItineraryDay } from '@/services/contracts'
 import { toDayActivities } from '@/utils/tiptap-compatibility'
 
 export interface OvernightCoverage {
@@ -11,12 +12,13 @@ export interface OvernightCoverage {
   count?: number
 }
 
-export interface VirtualAccommodationCheckout {
+export interface VirtualSpanActivityCheckout {
   dayNumber: number
   sourceDayNumber: number
   sourceActivityId: string
-  accommodationTitle: string
-  checkOutUntil?: string
+  sourceType: ActivityType
+  title: string
+  checkOutTime?: string
 }
 
 interface OvernightAccommodation {
@@ -115,35 +117,43 @@ export function getVirtualCheckoutActivityIndex(
   return activities.length
 }
 
-export function getVirtualAccommodationCheckoutsByDay(
+export function getVirtualSpanActivityCheckoutsByDay(
   days: ItineraryDay[],
-): Map<number, VirtualAccommodationCheckout[]> {
+): Map<number, VirtualSpanActivityCheckout[]> {
   const dayNumbers = new Set(days.map((day) => day.dayNumber))
-  const byDay = new Map<number, VirtualAccommodationCheckout[]>()
+  const byDay = new Map<number, VirtualSpanActivityCheckout[]>()
 
   days.forEach((day) => {
     toDayActivities(day).forEach((activity) => {
-      if (activity.type !== 'accommodation') {
+      const config = getSpanActivityConfig(activity.type)
+      if (!config || !activity.id) {
         return
       }
 
-      const nights = Math.floor(activity.details?.nights ?? 0)
-      if (nights < 1 || !activity.id) {
+      // Read span/closure via the config's field names; the cast keeps this
+      // decoupled from ActivityDetails so future span fields (e.g. rental
+      // `days`/`returnUntil`) need no change here.
+      const details = activity.details as Record<string, unknown> | undefined
+      const spanValue = details?.[config.spanField]
+      const span = typeof spanValue === 'number' ? Math.floor(spanValue) : 0
+      if (span < 1) {
         return
       }
 
-      const checkoutDayNumber = day.dayNumber + nights
+      const checkoutDayNumber = day.dayNumber + span
       if (!dayNumbers.has(checkoutDayNumber)) {
         return
       }
 
+      const closureTime = details?.[config.closureTimeField]
       const items = byDay.get(checkoutDayNumber) ?? []
       items.push({
         dayNumber: checkoutDayNumber,
         sourceDayNumber: day.dayNumber,
         sourceActivityId: activity.id,
-        accommodationTitle: activity.title,
-        checkOutUntil: activity.details?.checkOutUntil,
+        sourceType: activity.type,
+        title: activity.title,
+        checkOutTime: typeof closureTime === 'string' ? closureTime : undefined,
       })
       byDay.set(checkoutDayNumber, items)
     })

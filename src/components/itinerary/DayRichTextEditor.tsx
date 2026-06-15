@@ -31,8 +31,9 @@ import {
 import { formatLocalTime, formatLocalTimeRange } from '@/utils/date-format'
 import {
   getVirtualCheckoutActivityIndex,
-  type VirtualAccommodationCheckout,
+  type VirtualSpanActivityCheckout,
 } from '@/utils/itinerary-grouping'
+import { getSpanActivityConfig, SPAN_ACTIVITY_CONFIGS } from '@/components/itinerary/span-activity'
 import { toDayActivities } from '@/utils/tiptap-compatibility'
 
 import gridStyles from './ItineraryDaysGrid.module.css'
@@ -61,8 +62,8 @@ interface DayRichTextEditorProps {
   onDaySave: (day: DaySavePayload) => Promise<void>
   // Derived, read-only accommodation checkout markers for this day, rendered as
   // non-editable widget decorations positioned chronologically by checkout time.
-  virtualCheckouts?: VirtualAccommodationCheckout[]
-  onVirtualCheckoutClick?: (checkout: VirtualAccommodationCheckout) => void
+  virtualCheckouts?: VirtualSpanActivityCheckout[]
+  onVirtualCheckoutClick?: (checkout: VirtualSpanActivityCheckout) => void
   onEditorActivate?: () => void
   onSaveStateChange?: (state: DayRichTextSaveState) => void
   onDocumentDraftChange?: (dayNumber: number, document: DayDocumentNode[]) => void
@@ -271,30 +272,33 @@ function toNewActivity(type: ActivityType, title: string): ItineraryActivity {
 // widget decorations render outside the React tree.
 const VIRTUAL_CHECKOUT_REFRESH_META = 'refreshVirtualCheckouts'
 
+// Lucide "corner-down-right" (size 28), inlined for the editor's DOM widget; the
+// static tile uses the <CornerDownRight> component.
+const CORNER_DOWN_RIGHT_ICON_SVG =
+  '<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 10 20 15 15 20"/><path d="M4 4v7a4 4 0 0 0 4 4h12"/></svg>'
+
 interface VirtualCheckoutDecorationData {
-  checkouts: VirtualAccommodationCheckout[]
+  checkouts: VirtualSpanActivityCheckout[]
   locale: string
-  checkOutLabel: string
   emptyLabel: string
-  onClick?: (checkout: VirtualAccommodationCheckout) => void
+  // Resolved closure label per span activity type (e.g. accommodation → "Check-out").
+  checkoutLabelByType: Partial<Record<ActivityType, string>>
+  onClick?: (checkout: VirtualSpanActivityCheckout) => void
 }
 
-// Lucide "bed-double" (size 18), inlined so the widget DOM renders the same icon
-// as <BedDouble size={18} /> in the static checkout tile without needing React.
-const BED_DOUBLE_ICON_SVG =
-  '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 20v-8a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v8"/><path d="M4 10V6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v4"/><path d="M12 4v6"/><path d="M2 18h20"/></svg>'
-
 function buildVirtualCheckoutWidget(
-  checkout: VirtualAccommodationCheckout,
+  checkout: VirtualSpanActivityCheckout,
   data: VirtualCheckoutDecorationData,
 ): HTMLElement {
-  const time = formatLocalTime(checkout.checkOutUntil, data.locale) || data.emptyLabel
-  const title = `${checkout.accommodationTitle} - ${data.checkOutLabel}: ${time}`
+  const config = getSpanActivityConfig(checkout.sourceType)
+  const checkOutLabel = data.checkoutLabelByType[checkout.sourceType] ?? ''
+  const time = formatLocalTime(checkout.checkOutTime, data.locale) || data.emptyLabel
+  const title = `${checkout.title} - ${checkOutLabel}: ${time}`
 
   const button = document.createElement('button')
   button.type = 'button'
   button.className = `${gridStyles.activityCard} ${gridStyles.virtualCheckoutTile}`
-  button.dataset.activityType = 'accommodation'
+  button.dataset.activityType = checkout.sourceType
   button.contentEditable = 'false'
   button.setAttribute('aria-label', title)
   button.title = title
@@ -302,7 +306,7 @@ function buildVirtualCheckoutWidget(
   const body = document.createElement('div')
   body.className = gridStyles.virtualCheckoutBody
   const bodyText = document.createElement('span')
-  bodyText.append(`${data.checkOutLabel}: `)
+  bodyText.append(`${checkOutLabel}: `)
   const strong = document.createElement('strong')
   strong.textContent = time
   bodyText.append(strong)
@@ -313,10 +317,10 @@ function buildVirtualCheckoutWidget(
   const icon = document.createElement('span')
   icon.className = gridStyles.activityIcon
   icon.setAttribute('aria-hidden', 'true')
-  icon.innerHTML = BED_DOUBLE_ICON_SVG
+  icon.innerHTML = config?.iconSvg ?? ''
   const titleText = document.createElement('span')
   titleText.className = gridStyles.activityTitle
-  titleText.textContent = checkout.accommodationTitle
+  titleText.textContent = checkout.title
   footer.append(icon, titleText)
 
   button.append(body, footer)
@@ -327,7 +331,19 @@ function buildVirtualCheckoutWidget(
     data.onClick?.(checkout)
   })
 
-  return button
+  // Wrap in a row with a corner-down-right marker in a left gutter, mirroring the
+  // static checkout tile so the two render identically.
+  const row = document.createElement('div')
+  row.className = gridStyles.virtualCheckoutRow
+  row.dataset.activityType = checkout.sourceType
+  row.contentEditable = 'false'
+  const marker = document.createElement('span')
+  marker.className = gridStyles.virtualCheckoutMarker
+  marker.setAttribute('aria-hidden', 'true')
+  marker.innerHTML = CORNER_DOWN_RIGHT_ICON_SVG
+  row.append(marker, button)
+
+  return row
 }
 
 function buildVirtualCheckoutDecorations(
@@ -350,11 +366,11 @@ function buildVirtualCheckoutDecorations(
 
   const activityTimes = activityTiles.map((tile) => ({ time: tile.time, timeEnd: tile.timeEnd }))
   const sortedCheckouts = [...data.checkouts].sort((a, b) =>
-    (a.checkOutUntil ?? '').localeCompare(b.checkOutUntil ?? ''),
+    (a.checkOutTime ?? '').localeCompare(b.checkOutTime ?? ''),
   )
 
   const decorations = sortedCheckouts.map((checkout) => {
-    const activityIndex = getVirtualCheckoutActivityIndex(activityTimes, checkout.checkOutUntil)
+    const activityIndex = getVirtualCheckoutActivityIndex(activityTimes, checkout.checkOutTime)
     let pos: number
     if (activityTiles.length === 0 || activityIndex === 0) {
       pos = 0
@@ -404,17 +420,20 @@ export function DayRichTextEditor({
     () => buildActivityTileLabels(t, locale),
     [locale, t],
   )
-  const virtualCheckoutLabels = useMemo(
-    () => ({
-      checkOut: t('itineraryView.accommodationSummaryCheckOut'),
+  const virtualCheckoutLabels = useMemo(() => {
+    const checkoutLabelByType: Partial<Record<ActivityType, string>> = {}
+    for (const config of SPAN_ACTIVITY_CONFIGS) {
+      checkoutLabelByType[config.type] = t(config.checkoutLabelKey)
+    }
+    return {
+      checkoutLabelByType,
       empty: t('itineraryView.accommodationSummaryEmpty'),
-    }),
-    [t],
-  )
+    }
+  }, [t])
   const virtualCheckoutDataRef = useRef<VirtualCheckoutDecorationData>({
     checkouts: virtualCheckouts ?? [],
     locale,
-    checkOutLabel: virtualCheckoutLabels.checkOut,
+    checkoutLabelByType: virtualCheckoutLabels.checkoutLabelByType,
     emptyLabel: virtualCheckoutLabels.empty,
     onClick: onVirtualCheckoutClick,
   })
@@ -1040,7 +1059,7 @@ export function DayRichTextEditor({
       ...virtualCheckoutDataRef.current,
       checkouts,
       locale,
-      checkOutLabel: virtualCheckoutLabels.checkOut,
+      checkoutLabelByType: virtualCheckoutLabels.checkoutLabelByType,
       emptyLabel: virtualCheckoutLabels.empty,
     }
 

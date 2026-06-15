@@ -476,13 +476,34 @@
   padding: 0.5rem;
 }
 
+/* Closure ("checkout") marker: a corner-down-right glyph in a left gutter that
+   sets the virtual tile apart from real activity tiles and narrows it slightly. */
+.virtualCheckoutRow {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.virtualCheckoutMarker {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: color-mix(in oklab, var(--activity-accent) 72%, var(--muted-foreground) 28%);
+}
+
 .virtualCheckoutTile {
   appearance: none;
-  width: 100%;
+  flex: 1 1 auto;
+  min-width: 0;
   text-align: left;
   cursor: pointer;
   gap: 0;
   padding: 0;
+  /* Dashed border (vs the solid border on real activity tiles) reinforces that
+     this is a derived, non-editable marker. */
+  border-style: dashed;
+  border-color: color-mix(in oklab, var(--activity-accent) 55%, var(--border) 45%);
 }
 
 .virtualCheckoutTile:hover {

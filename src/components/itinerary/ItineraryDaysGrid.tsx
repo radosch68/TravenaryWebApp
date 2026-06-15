@@ -1,9 +1,9 @@
 import {
   CircleAlert,
-  BedDouble,
   ChevronDown,
   ChevronRight,
   ChevronsDown,
+  CornerDownRight,
   Map,
   MoonStar,
   Redo2,
@@ -26,11 +26,13 @@ import { activityHasMapPin } from '@/components/itinerary/location-map-pins'
 import { formatLocalDate, formatLocalTime, formatLocalTimeRange, formatWeekday, getTodayLocalIsoDate } from '@/utils/date-format'
 import {
   getOvernightCoverageByGapDay,
-  getVirtualAccommodationCheckoutsByDay,
+  getVirtualSpanActivityCheckoutsByDay,
   getVirtualCheckoutActivityIndex,
   type OvernightCoverage,
-  type VirtualAccommodationCheckout,
+  type VirtualSpanActivityCheckout,
 } from '@/utils/itinerary-grouping'
+import { getSpanActivityConfig } from '@/components/itinerary/span-activity'
+import { ACTIVITY_TYPE_ICON } from '@/components/itinerary/activity-presentation'
 import { ActivityTileDisplay, buildActivityTileLabels } from '@/tiptap/activity-tile-extension'
 import { toDayActivities } from '@/utils/tiptap-compatibility'
 
@@ -149,8 +151,8 @@ export function ItineraryDaysGrid({
     () => getOvernightCoverageByGapDay(sortedDays),
     [sortedDays],
   )
-  const virtualAccommodationCheckoutsByDay = useMemo(
-    () => getVirtualAccommodationCheckoutsByDay(sortedDays),
+  const virtualSpanActivityCheckoutsByDay = useMemo(
+    () => getVirtualSpanActivityCheckoutsByDay(sortedDays),
     [sortedDays],
   )
   const [dayExpandStates, setDayExpandStates] = useState<globalThis.Map<number, StoredDayExpandState>>(
@@ -907,7 +909,7 @@ export function ItineraryDaysGrid({
         const dayExpandState: DayExpandState =
           storedExpandState === undefined ? 'expanded' : storedExpandState === 'collapsed' ? 'collapsed' : 'partial'
         const isCollapsed = dayExpandState === 'collapsed'
-        const dayVirtualCheckouts = virtualAccommodationCheckoutsByDay.get(day.dayNumber) ?? []
+        const dayVirtualCheckouts = virtualSpanActivityCheckoutsByDay.get(day.dayNumber) ?? []
         const coverage =
             index < sortedDays.length - 1
               ? overnightCoverageByGapDay.get(day.dayNumber) ?? { status: 'missing' }
@@ -1427,10 +1429,10 @@ function renderDocumentBlockNode(
 // "after the last tile" is modelled as rendering before the node that follows it.
 function planVirtualCheckoutPlacement(
   nodes: DayDocumentNode[],
-  checkouts: VirtualAccommodationCheckout[],
-): { leading: VirtualAccommodationCheckout[]; beforeNodeIndex: Record<number, VirtualAccommodationCheckout[]> } {
-  const leading: VirtualAccommodationCheckout[] = []
-  const beforeNodeIndex: Record<number, VirtualAccommodationCheckout[]> = {}
+  checkouts: VirtualSpanActivityCheckout[],
+): { leading: VirtualSpanActivityCheckout[]; beforeNodeIndex: Record<number, VirtualSpanActivityCheckout[]> } {
+  const leading: VirtualSpanActivityCheckout[] = []
+  const beforeNodeIndex: Record<number, VirtualSpanActivityCheckout[]> = {}
 
   if (checkouts.length === 0) {
     return { leading, beforeNodeIndex }
@@ -1447,15 +1449,15 @@ function planVirtualCheckoutPlacement(
   })
 
   const sortedCheckouts = [...checkouts].sort((a, b) =>
-    (a.checkOutUntil ?? '').localeCompare(b.checkOutUntil ?? ''),
+    (a.checkOutTime ?? '').localeCompare(b.checkOutTime ?? ''),
   )
 
-  const pushBefore = (nodeIndex: number, checkout: VirtualAccommodationCheckout): void => {
+  const pushBefore = (nodeIndex: number, checkout: VirtualSpanActivityCheckout): void => {
     (beforeNodeIndex[nodeIndex] ??= []).push(checkout)
   }
 
   for (const checkout of sortedCheckouts) {
-    const activityIndex = getVirtualCheckoutActivityIndex(activityTimes, checkout.checkOutUntil)
+    const activityIndex = getVirtualCheckoutActivityIndex(activityTimes, checkout.checkOutTime)
     if (activityNodeIndices.length === 0 || activityIndex === 0) {
       leading.push(checkout)
     } else if (activityIndex < activityNodeIndices.length) {
@@ -1480,8 +1482,8 @@ function DayDocumentView({
   day: Pick<ItineraryDay, 'document'>
   locale: string
   photoThumbnailSize: PhotoThumbnailSize
-  checkouts?: VirtualAccommodationCheckout[]
-  onCheckoutClick?: (checkout: VirtualAccommodationCheckout) => void
+  checkouts?: VirtualSpanActivityCheckout[]
+  onCheckoutClick?: (checkout: VirtualSpanActivityCheckout) => void
 }): ReactElement {
   const { t } = useTranslation('common')
   const nodes = useMemo(() => day.document ?? [], [day.document])
@@ -1503,8 +1505,8 @@ function DayDocumentView({
     return <p className={styles.emptyActivities}>{t('itineraryView.noActivities')}</p>
   }
 
-  const renderCheckout = (checkout: VirtualAccommodationCheckout): ReactElement => (
-    <VirtualAccommodationCheckoutTile
+  const renderCheckout = (checkout: VirtualSpanActivityCheckout): ReactElement => (
+    <VirtualSpanActivityCheckoutTile
       key={`virtual-checkout-${checkout.sourceActivityId}-${checkout.dayNumber}`}
       checkout={checkout}
       locale={locale}
@@ -1524,44 +1526,51 @@ function DayDocumentView({
   )
 }
 
-function VirtualAccommodationCheckoutTile({
+function VirtualSpanActivityCheckoutTile({
   checkout,
   locale,
   onClick,
 }: {
-  checkout: VirtualAccommodationCheckout
+  checkout: VirtualSpanActivityCheckout
   locale: string
-  onClick: (checkout: VirtualAccommodationCheckout) => void
+  onClick: (checkout: VirtualSpanActivityCheckout) => void
 }): ReactElement {
   const { t } = useTranslation('common')
-  const checkOutLabel = t('itineraryView.accommodationSummaryCheckOut')
-  const checkOutTime = formatLocalTime(checkout.checkOutUntil, locale)
+  const config = getSpanActivityConfig(checkout.sourceType)
+  const CheckoutIcon = config?.icon ?? ACTIVITY_TYPE_ICON[checkout.sourceType]
+  const checkOutLabel = t(config?.checkoutLabelKey ?? 'itineraryView.accommodationSummaryCheckOut')
+  const checkOutTime = formatLocalTime(checkout.checkOutTime, locale)
   const renderedCheckOut = checkOutTime || t('itineraryView.accommodationSummaryEmpty')
-  const title = `${checkout.accommodationTitle} - ${checkOutLabel}: ${renderedCheckOut}`
+  const title = `${checkout.title} - ${checkOutLabel}: ${renderedCheckOut}`
 
   return (
-    <button
-      type="button"
-      className={`${styles.activityCard} ${styles.virtualCheckoutTile}`}
-      data-activity-type="accommodation"
-      onClick={() => {
-        onClick(checkout)
-      }}
-      aria-label={title}
-      title={title}
-    >
-      <div className={styles.virtualCheckoutBody}>
-        <span>
-          {checkOutLabel}: <strong>{renderedCheckOut}</strong>
-        </span>
-      </div>
-      <footer className={styles.virtualCheckoutFooter}>
-        <span className={styles.activityIcon} aria-hidden="true">
-          <BedDouble size={18} />
-        </span>
-        <span className={styles.activityTitle}>{checkout.accommodationTitle}</span>
-      </footer>
-    </button>
+    <div className={styles.virtualCheckoutRow} data-activity-type={checkout.sourceType}>
+      <span className={styles.virtualCheckoutMarker} aria-hidden="true">
+        <CornerDownRight size={28} />
+      </span>
+      <button
+        type="button"
+        className={`${styles.activityCard} ${styles.virtualCheckoutTile}`}
+        data-activity-type={checkout.sourceType}
+        onClick={() => {
+          onClick(checkout)
+        }}
+        aria-label={title}
+        title={title}
+      >
+        <div className={styles.virtualCheckoutBody}>
+          <span>
+            {checkOutLabel}: <strong>{renderedCheckOut}</strong>
+          </span>
+        </div>
+        <footer className={styles.virtualCheckoutFooter}>
+          <span className={styles.activityIcon} aria-hidden="true">
+            <CheckoutIcon size={18} />
+          </span>
+          <span className={styles.activityTitle}>{checkout.title}</span>
+        </footer>
+      </button>
+    </div>
   )
 }
 
