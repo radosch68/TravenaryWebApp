@@ -261,6 +261,10 @@ function toNewActivity(type: ActivityType, title: string): ItineraryActivity {
     activity.details = { nights: 1 }
   }
 
+  if (type === 'rental') {
+    activity.details = { rentalType: 'car' }
+  }
+
   return activity
 }
 
@@ -1418,6 +1422,18 @@ export function DayRichTextEditor({
         searchTerms: ['transport', 'taxi', 'train'],
         run: (range) => {
           insertActivity('transfer', range)
+        },
+      },
+      {
+        id: 'rental',
+        label: t('itineraryView.richEditor.slash.rental'),
+        kind: 'command',
+        parentPath: 'activity',
+        icon: ACTIVITY_TYPE_ICON.rental,
+        activityType: 'rental',
+        searchTerms: ['rental', 'car', 'bike', 'motorcycle', 'hire'],
+        run: (range) => {
+          insertActivity('rental', range)
         },
       },
       {

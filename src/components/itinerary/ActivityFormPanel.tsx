@@ -533,7 +533,7 @@ export function ActivityFormPanel({
     setContactPhone('')
     setContactEmail('')
     setBookingRef('')
-    setRentalType('')
+    setRentalType(nextType === 'rental' ? 'car' : '')
     setRentalDaysInput('')
     setReturnUntil('')
     setTransferFrom(nextType === 'transfer' ? toTransferRouteLocationDraft(transferPrefillFrom) : createEmptyLocationRow())
