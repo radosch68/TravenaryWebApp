@@ -291,6 +291,10 @@
     "accommodationSummaryCheckIn": "Check-in",
     "accommodationSummaryCheckOut": "Check-out",
     "rentalReturnBy": "Return by",
+    "footer": {
+      "accommodationCheckOutBeyondItinerary": "Check-out falls after the last day of the itinerary",
+      "rentalReturnBeyondItinerary": "Return falls after the last day of the itinerary"
+    },
     "accommodationSummaryEmpty": "-",
     "accommodationFieldGuests": "Guests",
     "accommodationFieldPlatform": "Platform",

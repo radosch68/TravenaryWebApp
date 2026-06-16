@@ -161,6 +161,45 @@
   gap: 0.28rem;
 }
 
+/* Footer: dynamic notes/warnings/errors, mirrors the header band at the bottom
+   edge. Only rendered when non-empty (see ActivityTileDisplay). */
+.activityFooter {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  margin: 0 -0.5rem -0.5rem;
+  padding: 0.34rem 0.5rem;
+  border-top: 1px solid color-mix(in oklab, var(--activity-accent) 28%, var(--border) 72%);
+  background: color-mix(in oklab, var(--activity-accent) 7%, transparent);
+}
+
+.activityFooterItem {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.32rem;
+  margin: 0;
+  font-size: var(--font-size-sm);
+  line-height: 1.32;
+  overflow-wrap: anywhere;
+}
+
+.activityFooterItem svg {
+  flex: 0 0 auto;
+  margin-top: 0.08rem;
+}
+
+.activityFooterItem[data-severity='note'] {
+  color: var(--muted-foreground);
+}
+
+.activityFooterItem[data-severity='warning'] {
+  color: color-mix(in oklab, #b45309 78%, var(--foreground) 22%);
+}
+
+.activityFooterItem[data-severity='error'] {
+  color: var(--destructive);
+}
+
 .accommodationDetails {
   margin: -0.12rem -0.5rem 0;
   border-bottom: 1px solid color-mix(in oklab, var(--activity-accent) 28%, var(--border) 72%);

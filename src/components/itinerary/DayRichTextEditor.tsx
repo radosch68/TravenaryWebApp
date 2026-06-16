@@ -33,7 +33,7 @@ import {
   getVirtualCheckoutActivityIndex,
   type VirtualSpanActivityCheckout,
 } from '@/utils/itinerary-grouping'
-import { getSpanActivityConfig, SPAN_ACTIVITY_CONFIGS } from '@/components/itinerary/span-activity'
+import { getSpanActivityConfig, getSpanBeyondItineraryFooterItems, SPAN_ACTIVITY_CONFIGS } from '@/components/itinerary/span-activity'
 import { toDayActivities } from '@/utils/tiptap-compatibility'
 
 import gridStyles from './ItineraryDaysGrid.module.css'
@@ -55,6 +55,9 @@ export interface DayRichTextEditorHistoryActions {
 
 interface DayRichTextEditorProps {
   day: ItineraryDay
+  // Max day number in the itinerary; drives the "span runs past the last day"
+  // footer warning on accommodation/rental tiles.
+  lastDayNumber: number
   locale: string
   photoThumbnailSize: PhotoThumbnailSize
   activityBench?: ItineraryActivity[]
@@ -395,6 +398,7 @@ function buildVirtualCheckoutDecorations(
 
 export function DayRichTextEditor({
   day,
+  lastDayNumber,
   locale,
   photoThumbnailSize,
   activityBench,
@@ -468,6 +472,15 @@ export function DayRichTextEditor({
   const historyActionsChangeRef = useRef(onHistoryActionsChange)
   const photoThumbnailSizeRef = useRef(photoThumbnailSize)
   const dayDateRef = useRef(day.date)
+  const lastDayNumberRef = useRef(lastDayNumber)
+
+  useEffect(() => {
+    lastDayNumberRef.current = lastDayNumber
+    // Span-beyond-itinerary footer warnings depend on this; nudge mounted tiles
+    // to recompute when the itinerary's day count changes (reuses the labels-
+    // changed channel, which node views already listen on).
+    window.dispatchEvent(new Event(ACTIVITY_TILE_LABELS_CHANGED_EVENT))
+  }, [lastDayNumber])
 
   useEffect(() => {
     documentNodesRef.current = documentNodes
@@ -983,6 +996,15 @@ export function DayRichTextEditor({
           const timeRange = formatLocalTimeRange(activity.time, activity.timeEnd, labelsRef.current.locale)
           return timeRange ? [timeRange] : []
         },
+        getActivityFooter: (activity) =>
+          // Refs keep this current without recreating the editor: labelsRef for
+          // locale-correct warning text, lastDayNumberRef for the day count.
+          getSpanBeyondItineraryFooterItems(
+            activity,
+            day.dayNumber,
+            lastDayNumberRef.current,
+            labelsRef.current.display.footerSpanBeyondItinerary,
+          ),
         getLabels: () => labelsRef.current,
         onActivityOpen: () => undefined,
         onActivityDelete: () => undefined,

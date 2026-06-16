@@ -4,14 +4,17 @@ import { NodeViewWrapper, ReactNodeViewRenderer, type NodeViewProps } from '@tip
 import {
   Anchor,
   Camera,
+  CircleAlert,
   ExternalLink,
   Film,
+  Info,
   Link2,
   MapPin,
   MapPinned,
   Route,
   Sparkles,
   Trash2,
+  TriangleAlert,
 } from 'lucide-react'
 import type { DragEvent as ReactDragEvent } from 'react'
 import type { PointerEvent as ReactPointerEvent } from 'react'
@@ -20,11 +23,17 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type {
   AccommodationPlatform,
   ActivityLocation,
+  ActivityType,
   ItineraryActivity,
   TransferMot,
   WebReference,
 } from '@/services/contracts'
 import { ACTIVITY_TYPE_ICON } from '@/components/itinerary/activity-presentation'
+import {
+  SPAN_ACTIVITY_CONFIGS,
+  type ActivityFooterItem,
+  type ActivityFooterSeverity,
+} from '@/components/itinerary/span-activity'
 import { DialogShell } from '@/components/common/DialogShell'
 import { ActivityFormPanel } from '@/components/itinerary/ActivityFormPanel'
 import { hasCoordinates } from '@/components/itinerary/location-map-pins'
@@ -81,6 +90,10 @@ export interface ActivityTileLabels {
     locationFallback: string
     openReferenceAria: (label: string) => string
     openMapAria: (label: string) => string
+    // Footer warning text per span-activity type, shown when the span runs past
+    // the itinerary's last day. Keyed by activity type so future span types need
+    // no change here.
+    footerSpanBeyondItinerary: Partial<Record<ActivityType, string>>
   }
 }
 
@@ -150,6 +163,9 @@ export function buildActivityTileLabels(t: TranslateFn, locale: string): Activit
       locationFallback: t('itineraryView.locationFallback'),
       openReferenceAria: (label) => t('itineraryView.openReferenceAria', { label }),
       openMapAria: (label) => t('itineraryView.openMapAria', { label }),
+      footerSpanBeyondItinerary: Object.fromEntries(
+        SPAN_ACTIVITY_CONFIGS.map((config) => [config.type, t(config.beyondItineraryLabelKey)]),
+      ) as Partial<Record<ActivityType, string>>,
     },
   }
 }
@@ -162,6 +178,7 @@ export interface ActivityTileOptions {
   useModalEditor: boolean
   getActivityTypeLabel: (activity: ItineraryActivity) => string
   getActivityMeta: (activity: ItineraryActivity) => string[]
+  getActivityFooter: (activity: ItineraryActivity) => ActivityFooterItem[]
   getLabels: () => ActivityTileLabels
   onActivityOpen: (activityId: string) => void
   onActivityDelete: (activityId: string) => void
@@ -379,8 +396,9 @@ function ActivityTileView({ node, deleteNode, extension, selected, updateAttribu
     [activity, labels.titleFallback, options],
   )
   // Not memoized: must recompute on the labels-changed re-render so locale
-  // switches reformat the time range.
+  // switches reformat the time range and footer warnings.
   const metaItems = activity ? options.getActivityMeta(activity) : []
+  const footerItems = activity ? options.getActivityFooter(activity) : []
 
   useEffect(() => {
     const handleLabelsChanged = (): void => {
@@ -687,6 +705,7 @@ function ActivityTileView({ node, deleteNode, extension, selected, updateAttribu
               activity={activity}
               labels={labels}
               metaItems={metaItems}
+              footerItems={footerItems}
               photoThumbnailSize={photoThumbnailSize}
             />
           ) : (
@@ -737,15 +756,23 @@ function ActivityTileFallback({
   )
 }
 
+const FOOTER_SEVERITY_ICON: Record<ActivityFooterSeverity, typeof TriangleAlert> = {
+  note: Info,
+  warning: TriangleAlert,
+  error: CircleAlert,
+}
+
 export function ActivityTileDisplay({
   activity,
   labels,
   metaItems,
+  footerItems = [],
   photoThumbnailSize,
 }: {
   activity: ItineraryActivity
   labels: ActivityTileLabels
   metaItems: string[]
+  footerItems?: ActivityFooterItem[]
   photoThumbnailSize: PhotoThumbnailSize
 }) {
   const Icon = ACTIVITY_TYPE_ICON[activity.type] ?? Sparkles
@@ -781,7 +808,8 @@ export function ActivityTileDisplay({
     Boolean(activity.text?.trim()) ||
     visiblePhotoThumbnails.length > 0 ||
     visibleReferenceChips.length > 0 ||
-    visibleLocations.length > 0
+    visibleLocations.length > 0 ||
+    footerItems.length > 0
   const activityDisplayClassName = hasBodyContent
     ? styles.activityDisplay
     : `${styles.activityDisplay} ${styles.activityDisplayHeaderOnly}`
@@ -912,6 +940,24 @@ export function ActivityTileDisplay({
 
           {hiddenLocationCount > 0 ? <span className={styles.moreChip}>+{hiddenLocationCount}</span> : null}
         </div>
+      ) : null}
+
+      {footerItems.length > 0 ? (
+        <footer className={styles.activityFooter}>
+          {footerItems.map((item, index) => {
+            const FooterIcon = FOOTER_SEVERITY_ICON[item.severity]
+            return (
+              <p
+                key={`${item.severity}-${index}`}
+                className={styles.activityFooterItem}
+                data-severity={item.severity}
+              >
+                <FooterIcon size={14} aria-hidden="true" />
+                <span>{item.text}</span>
+              </p>
+            )
+          })}
+        </footer>
       ) : null}
     </div>
   )
@@ -1401,6 +1447,7 @@ export const ActivityTile = Node.create<ActivityTileOptions>({
       useModalEditor: false,
       getActivityTypeLabel: () => '',
       getActivityMeta: () => [],
+      getActivityFooter: () => [],
       getLabels: () => ({
         locale: 'en',
         activityEditorLabel: '',
@@ -1459,6 +1506,7 @@ export const ActivityTile = Node.create<ActivityTileOptions>({
           locationFallback: '',
           openReferenceAria: (label) => label,
           openMapAria: (label) => label,
+          footerSpanBeyondItinerary: {},
         },
       }),
       onActivityOpen: () => undefined,

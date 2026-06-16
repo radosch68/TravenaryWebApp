@@ -1,6 +1,6 @@
 import { BedDouble, KeyRound, type LucideIcon } from 'lucide-react'
 
-import type { ActivityType } from '@/services/contracts'
+import type { ActivityType, ItineraryActivity } from '@/services/contracts'
 
 // A "span" activity occupies a number of days and produces a virtual checkout
 // (closure) tile on the day it ends — e.g. accommodation (nights, check-out) or,
@@ -20,6 +20,19 @@ export interface SpanActivityConfig {
   iconSvg: string
   // i18n key (common namespace) for the closure label shown on the tile.
   checkoutLabelKey: string
+  // i18n key (common namespace) for the footer warning shown on the source tile
+  // when its span runs past the last day of the itinerary (closure falls off the
+  // end, so no virtual checkout tile is produced).
+  beyondItineraryLabelKey: string
+}
+
+export type ActivityFooterSeverity = 'note' | 'warning' | 'error'
+
+// A dynamic, non-persisted note/warning/error surfaced in an activity tile's
+// footer. Computed at render time from itinerary context, never stored.
+export interface ActivityFooterItem {
+  severity: ActivityFooterSeverity
+  text: string
 }
 
 // Lucide icons (size 18), inlined for the editor's DOM widget decoration.
@@ -37,6 +50,7 @@ export const SPAN_ACTIVITY_CONFIGS: readonly SpanActivityConfig[] = [
     icon: BedDouble,
     iconSvg: BED_DOUBLE_ICON_SVG,
     checkoutLabelKey: 'itineraryView.accommodationSummaryCheckOut',
+    beyondItineraryLabelKey: 'itineraryView.footer.accommodationCheckOutBeyondItinerary',
   },
   {
     type: 'rental',
@@ -45,9 +59,42 @@ export const SPAN_ACTIVITY_CONFIGS: readonly SpanActivityConfig[] = [
     icon: KeyRound,
     iconSvg: KEY_ROUND_ICON_SVG,
     checkoutLabelKey: 'itineraryView.rentalReturnBy',
+    beyondItineraryLabelKey: 'itineraryView.footer.rentalReturnBeyondItinerary',
   },
 ]
 
 export function getSpanActivityConfig(type: ActivityType): SpanActivityConfig | undefined {
   return SPAN_ACTIVITY_CONFIGS.find((config) => config.type === type)
+}
+
+// Footer warning for a span activity (accommodation, rental, …) whose span runs
+// past the itinerary's last day — i.e. its closure (check-out / return) lands on
+// a day that doesn't exist, so the user never sees a virtual checkout tile for
+// it. `dayNumber` is the activity's own day; `lastDayNumber` the max day number
+// in the itinerary. Returns [] when not a span activity, no/zero span, the span
+// stays within the itinerary, or no localized text is supplied.
+export function getSpanBeyondItineraryFooterItems(
+  activity: ItineraryActivity,
+  dayNumber: number,
+  lastDayNumber: number,
+  labelByType: Partial<Record<ActivityType, string>>,
+): ActivityFooterItem[] {
+  if (lastDayNumber < 1) {
+    return []
+  }
+
+  const config = getSpanActivityConfig(activity.type)
+  if (!config) {
+    return []
+  }
+
+  const details = activity.details as Record<string, unknown> | undefined
+  const spanValue = details?.[config.spanField]
+  const span = typeof spanValue === 'number' ? Math.floor(spanValue) : 0
+  if (span < 1 || dayNumber + span <= lastDayNumber) {
+    return []
+  }
+
+  const text = labelByType[activity.type]
+  return text ? [{ severity: 'warning', text }] : []
 }

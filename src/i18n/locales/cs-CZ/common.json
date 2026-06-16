@@ -303,6 +303,10 @@
     "accommodationSummaryCheckIn": "Check-in",
     "accommodationSummaryCheckOut": "Check-out",
     "rentalReturnBy": "Vrátit do",
+    "footer": {
+      "accommodationCheckOutBeyondItinerary": "Check-out je až po posledním dni itineráře",
+      "rentalReturnBeyondItinerary": "Vrácení je až po posledním dni itineráře"
+    },
     "accommodationSummaryEmpty": "-",
     "accommodationFieldGuests": "Hosté",
     "accommodationFieldPlatform": "Platforma",

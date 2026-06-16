@@ -31,7 +31,7 @@ import {
   type OvernightCoverage,
   type VirtualSpanActivityCheckout,
 } from '@/utils/itinerary-grouping'
-import { getSpanActivityConfig } from '@/components/itinerary/span-activity'
+import { getSpanActivityConfig, getSpanBeyondItineraryFooterItems } from '@/components/itinerary/span-activity'
 import { ACTIVITY_TYPE_ICON } from '@/components/itinerary/activity-presentation'
 import { ActivityTileDisplay, buildActivityTileLabels } from '@/tiptap/activity-tile-extension'
 import { toDayActivities } from '@/utils/tiptap-compatibility'
@@ -155,6 +155,9 @@ export function ItineraryDaysGrid({
     () => getVirtualSpanActivityCheckoutsByDay(sortedDays),
     [sortedDays],
   )
+  // Max day number — span activities (accommodation nights, rental days) whose
+  // closure lands past this get a footer warning instead of a checkout tile.
+  const lastDayNumber = sortedDays.length > 0 ? sortedDays[sortedDays.length - 1].dayNumber : 0
   const [dayExpandStates, setDayExpandStates] = useState<globalThis.Map<number, StoredDayExpandState>>(
     () => new globalThis.Map(),
   )
@@ -1126,6 +1129,7 @@ export function ItineraryDaysGrid({
                   activeEditorDayNumber === day.dayNumber ? (
                     <DayRichTextEditor
                       day={day}
+                      lastDayNumber={lastDayNumber}
                       locale={locale}
                       photoThumbnailSize={photoThumbnailSize}
                       activityBench={activityBench}
@@ -1166,6 +1170,8 @@ export function ItineraryDaysGrid({
                     >
                       <DayDocumentView
                         day={day}
+                        dayNumber={day.dayNumber}
+                        lastDayNumber={lastDayNumber}
                         locale={locale}
                         photoThumbnailSize={photoThumbnailSize}
                         checkouts={dayVirtualCheckouts}
@@ -1178,6 +1184,8 @@ export function ItineraryDaysGrid({
                 ) : (
                   <DayDocumentView
                     day={day}
+                    dayNumber={day.dayNumber}
+                    lastDayNumber={lastDayNumber}
                     locale={locale}
                     photoThumbnailSize={photoThumbnailSize}
                     checkouts={dayVirtualCheckouts}
@@ -1348,7 +1356,7 @@ function renderInlineNodes(nodes: DayDocumentNode[] | undefined, keyPrefix: stri
 function renderDocumentBlockNode(
   node: DayDocumentNode,
   key: string,
-  context: { locale: string; photoThumbnailSize: PhotoThumbnailSize },
+  context: { locale: string; photoThumbnailSize: PhotoThumbnailSize; dayNumber: number; lastDayNumber: number },
 ): ReactNode {
   switch (node.type) {
     case 'activityTile': {
@@ -1362,6 +1370,8 @@ function renderDocumentBlockNode(
           activity={activity}
           locale={context.locale}
           photoThumbnailSize={context.photoThumbnailSize}
+          dayNumber={context.dayNumber}
+          lastDayNumber={context.lastDayNumber}
         />
       )
     }
@@ -1474,12 +1484,16 @@ function planVirtualCheckoutPlacement(
 
 function DayDocumentView({
   day,
+  dayNumber,
+  lastDayNumber,
   locale,
   photoThumbnailSize,
   checkouts = [],
   onCheckoutClick,
 }: {
   day: Pick<ItineraryDay, 'document'>
+  dayNumber: number
+  lastDayNumber: number
   locale: string
   photoThumbnailSize: PhotoThumbnailSize
   checkouts?: VirtualSpanActivityCheckout[]
@@ -1519,7 +1533,7 @@ function DayDocumentView({
       {placement.leading.map(renderCheckout)}
       {nodes.flatMap((node, index) => [
         ...(placement.beforeNodeIndex[index] ?? []).map(renderCheckout),
-        renderDocumentBlockNode(node, `day-node-${index}`, { locale, photoThumbnailSize }),
+        renderDocumentBlockNode(node, `day-node-${index}`, { locale, photoThumbnailSize, dayNumber, lastDayNumber }),
       ])}
       {(placement.beforeNodeIndex[nodes.length] ?? []).map(renderCheckout)}
     </div>
@@ -1578,10 +1592,14 @@ function ActivityCard({
   activity,
   locale,
   photoThumbnailSize,
+  dayNumber,
+  lastDayNumber,
 }: {
   activity: ItineraryActivity
   locale: string
   photoThumbnailSize: PhotoThumbnailSize
+  dayNumber: number
+  lastDayNumber: number
 }): ReactElement {
   const { t } = useTranslation('common')
   // Read-only tiles render the same body component as the editor (single source
@@ -1591,12 +1609,23 @@ function ActivityCard({
     const timeRange = formatLocalTimeRange(activity.time, activity.timeEnd, locale)
     return timeRange ? [timeRange] : []
   }, [activity.time, activity.timeEnd, locale])
+  const footerItems = useMemo(
+    () =>
+      getSpanBeyondItineraryFooterItems(
+        activity,
+        dayNumber,
+        lastDayNumber,
+        labels.display.footerSpanBeyondItinerary,
+      ),
+    [activity, dayNumber, lastDayNumber, labels.display.footerSpanBeyondItinerary],
+  )
 
   return (
     <ActivityTileDisplay
       activity={activity}
       labels={labels}
       metaItems={metaItems}
+      footerItems={footerItems}
       photoThumbnailSize={photoThumbnailSize}
     />
   )
