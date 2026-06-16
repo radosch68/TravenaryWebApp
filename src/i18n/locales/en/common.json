@@ -1,6 +1,7 @@
 {
   "loading": "Loading...",
   "confirm": "Confirm",
+  "clear": "Clear",
   "brand": {
     "logoAlt": "Travenary logo"
   },
@@ -468,6 +469,13 @@
         "car": "Car",
         "other": "Other"
       },
+      "fieldFlightNumber": "Flight number",
+      "flightNumberPlaceholder": "e.g. BA005",
+      "fieldDepartureAirport": "Departure airport",
+      "fieldArrivalAirport": "Arrival airport",
+      "flightAirportPlaceholder": "Search by code, airport, or city",
+      "flightAirportNoResults": "No matching airports",
+      "flightTimesHint": "Departure and arrival use the Time and End time fields above (each in its airport's local time).",
       "commonTitle": "Common",
       "referencesTitle": "Media/Links",
       "referencesAdd": "Add reference",

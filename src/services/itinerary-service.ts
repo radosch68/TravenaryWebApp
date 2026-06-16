@@ -2,6 +2,7 @@ import { apiRequest } from '@/services/api-client'
 import type {
   DayDocumentNode,
   ItineraryActivity,
+  FlightAirport,
   ItineraryDetail,
   ItineraryDay,
   ItineraryListParams,
@@ -250,4 +251,18 @@ export async function searchPhotos(keywords: string, limit = 3): Promise<PhotoSe
   })
 
   return response.items ?? []
+}
+
+export async function searchAirports(query: string, signal?: AbortSignal): Promise<FlightAirport[]> {
+  const trimmed = query.trim()
+  if (trimmed.length === 0) {
+    return []
+  }
+
+  const response = await apiRequest<{ airports: FlightAirport[] }>(
+    `/airports?q=${encodeURIComponent(trimmed)}`,
+    { protected: true, signal },
+  )
+
+  return response.airports ?? []
 }

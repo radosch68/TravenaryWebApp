@@ -1051,6 +1051,18 @@ function toActivityDetailItems(activity: ItineraryActivity, labels: ActivityTile
     items.push(labels.display.cuisineLabel(activity.details.cuisine.trim()))
   }
 
+  if (activity.type === 'flight' && activity.details) {
+    const route = [activity.details.departureAirport?.iata, activity.details.arrivalAirport?.iata]
+      .filter((code) => Boolean(code?.trim()))
+      .join(' → ')
+    if (route) {
+      items.push(route)
+    }
+    if (activity.details.flightNumber?.trim()) {
+      items.push(activity.details.flightNumber.trim())
+    }
+  }
+
   return items
 }
 

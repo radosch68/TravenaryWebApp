@@ -4,18 +4,19 @@ import { useTranslation } from 'react-i18next'
 import { Anchor, ArrowRight, Check, ChevronDown, ChevronRight, ChevronsUp, ExternalLink, Plus, Search, Trash2 } from 'lucide-react'
 
 import { DialogShell } from '@/components/common/DialogShell'
-import type { PhotoSearchResult, ActivityType, AccommodationPlatform, RentalType, ActivityLocation, ErrorDetail, ItineraryActivity, WebReference } from '@/services/contracts'
+import type { PhotoSearchResult, ActivityType, AccommodationPlatform, RentalType, ActivityLocation, ErrorDetail, FlightAirport, ItineraryActivity, WebReference } from '@/services/contracts'
 import { searchPhotos } from '@/services/itinerary-service'
 import { generateClientId } from '@/utils/client-id'
 import { formatLocalDate, formatLocalTime, getLocalizedTimeInputPlaceholder } from '@/utils/date-format'
 import { toGoogleMapsUrl } from '@/utils/location-links'
 import { inferReferenceTypeFromUrl } from '@/utils/reference-url'
 import { ACTIVITY_TYPE_ICON } from './activity-presentation'
+import { AirportSelect } from './AirportSelect'
 import { validateActivity } from './activity-validation'
 import formStyles from './ActivityFormPanel.module.css'
 import { ensureGoogleMapsScript, waitForGoogleMapsApiReady } from '@/utils/google-maps-api'
 
-const FULL_EDIT_TYPES: ReadonlySet<ActivityType> = new Set(['note', 'poi', 'custom', 'rental', 'food', 'shopping', 'tour', 'accommodation'])
+const FULL_EDIT_TYPES: ReadonlySet<ActivityType> = new Set(['note', 'poi', 'custom', 'rental', 'food', 'shopping', 'tour', 'accommodation', 'flight'])
 const LIMITED_EDIT_FIELDS = ['title', 'text', 'time', 'timeEnd'] as const
 const EDITABLE_ACTIVITY_TYPES: readonly ActivityType[] = [
   'flight',
@@ -477,6 +478,10 @@ export function ActivityFormPanel({
   const [rentalType, setRentalType] = useState<RentalType | ''>(activity?.details?.rentalType ?? '')
   const [rentalDaysInput, setRentalDaysInput] = useState(() => activity?.details?.days?.toString() ?? '')
   const [returnUntil, setReturnUntil] = useState(() => useNativeTimeInput ? (activity?.details?.returnUntil ?? '') : formatLocalTime(activity?.details?.returnUntil, i18n.language))
+  const [flightNumber, setFlightNumber] = useState(activity?.details?.flightNumber ?? '')
+  const [departureAirport, setDepartureAirport] = useState<FlightAirport | undefined>(activity?.details?.departureAirport)
+  const [arrivalAirport, setArrivalAirport] = useState<FlightAirport | undefined>(activity?.details?.arrivalAirport)
+  const [flightBookingRef, setFlightBookingRef] = useState(activity?.details?.bookingRef ?? '')
   const [transferFrom, setTransferFrom] = useState<LocationDraftRow>(() => (activity?.type === 'transfer' || (!activity && activityType === 'transfer'))
     ? toTransferRouteLocationDraft(activity?.details?.from ?? transferPrefillFrom)
     : createEmptyLocationRow())
@@ -524,7 +529,7 @@ export function ActivityFormPanel({
 
   const resetTypeSpecificFields = (nextType: ActivityType): void => {
     setValidationErrors([])
-    setActivityDetailsSectionOpen(nextType === 'food' || nextType === 'tour' || nextType === 'accommodation' || nextType === 'rental')
+    setActivityDetailsSectionOpen(nextType === 'food' || nextType === 'tour' || nextType === 'accommodation' || nextType === 'rental' || nextType === 'flight')
     setCuisine('')
     setGuidanceMode('selfGuided')
     setNightsInput('1')
@@ -539,6 +544,10 @@ export function ActivityFormPanel({
     setRentalType(nextType === 'rental' ? 'car' : '')
     setRentalDaysInput('')
     setReturnUntil('')
+    setFlightNumber('')
+    setDepartureAirport(undefined)
+    setArrivalAirport(undefined)
+    setFlightBookingRef('')
     setTransferFrom(nextType === 'transfer' ? toTransferRouteLocationDraft(transferPrefillFrom) : createEmptyLocationRow())
     setTransferTo(nextType === 'transfer' ? createTransferToDraftRow() : createEmptyLocationRow())
     setTransferMot('car')
@@ -1266,6 +1275,13 @@ export function ActivityFormPanel({
       const normReturnUntil = normalizeTimeValue(returnUntil)
       if (normReturnUntil) rentalDetails!.returnUntil = normReturnUntil
       result.details = Object.keys(rentalDetails!).length > 0 ? rentalDetails : undefined
+    } else if (selectedActivityType === 'flight') {
+      const flightDetails: ItineraryActivity['details'] = {}
+      if (flightNumber.trim()) flightDetails!.flightNumber = flightNumber.trim()
+      if (departureAirport) flightDetails!.departureAirport = departureAirport
+      if (arrivalAirport) flightDetails!.arrivalAirport = arrivalAirport
+      if (flightBookingRef.trim()) flightDetails!.bookingRef = flightBookingRef.trim()
+      result.details = Object.keys(flightDetails!).length > 0 ? flightDetails : undefined
     }
 
     // Tier-1 hard validation: block closing the editor with an invalid activity.
@@ -1312,7 +1328,7 @@ export function ActivityFormPanel({
   }
 
   const TypeBadgeIcon = ACTIVITY_TYPE_ICON[selectedActivityType]
-  const hasActivitySpecificFields = selectedActivityType === 'food' || selectedActivityType === 'tour' || selectedActivityType === 'accommodation' || selectedActivityType === 'transfer' || selectedActivityType === 'rental'
+  const hasActivitySpecificFields = selectedActivityType === 'food' || selectedActivityType === 'tour' || selectedActivityType === 'accommodation' || selectedActivityType === 'transfer' || selectedActivityType === 'rental' || selectedActivityType === 'flight'
   const activitySpecificSectionTitle = t(`common:itinerary.dayEditor.activityTypeOptions.${ACTIVITY_TYPE_LABEL_KEY[selectedActivityType]}`)
   const getReferenceRowSummary = (row: ReferenceDraftRow): string => {
     return row.caption.trim() || row.url.trim()
@@ -1859,6 +1875,52 @@ export function ActivityFormPanel({
                         step={useNativeTimeInput ? 60 : undefined}
                       />
                     </div>
+                  </div>
+                </>
+              ) : null}
+
+              {selectedActivityType === 'flight' ? (
+                <>
+                  <div className="activity-form-panel__field">
+                    <label htmlFor="activity-flight-number">{t('common:itinerary.dayEditor.fieldFlightNumber')}</label>
+                    <input
+                      id="activity-flight-number"
+                      type="text"
+                      value={flightNumber}
+                      onChange={(e) => setFlightNumber(e.target.value)}
+                      placeholder={t('common:itinerary.dayEditor.flightNumberPlaceholder')}
+                      autoComplete="off"
+                      disabled={isFormDisabled}
+                    />
+                  </div>
+
+                  <AirportSelect
+                    id="activity-flight-departure"
+                    label={t('common:itinerary.dayEditor.fieldDepartureAirport')}
+                    value={departureAirport}
+                    onChange={setDepartureAirport}
+                    disabled={isFormDisabled}
+                  />
+                  <AirportSelect
+                    id="activity-flight-arrival"
+                    label={t('common:itinerary.dayEditor.fieldArrivalAirport')}
+                    value={arrivalAirport}
+                    onChange={setArrivalAirport}
+                    disabled={isFormDisabled}
+                  />
+
+                  <p className="activity-form-panel__help-text">{t('common:itinerary.dayEditor.flightTimesHint')}</p>
+
+                  <div className="activity-form-panel__field">
+                    <label htmlFor="activity-flight-booking-ref">{t('common:itinerary.dayEditor.fieldBookingRef')}</label>
+                    <input
+                      id="activity-flight-booking-ref"
+                      type="text"
+                      value={flightBookingRef}
+                      onChange={(e) => setFlightBookingRef(e.target.value)}
+                      autoComplete="off"
+                      disabled={isFormDisabled}
+                    />
                   </div>
                 </>
               ) : null}

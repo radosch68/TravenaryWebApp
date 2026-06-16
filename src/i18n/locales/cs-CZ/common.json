@@ -1,6 +1,7 @@
 {
   "loading": "Načítání...",
   "confirm": "Potvrdit",
+  "clear": "Vymazat",
   "brand": {
     "logoAlt": "Logo Travenary"
   },
@@ -481,6 +482,13 @@
         "car": "Auto",
         "other": "Jiné"
       },
+      "fieldFlightNumber": "Číslo letu",
+      "flightNumberPlaceholder": "např. BA005",
+      "fieldDepartureAirport": "Odletové letiště",
+      "fieldArrivalAirport": "Příletové letiště",
+      "flightAirportPlaceholder": "Hledat podle kódu, letiště nebo města",
+      "flightAirportNoResults": "Žádná odpovídající letiště",
+      "flightTimesHint": "Odlet a přílet používají pole Čas a Čas konce výše (každé v místním čase svého letiště).",
       "commonTitle": "Společné",
       "referencesTitle": "Média/Odkazy",
       "referencesAdd": "Přidat odkaz",

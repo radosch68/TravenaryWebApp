@@ -99,6 +99,20 @@ export interface ActivityDetails {
   rentalType?: RentalType
   days?: number
   returnUntil?: string
+  flightNumber?: string
+  departureAirport?: FlightAirport
+  arrivalAirport?: FlightAirport
+}
+
+// An airport on a flight. `tz` (IANA) makes the flight a timezone boundary for
+// ordering. Departure/arrival times reuse the activity's time/timeEnd.
+export interface FlightAirport {
+  iata: string
+  name?: string
+  city?: string
+  country?: string
+  tz?: string
+  coordinates?: [number, number]
 }
 
 export interface ActivityLocation {

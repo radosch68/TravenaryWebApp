@@ -12,8 +12,19 @@
 
 export interface OrderableActivity {
   id: string
+  type?: string
   time?: string
   timeEnd?: string
+}
+
+// Activity types that change timezone and therefore act as hard ordering
+// boundaries: auto-reordering never moves a tile across one, so an origin-local
+// time is never compared against a destination-local time. Flight is the first
+// such type; the set is the home for the "TZ-changing activity" concept.
+const TIMEZONE_BOUNDARY_TYPES: ReadonlySet<string> = new Set(['flight'])
+
+export function isTimezoneBoundary(activity: OrderableActivity): boolean {
+  return activity.type !== undefined && TIMEZONE_BOUNDARY_TYPES.has(activity.type)
 }
 
 function sortKey(activity: OrderableActivity): [string, string] | null {
@@ -54,9 +65,10 @@ export interface RepositionPlan {
 
 // Decide whether and where to move the changed activity within the day's
 // activity tiles (given in document order, across the whole day, ignoring
-// section breaks and prose per the chosen scope). Returns null when nothing
-// should move: the activity is untimed, missing, the only timed tile, or already
-// correctly placed relative to its timed neighbours.
+// section breaks and prose per the chosen scope — but never crossing a timezone
+// boundary such as a flight). Returns null when nothing should move: the
+// activity is untimed, a boundary itself, missing, alone in its segment, or
+// already correctly placed relative to its timed neighbours in the segment.
 export function planActivityReposition(
   tilesInDocOrder: ReadonlyArray<OrderableActivity>,
   changedId: string,
@@ -67,27 +79,51 @@ export function planActivityReposition(
   }
 
   const changed = tilesInDocOrder[changedIndex]
-  if (!isActivityTimed(changed)) {
+  // Boundary tiles (flights) are placed manually and never auto-moved.
+  if (isTimezoneBoundary(changed) || !isActivityTimed(changed)) {
     return null
   }
 
-  const timedOthers = tilesInDocOrder.filter((tile) => tile.id !== changedId && isActivityTimed(tile))
+  // Confine ordering to the segment between the surrounding boundary tiles, so
+  // the activity never crosses a flight (and an origin-local time is never
+  // compared against a destination-local time).
+  let segmentStart = 0
+  for (let index = changedIndex - 1; index >= 0; index -= 1) {
+    if (isTimezoneBoundary(tilesInDocOrder[index])) {
+      segmentStart = index + 1
+      break
+    }
+  }
+  let segmentEnd = tilesInDocOrder.length
+  let trailingBoundaryId: string | null = null
+  for (let index = changedIndex + 1; index < tilesInDocOrder.length; index += 1) {
+    if (isTimezoneBoundary(tilesInDocOrder[index])) {
+      segmentEnd = index
+      trailingBoundaryId = tilesInDocOrder[index].id
+      break
+    }
+  }
+  const segment = tilesInDocOrder.slice(segmentStart, segmentEnd)
+  const segmentIndex = changedIndex - segmentStart
+
+  const timedOthers = segment.filter((tile) => tile.id !== changedId && isActivityTimed(tile))
   if (timedOthers.length === 0) {
     return null
   }
 
   // Already correctly placed if it sits at/after the previous timed tile and
-  // at/before the next timed tile in document order.
-  const prevTimed = [...tilesInDocOrder.slice(0, changedIndex)].reverse().find(isActivityTimed)
-  const nextTimed = tilesInDocOrder.slice(changedIndex + 1).find(isActivityTimed)
+  // at/before the next timed tile within its segment.
+  const prevTimed = [...segment.slice(0, segmentIndex)].reverse().find(isActivityTimed)
+  const nextTimed = segment.slice(segmentIndex + 1).find(isActivityTimed)
   const afterPrev = !prevTimed || compareTimedActivities(prevTimed, changed) <= 0
   const beforeNext = !nextTimed || compareTimedActivities(changed, nextTimed) <= 0
   if (afterPrev && beforeNext) {
     return null
   }
 
-  // Slot it immediately before the first timed tile it strictly precedes;
-  // otherwise after the last timed tile.
+  // Slot it immediately before the first timed tile in the segment it strictly
+  // precedes; otherwise at the segment's end — before the trailing boundary if
+  // there is one, else at the end of the day.
   const before = timedOthers.find((tile) => compareTimedActivities(changed, tile) < 0)
-  return { beforeId: before ? before.id : null }
+  return { beforeId: before ? before.id : trailingBoundaryId }
 }
