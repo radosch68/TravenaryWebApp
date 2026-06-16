@@ -293,7 +293,15 @@
     "rentalReturnBy": "Return by",
     "footer": {
       "accommodationCheckOutBeyondItinerary": "Check-out falls after the last day of the itinerary",
-      "rentalReturnBeyondItinerary": "Return falls after the last day of the itinerary"
+      "rentalReturnBeyondItinerary": "Return falls after the last day of the itinerary",
+      "accommodationCheckOutTimeMissing": "Check-out time not set",
+      "rentalReturnTimeMissing": "Return time not set"
+    },
+    "validation": {
+      "titleRequired": "Title is required",
+      "timeEndBeforeStart": "End time is before the start time",
+      "transferRouteIncomplete": "Transfer needs both a from and a to location",
+      "checkInWindowInvalid": "Check-in \"from\" must be before \"until\""
     },
     "accommodationSummaryEmpty": "-",
     "accommodationFieldGuests": "Guests",

@@ -305,7 +305,15 @@
     "rentalReturnBy": "Vrátit do",
     "footer": {
       "accommodationCheckOutBeyondItinerary": "Check-out je až po posledním dni itineráře",
-      "rentalReturnBeyondItinerary": "Vrácení je až po posledním dni itineráře"
+      "rentalReturnBeyondItinerary": "Vrácení je až po posledním dni itineráře",
+      "accommodationCheckOutTimeMissing": "Není nastaven čas check-outu",
+      "rentalReturnTimeMissing": "Není nastaven čas vrácení"
+    },
+    "validation": {
+      "titleRequired": "Název je povinný",
+      "timeEndBeforeStart": "Čas konce je před časem začátku",
+      "transferRouteIncomplete": "Přesun potřebuje výchozí i cílové místo",
+      "checkInWindowInvalid": "Check-in „od“ musí být před „do“"
     },
     "accommodationSummaryEmpty": "-",
     "accommodationFieldGuests": "Hosté",

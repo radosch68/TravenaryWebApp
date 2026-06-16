@@ -33,7 +33,8 @@ import {
   getVirtualCheckoutActivityIndex,
   type VirtualSpanActivityCheckout,
 } from '@/utils/itinerary-grouping'
-import { getSpanActivityConfig, getSpanBeyondItineraryFooterItems, SPAN_ACTIVITY_CONFIGS } from '@/components/itinerary/span-activity'
+import { getSpanActivityConfig, SPAN_ACTIVITY_CONFIGS } from '@/components/itinerary/span-activity'
+import { buildActivityFooterItems } from '@/components/itinerary/activity-validation'
 import { toDayActivities } from '@/utils/tiptap-compatibility'
 
 import gridStyles from './ItineraryDaysGrid.module.css'
@@ -998,13 +999,13 @@ export function DayRichTextEditor({
         },
         getActivityFooter: (activity) =>
           // Refs keep this current without recreating the editor: labelsRef for
-          // locale-correct warning text, lastDayNumberRef for the day count.
-          getSpanBeyondItineraryFooterItems(
-            activity,
-            day.dayNumber,
-            lastDayNumberRef.current,
-            labelsRef.current.display.footerSpanBeyondItinerary,
-          ),
+          // locale-correct text, lastDayNumberRef for the day count.
+          buildActivityFooterItems(activity, {
+            dayNumber: day.dayNumber,
+            lastDayNumber: lastDayNumberRef.current,
+            validationMessages: labelsRef.current.display.validationMessages,
+            spanBeyondLabelByType: labelsRef.current.display.footerSpanBeyondItinerary,
+          }),
         getLabels: () => labelsRef.current,
         onActivityOpen: () => undefined,
         onActivityDelete: () => undefined,

@@ -102,18 +102,25 @@ export function formatLocalTime(value: string | undefined, locale: string): stri
   return new Intl.DateTimeFormat(locale, getTimeFormatOptions(locale)).format(parsed)
 }
 
+// Bullet placeholder for a missing endpoint, matching the transfer estimate chip
+// separator ("14 mins • 8.7 km"). Its position shows which side is empty.
+const EMPTY_TIME_PLACEHOLDER = '•'
+
 export function formatLocalTimeRange(start: string | undefined, end: string | undefined, locale: string): string {
-  if (!start) {
-    return ''
-  }
-
-  const formattedStart = formatLocalTime(start, locale)
-  if (!formattedStart) {
-    return ''
-  }
-
+  const formattedStart = start ? formatLocalTime(start, locale) : ''
   const formattedEnd = end ? formatLocalTime(end, locale) : ''
-  return formattedEnd ? `${formattedStart} - ${formattedEnd}` : formattedStart
+
+  // Hide the time entirely only when both ends are empty.
+  if (!formattedStart && !formattedEnd) {
+    return ''
+  }
+
+  if (formattedStart && formattedEnd) {
+    return `${formattedStart} - ${formattedEnd}`
+  }
+
+  // Exactly one side is set: show it, with a bullet standing in for the empty end.
+  return `${formattedStart || EMPTY_TIME_PLACEHOLDER} - ${formattedEnd || EMPTY_TIME_PLACEHOLDER}`
 }
 
 export function getLocalizedTimeInputPlaceholder(locale: string): string {

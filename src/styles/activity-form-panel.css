@@ -509,6 +509,24 @@
   line-height: 1.35;
 }
 
+/* Validation errors live in the dialog/inline footer, left of the OK button, so
+   they stay visible without scrolling the form body (important on mobile). */
+.activity-form-panel__footer-errors {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin: 0 auto 0 0;
+  padding: 0;
+  list-style: none;
+  text-align: left;
+  font-size: var(--font-size-sm);
+  line-height: 1.3;
+  color: var(--danger);
+}
+
+.activity-form-panel__footer-errors li + li {
+  margin-top: 0.15rem;
+}
+
 @media (max-width: 32.5rem) {
   .activity-form-panel__photo-search-results {
     grid-template-columns: repeat(2, minmax(0, 1fr));

@@ -24,6 +24,9 @@ export interface SpanActivityConfig {
   // when its span runs past the last day of the itinerary (closure falls off the
   // end, so no virtual checkout tile is produced).
   beyondItineraryLabelKey: string
+  // i18n key (common namespace) for the footer warning shown when a span is set
+  // but its closure time (check-out / return) is left empty.
+  missingClosureTimeLabelKey: string
 }
 
 export type ActivityFooterSeverity = 'note' | 'warning' | 'error'
@@ -51,6 +54,7 @@ export const SPAN_ACTIVITY_CONFIGS: readonly SpanActivityConfig[] = [
     iconSvg: BED_DOUBLE_ICON_SVG,
     checkoutLabelKey: 'itineraryView.accommodationSummaryCheckOut',
     beyondItineraryLabelKey: 'itineraryView.footer.accommodationCheckOutBeyondItinerary',
+    missingClosureTimeLabelKey: 'itineraryView.footer.accommodationCheckOutTimeMissing',
   },
   {
     type: 'rental',
@@ -60,6 +64,7 @@ export const SPAN_ACTIVITY_CONFIGS: readonly SpanActivityConfig[] = [
     iconSvg: KEY_ROUND_ICON_SVG,
     checkoutLabelKey: 'itineraryView.rentalReturnBy',
     beyondItineraryLabelKey: 'itineraryView.footer.rentalReturnBeyondItinerary',
+    missingClosureTimeLabelKey: 'itineraryView.footer.rentalReturnTimeMissing',
   },
 ]
 

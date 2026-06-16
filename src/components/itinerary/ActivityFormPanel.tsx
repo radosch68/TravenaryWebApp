@@ -11,6 +11,7 @@ import { formatLocalDate, formatLocalTime, getLocalizedTimeInputPlaceholder } fr
 import { toGoogleMapsUrl } from '@/utils/location-links'
 import { inferReferenceTypeFromUrl } from '@/utils/reference-url'
 import { ACTIVITY_TYPE_ICON } from './activity-presentation'
+import { validateActivity } from './activity-validation'
 import formStyles from './ActivityFormPanel.module.css'
 import { ensureGoogleMapsScript, waitForGoogleMapsApiReady } from '@/utils/google-maps-api'
 
@@ -516,11 +517,13 @@ export function ActivityFormPanel({
   const [photoSearchSelected, setPhotoSearchSelected] = useState<Record<string, boolean>>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
+  const [validationErrors, setValidationErrors] = useState<string[]>([])
   const timeInputRef = useRef<HTMLInputElement | null>(null)
   const timeEndInputRef = useRef<HTMLInputElement | null>(null)
   const isFormDisabled = disabled || isSubmitting
 
   const resetTypeSpecificFields = (nextType: ActivityType): void => {
+    setValidationErrors([])
     setActivityDetailsSectionOpen(nextType === 'food' || nextType === 'tour' || nextType === 'accommodation' || nextType === 'rental')
     setCuisine('')
     setGuidanceMode('selfGuided')
@@ -1054,7 +1057,6 @@ export function ActivityFormPanel({
   }
 
   const handleSubmit = async (): Promise<void> => {
-    if (!title.trim()) return
     setSubmitError(null)
 
     const liveTime = normalizeTimeValue(timeInputRef.current?.value ?? time)
@@ -1266,6 +1268,28 @@ export function ActivityFormPanel({
       result.details = Object.keys(rentalDetails!).length > 0 ? rentalDetails : undefined
     }
 
+    // Tier-1 hard validation: block closing the editor with an invalid activity.
+    // Only `error`-severity issues block; warnings flow to the tile footer.
+    const blockingMessages = validateActivity(result)
+      .filter((issue) => issue.severity === 'error')
+      .map((issue) => t(issue.messageKey))
+
+    // The pure validator can't catch a transfer with exactly one endpoint filled,
+    // because incomplete endpoints are dropped from `result.details` above; check
+    // the live form state for that partial case.
+    if (
+      selectedActivityType === 'transfer'
+      && isTransferLocationComplete(transferFrom) !== isTransferLocationComplete(transferTo)
+    ) {
+      blockingMessages.push(t('itineraryView.validation.transferRouteIncomplete'))
+    }
+
+    if (blockingMessages.length > 0) {
+      setValidationErrors(blockingMessages)
+      return
+    }
+    setValidationErrors([])
+
     setIsSubmitting(true)
     try {
       await onSave({
@@ -1342,16 +1366,25 @@ export function ActivityFormPanel({
   )
 
   const dialogFooter = (
-    <button
-      type="button"
-      className={formStyles.dialogConfirmButton}
-      onClick={() => void handleSubmit()}
-      disabled={isFormDisabled || !title.trim()}
-      aria-label={t('common:confirm')}
-      title={t('common:confirm')}
-    >
-      <Check size={16} strokeWidth={2.5} aria-hidden="true" />
-    </button>
+    <>
+      {validationErrors.length > 0 ? (
+        <ul className="activity-form-panel__footer-errors" role="alert">
+          {validationErrors.map((message, index) => (
+            <li key={`${message}-${index}`}>{message}</li>
+          ))}
+        </ul>
+      ) : null}
+      <button
+        type="button"
+        className={formStyles.dialogConfirmButton}
+        onClick={() => void handleSubmit()}
+        disabled={isFormDisabled}
+        aria-label={t('common:confirm')}
+        title={t('common:confirm')}
+      >
+        <Check size={16} strokeWidth={2.5} aria-hidden="true" />
+      </button>
+    </>
   )
 
   const panelBody = (

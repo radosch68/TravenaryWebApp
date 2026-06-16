@@ -64,7 +64,10 @@
   flex-direction: column;
   gap: 0.12rem;
   margin: -0.5rem -0.5rem 0;
-  padding: 0.34rem 2.85rem 0.3rem 0.5rem;
+  /* Right padding clears the absolutely-positioned delete button (ends ~2.2rem
+     from the card edge) with a small gap — keeps the right-aligned time from
+     stranding far left of the trash icon. */
+  padding: 0.34rem 2.35rem 0.3rem 0.5rem;
   border-bottom: 1px solid color-mix(in oklab, var(--activity-accent) 28%, var(--border) 72%);
   background: color-mix(in oklab, var(--activity-accent) 10%, transparent);
 }

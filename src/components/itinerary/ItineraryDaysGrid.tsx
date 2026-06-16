@@ -31,7 +31,8 @@ import {
   type OvernightCoverage,
   type VirtualSpanActivityCheckout,
 } from '@/utils/itinerary-grouping'
-import { getSpanActivityConfig, getSpanBeyondItineraryFooterItems } from '@/components/itinerary/span-activity'
+import { getSpanActivityConfig } from '@/components/itinerary/span-activity'
+import { buildActivityFooterItems } from '@/components/itinerary/activity-validation'
 import { ACTIVITY_TYPE_ICON } from '@/components/itinerary/activity-presentation'
 import { ActivityTileDisplay, buildActivityTileLabels } from '@/tiptap/activity-tile-extension'
 import { toDayActivities } from '@/utils/tiptap-compatibility'
@@ -1611,13 +1612,13 @@ function ActivityCard({
   }, [activity.time, activity.timeEnd, locale])
   const footerItems = useMemo(
     () =>
-      getSpanBeyondItineraryFooterItems(
-        activity,
+      buildActivityFooterItems(activity, {
         dayNumber,
         lastDayNumber,
-        labels.display.footerSpanBeyondItinerary,
-      ),
-    [activity, dayNumber, lastDayNumber, labels.display.footerSpanBeyondItinerary],
+        validationMessages: labels.display.validationMessages,
+        spanBeyondLabelByType: labels.display.footerSpanBeyondItinerary,
+      }),
+    [activity, dayNumber, lastDayNumber, labels.display.validationMessages, labels.display.footerSpanBeyondItinerary],
   )
 
   return (

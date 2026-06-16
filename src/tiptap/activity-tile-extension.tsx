@@ -34,6 +34,7 @@ import {
   type ActivityFooterItem,
   type ActivityFooterSeverity,
 } from '@/components/itinerary/span-activity'
+import { ACTIVITY_VALIDATION_MESSAGE_KEYS } from '@/components/itinerary/activity-validation'
 import { DialogShell } from '@/components/common/DialogShell'
 import { ActivityFormPanel } from '@/components/itinerary/ActivityFormPanel'
 import { hasCoordinates } from '@/components/itinerary/location-map-pins'
@@ -94,6 +95,9 @@ export interface ActivityTileLabels {
     // the itinerary's last day. Keyed by activity type so future span types need
     // no change here.
     footerSpanBeyondItinerary: Partial<Record<ActivityType, string>>
+    // Localized validation messages keyed by i18n key, for rendering validator
+    // issues (errors/warnings) in the tile footer.
+    validationMessages: Record<string, string>
   }
 }
 
@@ -166,6 +170,12 @@ export function buildActivityTileLabels(t: TranslateFn, locale: string): Activit
       footerSpanBeyondItinerary: Object.fromEntries(
         SPAN_ACTIVITY_CONFIGS.map((config) => [config.type, t(config.beyondItineraryLabelKey)]),
       ) as Partial<Record<ActivityType, string>>,
+      validationMessages: {
+        ...Object.fromEntries(ACTIVITY_VALIDATION_MESSAGE_KEYS.map((key) => [key, t(key)])),
+        ...Object.fromEntries(
+          SPAN_ACTIVITY_CONFIGS.map((config) => [config.missingClosureTimeLabelKey, t(config.missingClosureTimeLabelKey)]),
+        ),
+      },
     },
   }
 }
@@ -1507,6 +1517,7 @@ export const ActivityTile = Node.create<ActivityTileOptions>({
           openReferenceAria: (label) => label,
           openMapAria: (label) => label,
           footerSpanBeyondItinerary: {},
+          validationMessages: {},
         },
       }),
       onActivityOpen: () => undefined,
