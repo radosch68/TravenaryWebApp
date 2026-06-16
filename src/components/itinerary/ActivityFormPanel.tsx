@@ -1452,6 +1452,7 @@ export function ActivityFormPanel({
             )}
 
             {selectedActivityType !== 'accommodation' && (
+              <>
               <div className="activity-form-panel__field-row activity-form-panel__field-row--time">
                 <div className="activity-form-panel__field">
                   <label htmlFor="activity-time">{t('common:itinerary.dayEditor.fieldTime')}</label>
@@ -1484,6 +1485,8 @@ export function ActivityFormPanel({
                   />
                 </div>
               </div>
+              <p className="activity-form-panel__help-text">{t('common:itinerary.dayEditor.timeRepositionHint')}</p>
+              </>
             )}
 
             {owningDayDate ? (
@@ -1504,7 +1507,6 @@ export function ActivityFormPanel({
                     <span>{t('common:itinerary.dayEditor.anchorToDay', { date: formatLocalDate(owningDayDate, i18n.language) })}</span>
                   </span>
                 </label>
-                <p className="activity-form-panel__help-text">{t('common:itinerary.dayEditor.anchorHelp')}</p>
               </div>
             ) : null}
           </div>

@@ -462,7 +462,7 @@
         "plane": "Letadlem"
       },
       "anchorToDay": "Ukotvit k tomuto dni ({{date}})",
-      "anchorHelp": "Ukotvené aktivity zůstanou na tomto datu, když se změní datum zahájení cesty.",
+      "timeRepositionHint": "Změna času může přesunout tuto aktivitu v rámci dne.",
       "fieldNights": "Počet nocí",
       "fieldGuests": "Počet osob",
       "fieldCheckInFrom": "Check-in od",

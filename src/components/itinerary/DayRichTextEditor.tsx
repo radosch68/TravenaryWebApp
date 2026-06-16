@@ -298,6 +298,21 @@ function repositionActivityInEditor(editor: Editor, changedId: string): boolean 
   return true
 }
 
+// Bring the just-saved activity tile into view (whether or not it moved), so the
+// user sees where it landed. Deferred a frame to let the move's DOM update land.
+function scrollActivityIntoView(editor: Editor, activityId: string): void {
+  if (typeof window === 'undefined') {
+    return
+  }
+  window.requestAnimationFrame(() => {
+    const dom = editor.view?.dom as HTMLElement | undefined
+    const tile = dom?.querySelector(`[data-activity-id="${CSS.escape(activityId)}"]`)
+    if (tile instanceof HTMLElement) {
+      tile.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    }
+  })
+}
+
 function createClientActivityId(): string {
   if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
     return `activity-${crypto.randomUUID()}`
@@ -850,6 +865,7 @@ export function DayRichTextEditor({
           } catch {
             // Reordering is best-effort and must never block the save.
           }
+          scrollActivityIntoView(activeEditor, activityId)
         }
         saveNow()
       }, 0)

@@ -449,7 +449,7 @@
         "plane": "Plane"
       },
       "anchorToDay": "Anchor to this day ({{date}})",
-      "anchorHelp": "Anchored activities stay on this date when the trip start date changes.",
+      "timeRepositionHint": "Changing the time may reposition this activity within the day.",
       "fieldNights": "Nights",
       "fieldGuests": "Guests",
       "fieldCheckInFrom": "Check-in from",
