@@ -1,4 +1,4 @@
-import { Extension, Node, mergeAttributes, type JSONContent, type Range } from '@tiptap/core'
+import { Extension, Node, mergeAttributes, type Editor, type JSONContent, type Range } from '@tiptap/core'
 import Link from '@tiptap/extension-link'
 import Placeholder from '@tiptap/extension-placeholder'
 import Underline from '@tiptap/extension-underline'
@@ -35,6 +35,7 @@ import {
 } from '@/utils/itinerary-grouping'
 import { getSpanActivityConfig, SPAN_ACTIVITY_CONFIGS } from '@/components/itinerary/span-activity'
 import { buildActivityFooterItems } from '@/components/itinerary/activity-validation'
+import { isActivityTimed, planActivityReposition, type OrderableActivity } from '@/components/itinerary/activity-ordering'
 import { toDayActivities } from '@/utils/tiptap-compatibility'
 
 import gridStyles from './ItineraryDaysGrid.module.css'
@@ -243,6 +244,60 @@ function fromEditorContent(content: JSONContent): DayDocumentNode[] {
   return ((content.content ?? []) as DayDocumentNode[]).filter((node) => node.type !== 'doc')
 }
 
+// Move the just-edited activity tile to its time-sorted slot among the day's
+// other timed tiles (see activity-ordering). Only that one tile moves; every
+// other node keeps its position. Returns true if a move was dispatched.
+function repositionActivityInEditor(editor: Editor, changedId: string): boolean {
+  const { state } = editor
+  const tiles: Array<{ id: string; pos: number; nodeSize: number; activity: OrderableActivity }> = []
+  state.doc.descendants((node, pos) => {
+    if (node.type.name === 'activityTile') {
+      const activity = node.attrs.activity as ItineraryActivity | undefined
+      if (activity?.id) {
+        tiles.push({ id: activity.id, pos, nodeSize: node.nodeSize, activity })
+      }
+      return false
+    }
+    return true
+  })
+
+  const plan = planActivityReposition(tiles.map((tile) => tile.activity), changedId)
+  if (!plan) {
+    return false
+  }
+
+  const source = tiles.find((tile) => tile.id === changedId)
+  const node = source ? state.doc.nodeAt(source.pos) : null
+  if (!source || !node) {
+    return false
+  }
+
+  let targetPos: number
+  if (plan.beforeId) {
+    const target = tiles.find((tile) => tile.id === plan.beforeId)
+    if (!target) {
+      return false
+    }
+    targetPos = target.pos
+  } else {
+    const timedOthers = tiles.filter((tile) => tile.id !== changedId && isActivityTimed(tile.activity))
+    const last = timedOthers[timedOthers.length - 1]
+    if (!last) {
+      return false
+    }
+    targetPos = last.pos + last.nodeSize
+  }
+
+  // Delete the source node, then insert it at the target. Mapping the target
+  // through the deletion keeps it correct whether the target is before or after
+  // the original position.
+  const tr = state.tr
+  tr.delete(source.pos, source.pos + source.nodeSize)
+  tr.insert(tr.mapping.map(targetPos), node)
+  editor.view.dispatch(tr)
+  return true
+}
+
 function createClientActivityId(): string {
   if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
     return `activity-${crypto.randomUUID()}`
@@ -448,6 +503,7 @@ export function DayRichTextEditor({
   })
   const hadVirtualCheckoutsRef = useRef((virtualCheckouts ?? []).length > 0)
   const documentNodesRef = useRef(documentNodes)
+  const editorRef = useRef<Editor | null>(null)
   const activityBenchRef = useRef(activityBench)
   const onActivityBenchRef = useRef(onActivityBench)
   // Set once the delete dialog benches an activity in this editor; from then on
@@ -778,9 +834,23 @@ export function DayRichTextEditor({
   }, [hasUnsavedChanges])
 
   useEffect(() => {
-    const onActivityEditorConfirmed = (): void => {
-      // Let TipTap flush attribute changes first, then persist immediately.
+    const onActivityEditorConfirmed = (event: Event): void => {
+      const activityId = (event as CustomEvent<{ activityId: string | null }>).detail?.activityId ?? null
+      // Let TipTap flush the attribute change first, then reorder + persist.
       window.setTimeout(() => {
+        const activeEditor = editorRef.current
+        if (activityId && activeEditor) {
+          try {
+            const moved = repositionActivityInEditor(activeEditor, activityId)
+            if (moved) {
+              // saveNow reads documentNodesRef, which onUpdate only refreshes on
+              // the next React tick; sync it now so the new order is persisted.
+              documentNodesRef.current = fromEditorContent(activeEditor.getJSON())
+            }
+          } catch {
+            // Reordering is best-effort and must never block the save.
+          }
+        }
         saveNow()
       }, 0)
     }
@@ -1064,6 +1134,10 @@ export function DayRichTextEditor({
       onEditorActivate?.()
     },
   })
+
+  useEffect(() => {
+    editorRef.current = editor
+  }, [editor])
 
   const getInitialFocusCoordsRef = useRef(getInitialFocusCoords)
   useEffect(() => {
