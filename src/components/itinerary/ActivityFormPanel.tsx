@@ -248,6 +248,31 @@ function parseCoordinatePair(longitudeRaw: string, latitudeRaw: string): [number
   return [longitude, latitude]
 }
 
+// Coordinates to persist for a location/transfer-endpoint draft row. If a
+// map-flagged row's address was edited but its geocoded coordinates weren't (and
+// weren't set manually), drop them so the new address re-geocodes on save —
+// otherwise stale coordinates would silently outlive the address they came from.
+function resolveDraftRowCoordinates(row: LocationDraftRow): [number, number] | undefined {
+  const coordinates = parseCoordinatePair(row.longitude, row.latitude)
+  if (!coordinates) {
+    return undefined
+  }
+
+  const address = row.address.trim()
+  if (
+    row.showOnMap
+    && address
+    && !row.coordinatesManualOverride
+    && address !== row.initialAddress.trim()
+    && row.longitude.trim() === row.initialLongitude.trim()
+    && row.latitude.trim() === row.initialLatitude.trim()
+  ) {
+    return undefined
+  }
+
+  return coordinates
+}
+
 function isTransferLocationComplete(row: LocationDraftRow): boolean {
   const hasLongitude = row.longitude.trim().length > 0
   const hasLatitude = row.latitude.trim().length > 0
@@ -1214,34 +1239,22 @@ export function ActivityFormPanel({
     } else if (selectedActivityType === 'tour') {
       result.details = { guidanceMode }
     } else if (selectedActivityType === 'transfer') {
+      const fromCoordinates = resolveDraftRowCoordinates(transferFrom)
       const normalizedFrom = isTransferLocationComplete(transferFrom)
         ? {
             ...(transferFrom.caption.trim() ? { caption: transferFrom.caption.trim() } : {}),
             showOnMap: transferFrom.showOnMap,
             ...(transferFrom.address.trim() ? { address: transferFrom.address.trim() } : {}),
-            ...(() => {
-              const coordinates = parseCoordinatePair(transferFrom.longitude, transferFrom.latitude)
-              if (coordinates) {
-                const [longitude, latitude] = coordinates
-                return { coordinates: [longitude, latitude] }
-              }
-              return {}
-            })(),
+            ...(fromCoordinates ? { coordinates: fromCoordinates } : {}),
           }
         : undefined
+      const toCoordinates = resolveDraftRowCoordinates(transferTo)
       const normalizedTo = isTransferLocationComplete(transferTo)
         ? {
             ...(transferTo.caption.trim() ? { caption: transferTo.caption.trim() } : {}),
             showOnMap: transferTo.showOnMap,
             ...(transferTo.address.trim() ? { address: transferTo.address.trim() } : {}),
-            ...(() => {
-              const coordinates = parseCoordinatePair(transferTo.longitude, transferTo.latitude)
-              if (coordinates) {
-                const [longitude, latitude] = coordinates
-                return { coordinates: [longitude, latitude] }
-              }
-              return {}
-            })(),
+            ...(toCoordinates ? { coordinates: toCoordinates } : {}),
           }
         : undefined
       const estimateValue = transferEstimateValue.trim()
@@ -1317,22 +1330,23 @@ export function ActivityFormPanel({
     // Pre-resolve show-on-map addresses here, while the editor is still open, so
     // a bad address yields an actionable inline error instead of a failed day
     // save after the dialog closes (geocoding runs on the day save, not here).
+    // Use effective coordinates (after the address-change invalidation), so a row
+    // whose geocoded coords were just dropped is re-checked here too.
     type GeocodePin = { address: string; kind: 'location' | 'from' | 'to'; rowId?: string }
     const pins: GeocodePin[] = []
     for (const row of locationRows) {
       const address = row.address.trim()
-      const hasCoordinates = parseCoordinatePair(row.longitude, row.latitude) !== null
-      if (row.showOnMap && address && !hasCoordinates) {
+      if (row.showOnMap && address && resolveDraftRowCoordinates(row) === undefined) {
         pins.push({ address, kind: 'location', rowId: row.id })
       }
     }
     if (selectedActivityType === 'transfer') {
       const fromAddress = transferFrom.address.trim()
-      if (transferFrom.showOnMap && fromAddress && parseCoordinatePair(transferFrom.longitude, transferFrom.latitude) === null) {
+      if (transferFrom.showOnMap && fromAddress && resolveDraftRowCoordinates(transferFrom) === undefined) {
         pins.push({ address: fromAddress, kind: 'from' })
       }
       const toAddress = transferTo.address.trim()
-      if (transferTo.showOnMap && toAddress && parseCoordinatePair(transferTo.longitude, transferTo.latitude) === null) {
+      if (transferTo.showOnMap && toAddress && resolveDraftRowCoordinates(transferTo) === undefined) {
         pins.push({ address: toAddress, kind: 'to' })
       }
     }
