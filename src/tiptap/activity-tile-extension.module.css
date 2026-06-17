@@ -366,6 +366,32 @@
   min-width: 0;
 }
 
+/* Flight times block, between the To-chip summary and the From-chip grid:
+   Departure over Arrival on the left, Duration right-aligned (like Flight:). */
+.flightTimes {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.7rem;
+  padding: 0 0.5rem 0.34rem;
+  font-size: var(--font-size-md);
+  color: color-mix(in oklab, var(--foreground) 78%, var(--muted-foreground) 22%);
+}
+
+.flightTimesMain {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-width: 0;
+}
+
+.flightDuration {
+  flex: 0 0 auto;
+  margin-left: auto;
+  text-align: right;
+  white-space: nowrap;
+}
+
 .transferGrid dt {
   color: color-mix(in oklab, var(--foreground) 78%, var(--muted-foreground) 22%);
   font-size: var(--font-size-md);
@@ -671,17 +697,6 @@
   .activityEditorModalBody {
     padding: 0;
   }
-
-  .activityHeaderLine {
-    grid-template-columns: auto minmax(0, 1fr);
-  }
-
-  .activityTime {
-    grid-column: 2;
-    justify-self: start;
-    text-align: left;
-  }
-
 }
 
 .deleteDialogMessage {

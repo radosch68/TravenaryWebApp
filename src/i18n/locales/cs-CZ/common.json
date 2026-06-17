@@ -304,12 +304,10 @@
     "accommodationSummaryCheckIn": "Check-in",
     "accommodationSummaryCheckOut": "Check-out",
     "rentalReturnBy": "Vrátit do",
-    "flightDestination": "Cíl",
-    "flightNumber": "Číslo letu",
+    "flightNumber": "Let",
     "flightDeparture": "Odlet",
     "flightArrival": "Přílet",
     "flightDuration": "Délka",
-    "flightDepartureAirport": "Odletové letiště",
     "footer": {
       "accommodationCheckOutBeyondItinerary": "Check-out je až po posledním dni itineráře",
       "rentalReturnBeyondItinerary": "Vrácení je až po posledním dni itineráře",

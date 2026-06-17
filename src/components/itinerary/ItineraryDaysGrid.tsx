@@ -1607,13 +1607,9 @@ function ActivityCard({
   // of truth), so static and edit modes stay visually identical.
   const labels = useMemo(() => buildActivityTileLabels(t, locale), [t, locale])
   const metaItems = useMemo(() => {
-    // Flights show departure/arrival in their own detail section.
-    if (activity.type === 'flight') {
-      return []
-    }
     const timeRange = formatLocalTimeRange(activity.time, activity.timeEnd, locale)
     return timeRange ? [timeRange] : []
-  }, [activity.type, activity.time, activity.timeEnd, locale])
+  }, [activity.time, activity.timeEnd, locale])
   const footerItems = useMemo(
     () =>
       buildActivityFooterItems(activity, {

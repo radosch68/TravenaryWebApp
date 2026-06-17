@@ -88,12 +88,10 @@ export interface ActivityTileLabels {
     accommodationFieldContactPhone: string
     accommodationFieldContactEmail: string
     accommodationFieldBookingRef: string
-    flightDestination: string
     flightNumber: string
     flightDeparture: string
     flightArrival: string
     flightDuration: string
-    flightDepartureAirport: string
     platformOptions: Record<AccommodationPlatform, string>
     locationFallback: string
     openReferenceAria: (label: string) => string
@@ -164,12 +162,10 @@ export function buildActivityTileLabels(t: TranslateFn, locale: string): Activit
       accommodationFieldContactPhone: t('itineraryView.accommodationFieldContactPhone'),
       accommodationFieldContactEmail: t('itineraryView.accommodationFieldContactEmail'),
       accommodationFieldBookingRef: t('itineraryView.accommodationFieldBookingRef'),
-      flightDestination: t('itineraryView.flightDestination'),
       flightNumber: t('itineraryView.flightNumber'),
       flightDeparture: t('itineraryView.flightDeparture'),
       flightArrival: t('itineraryView.flightArrival'),
       flightDuration: t('itineraryView.flightDuration'),
-      flightDepartureAirport: t('itineraryView.flightDepartureAirport'),
       platformOptions: {
         booking: t('itineraryView.platformOptions.booking'),
         airbnb: t('itineraryView.platformOptions.airbnb'),
@@ -1304,11 +1300,22 @@ function hasFlightDetails(activity: ItineraryActivity): boolean {
   )
 }
 
-function flightAirportLabel(airport: FlightAirport | undefined): string {
+// Render an airport as a transfer-style LocationChip so the user can click
+// through to Google Maps, exactly like a transfer endpoint.
+function airportToLocation(airport: FlightAirport | undefined): ActivityLocation | undefined {
   if (!airport?.iata) {
-    return ''
+    return undefined
   }
-  return airport.name ? `${airport.iata} (${airport.name})` : airport.iata
+  const caption = airport.name ? `${airport.iata} (${airport.name})` : airport.iata
+  const address = [airport.name, airport.city, airport.country].filter(Boolean).join(', ')
+  return {
+    caption,
+    showOnMap: true,
+    ...(address ? { address } : {}),
+    ...(Array.isArray(airport.coordinates) && airport.coordinates.length === 2
+      ? { coordinates: [airport.coordinates[0], airport.coordinates[1]] }
+      : {}),
+  }
 }
 
 // Minutes east of UTC for an IANA zone on a reference date (DST-aware via Intl).
@@ -1374,13 +1381,15 @@ function FlightDetails({
   activity: ItineraryActivity
   labels: ActivityTileLabels
 }) {
-  const [isOpen, setIsOpen] = useState(true)
-
   if (activity.type !== 'flight' || !activity.details) {
     return null
   }
 
   const details = activity.details
+  const arrivalLocation = airportToLocation(details.arrivalAirport)
+  const departureLocation = airportToLocation(details.departureAirport)
+  const flightNumber = details.flightNumber?.trim()
+  const bookingRef = details.bookingRef?.trim()
   const departureTime = formatLocalTime(activity.time, labels.locale)
   const arrivalTime = formatLocalTime(activity.timeEnd, labels.locale)
   const reference = new Date()
@@ -1389,52 +1398,54 @@ function FlightDetails({
   const tzDelta = departureOffset !== null && arrivalOffset !== null ? arrivalOffset - departureOffset : null
   const arrivalSuffix = tzDelta !== null && tzDelta !== 0 ? ` (${formatOffsetDelta(tzDelta)})` : ''
   const durationMinutes = flightDurationMinutes(activity, reference)
+  const durationText = durationMinutes !== null ? formatHoursMinutes(durationMinutes) : ''
+  const hasTimes = Boolean(departureTime || arrivalTime || durationText)
 
-  const summaryItems = [
-    { key: 'destination', label: labels.display.flightDestination, value: flightAirportLabel(details.arrivalAirport) },
-    { key: 'number', label: labels.display.flightNumber, value: details.flightNumber?.trim() ?? '' },
-    { key: 'departure', label: labels.display.flightDeparture, value: departureTime },
-    { key: 'arrival', label: labels.display.flightArrival, value: arrivalTime ? `${arrivalTime}${arrivalSuffix}` : '' },
-    { key: 'duration', label: labels.display.flightDuration, value: durationMinutes !== null ? formatHoursMinutes(durationMinutes) : '' },
-  ]
-  const rows = [
-    textDetail(labels.display.flightDepartureAirport, flightAirportLabel(details.departureAirport) || undefined),
-    textDetail(labels.display.accommodationFieldBookingRef, details.bookingRef),
-  ].filter((row): row is AccommodationDetailRow => row !== null)
-
+  // Mirrors TransferDetails: To/From as clickable map chips, no estimate; plus
+  // the flight-specific number, times, and booking reference.
   return (
-    <section className={`${styles.accommodationDetails}${isOpen ? ` ${styles.accommodationDetailsOpen}` : ''}`}>
-      <button
-        type="button"
-        className={styles.accommodationSummary}
-        aria-expanded={isOpen}
-        onPointerDown={(event) => {
-          event.preventDefault()
-        }}
-        onClick={() => {
-          setIsOpen((previousValue) => !previousValue)
-        }}
-      >
-        {summaryItems.map((item) => (
-          <span key={item.key} className={styles.accommodationSummaryItem}>
-            <span>{item.label}: </span>
-            <strong>{item.value || labels.display.accommodationSummaryEmpty}</strong>
+    <section className={styles.transferDetails}>
+      <div className={styles.transferSummary}>
+        <div className={styles.transferSummaryLeft}>
+          <span className={styles.transferSummaryItem}>
+            <span>{labels.display.transferRouteTo}: </span>
+            {arrivalLocation ? <LocationChip location={arrivalLocation} labels={labels} index={0} /> : <strong>-</strong>}
           </span>
-        ))}
-      </button>
+        </div>
 
-      {isOpen && rows.length > 0 ? (
-        <dl className={styles.accommodationGrid}>
-          {rows.map((row) => (
-            <div key={row.label} className={styles.accommodationRow}>
-              <dt>{row.label}:</dt>
-              <dd>
-                <strong>{row.value}</strong>
-              </dd>
-            </div>
-          ))}
-        </dl>
+        <div className={styles.transferSummaryRight}>
+          {flightNumber ? (
+            <span>{labels.display.flightNumber}: <strong>{flightNumber}</strong></span>
+          ) : null}
+        </div>
+      </div>
+
+      {hasTimes ? (
+        <div className={styles.flightTimes}>
+          <div className={styles.flightTimesMain}>
+            {departureTime ? <span>{labels.display.flightDeparture}: <strong>{departureTime}</strong></span> : null}
+            {arrivalTime ? <span>{labels.display.flightArrival}: <strong>{arrivalTime}{arrivalSuffix}</strong></span> : null}
+          </div>
+          {durationText ? (
+            <span className={styles.flightDuration}>{labels.display.flightDuration}: <strong>{durationText}</strong></span>
+          ) : null}
+        </div>
       ) : null}
+
+      <dl className={styles.transferGrid}>
+        <div className={styles.transferRow}>
+          <dt>{labels.display.transferRouteFrom}:</dt>
+          <dd>
+            {departureLocation ? <LocationChip location={departureLocation} labels={labels} index={1} /> : <strong>-</strong>}
+          </dd>
+        </div>
+        {bookingRef ? (
+          <div className={styles.transferRow}>
+            <dt>{labels.display.accommodationFieldBookingRef}:</dt>
+            <dd><strong>{bookingRef}</strong></dd>
+          </div>
+        ) : null}
+      </dl>
     </section>
   )
 }
@@ -1672,12 +1683,10 @@ export const ActivityTile = Node.create<ActivityTileOptions>({
           accommodationFieldContactPhone: '',
           accommodationFieldContactEmail: '',
           accommodationFieldBookingRef: '',
-          flightDestination: '',
           flightNumber: '',
           flightDeparture: '',
           flightArrival: '',
           flightDuration: '',
-          flightDepartureAirport: '',
           platformOptions: {
             booking: '',
             airbnb: '',

@@ -292,12 +292,10 @@
     "accommodationSummaryCheckIn": "Check-in",
     "accommodationSummaryCheckOut": "Check-out",
     "rentalReturnBy": "Return by",
-    "flightDestination": "Destination",
-    "flightNumber": "Flight number",
+    "flightNumber": "Flight",
     "flightDeparture": "Departure",
     "flightArrival": "Arrival",
     "flightDuration": "Duration",
-    "flightDepartureAirport": "Departure airport",
     "footer": {
       "accommodationCheckOutBeyondItinerary": "Check-out falls after the last day of the itinerary",
       "rentalReturnBeyondItinerary": "Return falls after the last day of the itinerary",
