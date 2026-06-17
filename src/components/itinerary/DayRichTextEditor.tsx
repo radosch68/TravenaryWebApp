@@ -1078,6 +1078,11 @@ export function DayRichTextEditor({
         getPhotoThumbnailSize: () => photoThumbnailSizeRef.current,
         getActivityTypeLabel: (activity) => t(`itineraryView.activityType.${activity.type}`),
         getActivityMeta: (activity) => {
+          // Flights show departure/arrival in their own detail section, so keep
+          // the header time clear (like accommodation).
+          if (activity.type === 'flight') {
+            return []
+          }
           // Read the locale through labelsRef so language switches reach the
           // formatter without recreating the editor.
           const timeRange = formatLocalTimeRange(activity.time, activity.timeEnd, labelsRef.current.locale)

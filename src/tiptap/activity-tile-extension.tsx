@@ -24,6 +24,7 @@ import type {
   AccommodationPlatform,
   ActivityLocation,
   ActivityType,
+  FlightAirport,
   ItineraryActivity,
   TransferMot,
   WebReference,
@@ -87,6 +88,12 @@ export interface ActivityTileLabels {
     accommodationFieldContactPhone: string
     accommodationFieldContactEmail: string
     accommodationFieldBookingRef: string
+    flightDestination: string
+    flightNumber: string
+    flightDeparture: string
+    flightArrival: string
+    flightDuration: string
+    flightDepartureAirport: string
     platformOptions: Record<AccommodationPlatform, string>
     locationFallback: string
     openReferenceAria: (label: string) => string
@@ -157,6 +164,12 @@ export function buildActivityTileLabels(t: TranslateFn, locale: string): Activit
       accommodationFieldContactPhone: t('itineraryView.accommodationFieldContactPhone'),
       accommodationFieldContactEmail: t('itineraryView.accommodationFieldContactEmail'),
       accommodationFieldBookingRef: t('itineraryView.accommodationFieldBookingRef'),
+      flightDestination: t('itineraryView.flightDestination'),
+      flightNumber: t('itineraryView.flightNumber'),
+      flightDeparture: t('itineraryView.flightDeparture'),
+      flightArrival: t('itineraryView.flightArrival'),
+      flightDuration: t('itineraryView.flightDuration'),
+      flightDepartureAirport: t('itineraryView.flightDepartureAirport'),
       platformOptions: {
         booking: t('itineraryView.platformOptions.booking'),
         airbnb: t('itineraryView.platformOptions.airbnb'),
@@ -789,7 +802,8 @@ export function ActivityTileDisplay({
   const hasAnchoredDate = typeof activity.anchorDate === 'string' && activity.anchorDate.length > 0
   const hasAccommodationSection = hasAccommodationDetails(activity)
   const hasTransferSection = hasTransferDetails(activity)
-  const detailItems = activity.type === 'accommodation' || activity.type === 'transfer' ? [] : toActivityDetailItems(activity, labels)
+  const hasFlightSection = hasFlightDetails(activity)
+  const detailItems = activity.type === 'accommodation' || activity.type === 'transfer' || activity.type === 'flight' ? [] : toActivityDetailItems(activity, labels)
   const thumbnailPreset = PHOTO_THUMBNAIL_PRESETS[photoThumbnailSize] ?? PHOTO_THUMBNAIL_PRESETS.md
   const references = activity.references ?? []
   const indexedReferences = references.map((reference, index) => ({ reference, index }))
@@ -814,6 +828,7 @@ export function ActivityTileDisplay({
   const hasBodyContent =
     hasAccommodationSection ||
     hasTransferSection ||
+    hasFlightSection ||
     detailItems.length > 0 ||
     Boolean(activity.text?.trim()) ||
     visiblePhotoThumbnails.length > 0 ||
@@ -848,6 +863,7 @@ export function ActivityTileDisplay({
 
       {hasAccommodationSection ? <AccommodationDetails activity={activity} labels={labels} /> : null}
       {hasTransferSection ? <TransferDetails activity={activity} labels={labels} /> : null}
+      {hasFlightSection ? <FlightDetails activity={activity} labels={labels} /> : null}
 
       {detailItems.length > 0 ? (
         <div className={styles.detailList}>
@@ -1049,18 +1065,6 @@ function toActivityDetailItems(activity: ItineraryActivity, labels: ActivityTile
 
   if (activity.type === 'food' && activity.details?.cuisine?.trim()) {
     items.push(labels.display.cuisineLabel(activity.details.cuisine.trim()))
-  }
-
-  if (activity.type === 'flight' && activity.details) {
-    const route = [activity.details.departureAirport?.iata, activity.details.arrivalAirport?.iata]
-      .filter((code) => Boolean(code?.trim()))
-      .join(' → ')
-    if (route) {
-      items.push(route)
-    }
-    if (activity.details.flightNumber?.trim()) {
-      items.push(activity.details.flightNumber.trim())
-    }
   }
 
   return items
@@ -1283,6 +1287,156 @@ function AccommodationDetails({
 interface AccommodationDetailRow {
   label: string
   value: string
+}
+
+function hasFlightDetails(activity: ItineraryActivity): boolean {
+  if (activity.type !== 'flight' || !activity.details) {
+    return false
+  }
+  const details = activity.details
+  return Boolean(
+    details.flightNumber
+    || details.departureAirport
+    || details.arrivalAirport
+    || details.bookingRef
+    || activity.time
+    || activity.timeEnd,
+  )
+}
+
+function flightAirportLabel(airport: FlightAirport | undefined): string {
+  if (!airport?.iata) {
+    return ''
+  }
+  return airport.name ? `${airport.iata} (${airport.name})` : airport.iata
+}
+
+// Minutes east of UTC for an IANA zone on a reference date (DST-aware via Intl).
+function tzOffsetMinutes(tz: string | undefined, reference: Date): number | null {
+  if (!tz) {
+    return null
+  }
+  try {
+    const parts = new Intl.DateTimeFormat('en-US', { timeZone: tz, timeZoneName: 'shortOffset' }).formatToParts(reference)
+    const name = parts.find((part) => part.type === 'timeZoneName')?.value ?? ''
+    const match = name.match(/GMT([+-])(\d{1,2})(?::(\d{2}))?/)
+    if (!match) {
+      return 0
+    }
+    const sign = match[1] === '-' ? -1 : 1
+    return sign * (Number(match[2]) * 60 + (match[3] ? Number(match[3]) : 0))
+  } catch {
+    return null
+  }
+}
+
+function parseHhMm(value: string | undefined): number | null {
+  const match = value?.trim().match(/^(\d{1,2}):(\d{2})$/)
+  return match ? Number(match[1]) * 60 + Number(match[2]) : null
+}
+
+// Real elapsed flight time from local dep/arr times + their timezones:
+// (arrLocal - arrOffset) - (depLocal - depOffset), +24h when it lands next day.
+function flightDurationMinutes(activity: ItineraryActivity, reference: Date): number | null {
+  const depLocal = parseHhMm(activity.time)
+  const arrLocal = parseHhMm(activity.timeEnd)
+  if (depLocal === null || arrLocal === null) {
+    return null
+  }
+  const depOffset = tzOffsetMinutes(activity.details?.departureAirport?.tz, reference)
+  const arrOffset = tzOffsetMinutes(activity.details?.arrivalAirport?.tz, reference)
+  if (depOffset === null || arrOffset === null) {
+    return null
+  }
+  let minutes = (arrLocal - arrOffset) - (depLocal - depOffset)
+  if (minutes < 0) {
+    minutes += 24 * 60
+  }
+  return minutes
+}
+
+function formatHoursMinutes(minutes: number): string {
+  return `${Math.floor(minutes / 60)}:${String(minutes % 60).padStart(2, '0')}`
+}
+
+function formatOffsetDelta(minutes: number): string {
+  const sign = minutes >= 0 ? '+' : '-'
+  const abs = Math.abs(minutes)
+  const hours = Math.floor(abs / 60)
+  const mins = abs % 60
+  return mins === 0 ? `${sign}${hours}h` : `${sign}${hours}:${String(mins).padStart(2, '0')}`
+}
+
+function FlightDetails({
+  activity,
+  labels,
+}: {
+  activity: ItineraryActivity
+  labels: ActivityTileLabels
+}) {
+  const [isOpen, setIsOpen] = useState(true)
+
+  if (activity.type !== 'flight' || !activity.details) {
+    return null
+  }
+
+  const details = activity.details
+  const departureTime = formatLocalTime(activity.time, labels.locale)
+  const arrivalTime = formatLocalTime(activity.timeEnd, labels.locale)
+  const reference = new Date()
+  const departureOffset = tzOffsetMinutes(details.departureAirport?.tz, reference)
+  const arrivalOffset = tzOffsetMinutes(details.arrivalAirport?.tz, reference)
+  const tzDelta = departureOffset !== null && arrivalOffset !== null ? arrivalOffset - departureOffset : null
+  const arrivalSuffix = tzDelta !== null && tzDelta !== 0 ? ` (${formatOffsetDelta(tzDelta)})` : ''
+  const durationMinutes = flightDurationMinutes(activity, reference)
+
+  const summaryItems = [
+    { key: 'destination', label: labels.display.flightDestination, value: flightAirportLabel(details.arrivalAirport) },
+    { key: 'number', label: labels.display.flightNumber, value: details.flightNumber?.trim() ?? '' },
+    { key: 'departure', label: labels.display.flightDeparture, value: departureTime },
+    { key: 'arrival', label: labels.display.flightArrival, value: arrivalTime ? `${arrivalTime}${arrivalSuffix}` : '' },
+    { key: 'duration', label: labels.display.flightDuration, value: durationMinutes !== null ? formatHoursMinutes(durationMinutes) : '' },
+  ]
+  const rows = [
+    textDetail(labels.display.flightDepartureAirport, flightAirportLabel(details.departureAirport) || undefined),
+    textDetail(labels.display.accommodationFieldBookingRef, details.bookingRef),
+  ].filter((row): row is AccommodationDetailRow => row !== null)
+
+  return (
+    <section className={`${styles.accommodationDetails}${isOpen ? ` ${styles.accommodationDetailsOpen}` : ''}`}>
+      <button
+        type="button"
+        className={styles.accommodationSummary}
+        aria-expanded={isOpen}
+        onPointerDown={(event) => {
+          event.preventDefault()
+        }}
+        onClick={() => {
+          setIsOpen((previousValue) => !previousValue)
+        }}
+      >
+        {summaryItems.map((item) => (
+          <span key={item.key} className={styles.accommodationSummaryItem}>
+            <span>{item.label}: </span>
+            <strong>{item.value || labels.display.accommodationSummaryEmpty}</strong>
+          </span>
+        ))}
+      </button>
+
+      {isOpen && rows.length > 0 ? (
+        <dl className={styles.accommodationGrid}>
+          {rows.map((row) => (
+            <div key={row.label} className={styles.accommodationRow}>
+              <dt>{row.label}:</dt>
+              <dd>
+                <strong>{row.value}</strong>
+              </dd>
+            </div>
+          ))}
+        </dl>
+      ) : null}
+    </section>
+  )
 }
 
 function numberDetail(label: string, value: number | undefined): AccommodationDetailRow | null {
@@ -1518,6 +1672,12 @@ export const ActivityTile = Node.create<ActivityTileOptions>({
           accommodationFieldContactPhone: '',
           accommodationFieldContactEmail: '',
           accommodationFieldBookingRef: '',
+          flightDestination: '',
+          flightNumber: '',
+          flightDeparture: '',
+          flightArrival: '',
+          flightDuration: '',
+          flightDepartureAirport: '',
           platformOptions: {
             booking: '',
             airbnb: '',
