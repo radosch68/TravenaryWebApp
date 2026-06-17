@@ -526,6 +526,7 @@
       "locationRequired": "Location must include address or coordinates.",
       "locationCoordinatesPair": "Provide both longitude and latitude.",
       "locationCoordinatesRange": "Coordinates must be within valid longitude/latitude ranges.",
+      "mapLocationUnresolved": "Couldn't find this address on the map. Refine it, or uncheck Show on map.",
       "platformOptions": {
         "booking": "Booking.com",
         "airbnb": "Airbnb",

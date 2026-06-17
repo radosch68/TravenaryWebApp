@@ -253,6 +253,20 @@ export async function searchPhotos(keywords: string, limit = 3): Promise<PhotoSe
   return response.items ?? []
 }
 
+export async function geocodeAddress(
+  query: string,
+): Promise<{ configured: boolean; coordinates: [number, number] | null }> {
+  const trimmed = query.trim()
+  if (trimmed.length === 0) {
+    return { configured: true, coordinates: null }
+  }
+
+  return apiRequest<{ configured: boolean; coordinates: [number, number] | null }>(
+    `/geocode?q=${encodeURIComponent(trimmed)}`,
+    { protected: true },
+  )
+}
+
 export async function searchAirports(query: string, signal?: AbortSignal): Promise<FlightAirport[]> {
   const trimmed = query.trim()
   if (trimmed.length === 0) {

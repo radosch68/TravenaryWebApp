@@ -5,7 +5,7 @@ import { Anchor, ArrowRight, Check, ChevronDown, ChevronRight, ChevronsUp, Exter
 
 import { DialogShell } from '@/components/common/DialogShell'
 import type { PhotoSearchResult, ActivityType, AccommodationPlatform, RentalType, ActivityLocation, ErrorDetail, FlightAirport, ItineraryActivity, WebReference } from '@/services/contracts'
-import { searchPhotos } from '@/services/itinerary-service'
+import { geocodeAddress, searchPhotos } from '@/services/itinerary-service'
 import { generateClientId } from '@/utils/client-id'
 import { formatLocalDate, formatLocalTime, getLocalizedTimeInputPlaceholder } from '@/utils/date-format'
 import { toGoogleMapsUrl } from '@/utils/location-links'
@@ -496,6 +496,8 @@ export function ActivityFormPanel({
   const [transferEstimateSource, setTransferEstimateSource] = useState<TransferEstimateDraft['source']>(activity?.details?.estimate?.source ?? 'google')
   const [transferEstimateLoading, setTransferEstimateLoading] = useState(false)
   const [transferEstimateError, setTransferEstimateError] = useState<string | null>(null)
+  const [transferFromError, setTransferFromError] = useState<string | null>(null)
+  const [transferToError, setTransferToError] = useState<string | null>(null)
   const initialReferenceRows = toReferenceDraftRows(activity?.references)
   const initialLocationRows = toLocationDraftRows(activity?.locations)
   const [referenceRows, setReferenceRows] = useState<ReferenceDraftRow[]>(initialReferenceRows)
@@ -555,6 +557,8 @@ export function ActivityFormPanel({
     setTransferEstimateSource('google')
     setTransferEstimateLoading(false)
     setTransferEstimateError(null)
+    setTransferFromError(null)
+    setTransferToError(null)
   }
 
   const handleSelectedActivityTypeChange = (nextType: ActivityType): void => {
@@ -1067,6 +1071,8 @@ export function ActivityFormPanel({
 
   const handleSubmit = async (): Promise<void> => {
     setSubmitError(null)
+    setTransferFromError(null)
+    setTransferToError(null)
 
     const liveTime = normalizeTimeValue(timeInputRef.current?.value ?? time)
     const liveTimeEnd = normalizeTimeValue(timeEndInputRef.current?.value ?? timeEnd)
@@ -1307,17 +1313,99 @@ export function ActivityFormPanel({
     setValidationErrors([])
 
     setIsSubmitting(true)
+
+    // Pre-resolve show-on-map addresses here, while the editor is still open, so
+    // a bad address yields an actionable inline error instead of a failed day
+    // save after the dialog closes (geocoding runs on the day save, not here).
+    type GeocodePin = { address: string; kind: 'location' | 'from' | 'to'; rowId?: string }
+    const pins: GeocodePin[] = []
+    for (const row of locationRows) {
+      const address = row.address.trim()
+      const hasCoordinates = parseCoordinatePair(row.longitude, row.latitude) !== null
+      if (row.showOnMap && address && !hasCoordinates) {
+        pins.push({ address, kind: 'location', rowId: row.id })
+      }
+    }
+    if (selectedActivityType === 'transfer') {
+      const fromAddress = transferFrom.address.trim()
+      if (transferFrom.showOnMap && fromAddress && parseCoordinatePair(transferFrom.longitude, transferFrom.latitude) === null) {
+        pins.push({ address: fromAddress, kind: 'from' })
+      }
+      const toAddress = transferTo.address.trim()
+      if (transferTo.showOnMap && toAddress && parseCoordinatePair(transferTo.longitude, transferTo.latitude) === null) {
+        pins.push({ address: toAddress, kind: 'to' })
+      }
+    }
+
+    if (pins.length > 0) {
+      const unresolvedMessage = t('common:itinerary.dayEditor.mapLocationUnresolved')
+      const resolutions = await Promise.all(
+        pins.map(async (pin) => ({ pin, result: await geocodeAddress(pin.address).catch(() => null) })),
+      )
+      const failedRowErrors: Record<string, string> = {}
+      const failedRowTargets: Record<string, LocationErrorTarget> = {}
+      let failedFrom = false
+      let failedTo = false
+      for (const { pin, result } of resolutions) {
+        // Only block when geocoding is configured and returned nothing; an
+        // unconfigured backend or a network blip falls through to the day save.
+        if (!result || !result.configured || result.coordinates) {
+          continue
+        }
+        if (pin.kind === 'location' && pin.rowId) {
+          failedRowErrors[pin.rowId] = unresolvedMessage
+          failedRowTargets[pin.rowId] = 'address'
+        } else if (pin.kind === 'from') {
+          failedFrom = true
+        } else if (pin.kind === 'to') {
+          failedTo = true
+        }
+      }
+
+      if (Object.keys(failedRowErrors).length > 0 || failedFrom || failedTo) {
+        if (Object.keys(failedRowErrors).length > 0) {
+          setLocationErrors(failedRowErrors)
+          setLocationErrorTargets(failedRowTargets)
+          setLocationSectionOpen(true)
+        }
+        if (failedFrom) setTransferFromError(unresolvedMessage)
+        if (failedTo) setTransferToError(unresolvedMessage)
+        if (failedFrom || failedTo) setActivityDetailsSectionOpen(true)
+        setIsSubmitting(false)
+        return
+      }
+    }
+
     try {
       await onSave({
         activity: result,
       })
     } catch (error) {
-      const mappedLocationErrors = mapLocationSaveErrors(readErrorCauseDetails(error), locationRows)
-      if (Object.keys(mappedLocationErrors.errors).length > 0) {
+      const details = readErrorCauseDetails(error)
+      const mappedLocationErrors = mapLocationSaveErrors(details, locationRows)
+      const hasLocationErrors = Object.keys(mappedLocationErrors.errors).length > 0
+      // A transfer endpoint's show-on-map address that the backend can't geocode
+      // doesn't map to a location row — surface it inline at that endpoint.
+      const transferToFailed = Boolean(details?.some((detail) => /\.details\.to\./.test(detail.field ?? '')))
+      const transferFromFailed = Boolean(details?.some((detail) => /\.details\.from\./.test(detail.field ?? '')))
+
+      const unresolvedMessage = t('common:itinerary.dayEditor.mapLocationUnresolved')
+      if (hasLocationErrors) {
+        const actionableErrors = Object.fromEntries(
+          Object.keys(mappedLocationErrors.errors).map((rowId) => [rowId, unresolvedMessage]),
+        )
         setLocationRows((prev) => clearCoordinatesForRowsWithErrors(prev, mappedLocationErrors.errors))
-        setLocationErrors(mappedLocationErrors.errors)
+        setLocationErrors(actionableErrors)
         setLocationErrorTargets(mappedLocationErrors.targets)
         setLocationSectionOpen(true)
+      }
+      if (transferToFailed || transferFromFailed) {
+        if (transferToFailed) setTransferToError(unresolvedMessage)
+        if (transferFromFailed) setTransferFromError(unresolvedMessage)
+        setActivityDetailsSectionOpen(true)
+      }
+
+      if (hasLocationErrors || transferToFailed || transferFromFailed) {
         setSubmitError(null)
       } else {
         setSubmitError(error instanceof Error ? error.message : t('common:itinerary.dayEditor.saveFailed'))
@@ -1610,6 +1698,7 @@ export function ActivityFormPanel({
                       <span className="activity-form-panel__checkbox-indicator" aria-hidden="true"><span className="activity-form-panel__checkbox-indicator-mark">✓</span></span>
                       <span>{t('common:itinerary.dayEditor.fieldShowOnMap')}</span>
                     </label>
+                    {transferFromError ? <p className="activity-form-panel__field-error" role="alert">{transferFromError}</p> : null}
                   </div>
 
                   <div className="activity-form-panel__field-row activity-form-panel__field-row--location-top">
@@ -1638,6 +1727,7 @@ export function ActivityFormPanel({
                       <span className="activity-form-panel__checkbox-indicator" aria-hidden="true"><span className="activity-form-panel__checkbox-indicator-mark">✓</span></span>
                       <span>{t('common:itinerary.dayEditor.fieldShowOnMap')}</span>
                     </label>
+                    {transferToError ? <p className="activity-form-panel__field-error" role="alert">{transferToError}</p> : null}
                   </div>
 
                   <div className="activity-form-panel__field">

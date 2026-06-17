@@ -537,6 +537,7 @@
       "referenceUrlRequired": "URL odkazu je povinná.",
       "referenceUrlInvalid": "URL odkazu musí být platná absolutní adresa.",
       "locationRequired": "Místo musí obsahovat adresu nebo souřadnice.",
+      "mapLocationUnresolved": "Tuto adresu se nepodařilo najít na mapě. Upřesněte ji, nebo zrušte „Zobrazit na mapě“.",
       "locationCoordinatesPair": "Zadejte zeměpisnou délku i šířku.",
       "locationCoordinatesRange": "Souřadnice musí být v platném rozsahu délky/šířky.",
       "platformOptions": {
