@@ -1310,7 +1310,7 @@ function airportToLocation(airport: FlightAirport | undefined): ActivityLocation
   const address = [airport.name, airport.city, airport.country].filter(Boolean).join(', ')
   return {
     caption,
-    showOnMap: true,
+    showOnMap: airport.showOnMap === true,
     ...(address ? { address } : {}),
     ...(Array.isArray(airport.coordinates) && airport.coordinates.length === 2
       ? { coordinates: [airport.coordinates[0], airport.coordinates[1]] }

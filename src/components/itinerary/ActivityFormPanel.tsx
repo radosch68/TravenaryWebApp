@@ -1988,16 +1988,35 @@ export function ActivityFormPanel({
                     id="activity-flight-departure"
                     label={t('common:itinerary.dayEditor.fieldDepartureAirport')}
                     value={departureAirport}
-                    onChange={setDepartureAirport}
+                    onChange={(airport) => setDepartureAirport(airport ? { ...airport, showOnMap: departureAirport?.showOnMap ?? true } : undefined)}
                     disabled={isFormDisabled}
                   />
+                  {departureAirport ? (
+                    <div className="activity-form-panel__block-option">
+                      <label className="activity-form-panel__checkbox" htmlFor="activity-flight-departure-show-on-map">
+                        <input id="activity-flight-departure-show-on-map" type="checkbox" checked={departureAirport.showOnMap === true} onChange={(event) => setDepartureAirport((prev) => (prev ? { ...prev, showOnMap: event.target.checked } : prev))} disabled={isFormDisabled} />
+                        <span className="activity-form-panel__checkbox-indicator" aria-hidden="true"><span className="activity-form-panel__checkbox-indicator-mark">✓</span></span>
+                        <span>{t('common:itinerary.dayEditor.fieldShowOnMap')}</span>
+                      </label>
+                    </div>
+                  ) : null}
+
                   <AirportSelect
                     id="activity-flight-arrival"
                     label={t('common:itinerary.dayEditor.fieldArrivalAirport')}
                     value={arrivalAirport}
-                    onChange={setArrivalAirport}
+                    onChange={(airport) => setArrivalAirport(airport ? { ...airport, showOnMap: arrivalAirport?.showOnMap ?? false } : undefined)}
                     disabled={isFormDisabled}
                   />
+                  {arrivalAirport ? (
+                    <div className="activity-form-panel__block-option">
+                      <label className="activity-form-panel__checkbox" htmlFor="activity-flight-arrival-show-on-map">
+                        <input id="activity-flight-arrival-show-on-map" type="checkbox" checked={arrivalAirport.showOnMap === true} onChange={(event) => setArrivalAirport((prev) => (prev ? { ...prev, showOnMap: event.target.checked } : prev))} disabled={isFormDisabled} />
+                        <span className="activity-form-panel__checkbox-indicator" aria-hidden="true"><span className="activity-form-panel__checkbox-indicator-mark">✓</span></span>
+                        <span>{t('common:itinerary.dayEditor.fieldShowOnMap')}</span>
+                      </label>
+                    </div>
+                  ) : null}
 
                   <p className="activity-form-panel__help-text">{t('common:itinerary.dayEditor.flightTimesHint')}</p>
 

@@ -1,5 +1,15 @@
-import type { ActivityLocation, ItineraryActivity, ItineraryDay } from '@/services/contracts'
+import type { ActivityLocation, FlightAirport, ItineraryActivity, ItineraryDay } from '@/services/contracts'
 import { toDayActivities } from '@/utils/tiptap-compatibility'
+
+// A flight airport behaves like a map location: pre-geocoded coordinates plus a
+// show-on-map toggle.
+function flightAirportToLocation(airport: FlightAirport): ActivityLocation {
+  return {
+    caption: airport.name ? `${airport.iata} (${airport.name})` : airport.iata,
+    showOnMap: airport.showOnMap === true,
+    ...(airport.coordinates ? { coordinates: airport.coordinates } : {}),
+  }
+}
 
 export interface LocationMapPin {
   id: string
@@ -42,6 +52,16 @@ function collectActivityMapLocations(activity: ItineraryActivity): Array<{ locat
     }
     if (to) {
       collected.push({ location: to, key: 'to' })
+    }
+  }
+
+  if (activity.type === 'flight') {
+    const { departureAirport, arrivalAirport } = activity.details ?? {}
+    if (departureAirport) {
+      collected.push({ location: flightAirportToLocation(departureAirport), key: 'departureAirport' })
+    }
+    if (arrivalAirport) {
+      collected.push({ location: flightAirportToLocation(arrivalAirport), key: 'arrivalAirport' })
     }
   }
 

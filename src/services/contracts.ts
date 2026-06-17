@@ -113,6 +113,10 @@ export interface FlightAirport {
   country?: string
   tz?: string
   coordinates?: [number, number]
+  // Whether this airport is plotted on the day's map. Airports arrive
+  // pre-geocoded, so unlike transfer endpoints this is purely a map-inclusion
+  // toggle (no geocoding gate). Departure defaults on, arrival off.
+  showOnMap?: boolean
 }
 
 export interface ActivityLocation {
