@@ -27,16 +27,14 @@
     "kicker": "About",
     "title": "Welcome to Travenary",
     "subtitle": "Plan, organize, and relive your trips — all in one place.",
-    "intro": "Travenary helps you turn travel ideas into day-by-day itineraries. Add flights, accommodation, transfers, and points of interest, see everything on a map, and keep each trip neatly organized from first idea to final day.",
+    "intro": "Travenary is a personal travel planner for building detailed itineraries that helps you turn travel ideas into day-by-day itineraries. Add flights, accommodation, transfers, and points of interest, see everything on a map, and keep each trip neatly organized from first idea to final day.",
     "sections": {
-      "whatTitle": "What is Travenary?",
-      "whatBody": "A personal travel planner for building detailed itineraries. Each trip is organized day by day with rich activities — flights, stays, transfers, rentals, and notes — and a map view that brings the whole journey together.",
       "startTitle": "Getting started",
-      "startBody": "Create your first itinerary from the dashboard. Start from scratch and build it manually, or let the AI draft a plan for you that you can refine.",
+      "startBody": "Create your first itinerary from the <dashboardLink>dashboard</dashboardLink>.<br/>Let <aiNewLink>AI draft a plan</aiNewLink> for you that you can refine or start from scratch and build it <manualLink>manually</manualLink>.",
       "aiTitle": "Plan with AI",
-      "aiBody": "Describe the trip you have in mind and Travenary drafts a structured itinerary you can edit, reorder, and make your own. Past drafts stay available under AI Draft History.",
+      "aiBody": "Describe the trip you have in mind and Travenary drafts a structured itinerary you can edit, reorder, and make your own. Past drafts stay available under <aiDraftsLink>AI Draft History</aiDraftsLink>.",
       "organizeTitle": "Stay organized",
-      "organizeBody": "Dashboard surfaces your current and upcoming trips and lets you resume the last itinerary you opened. Browse everything under Itineraries, and adjust your preferences — including which page you land on after signing in — in Profile."
+      "organizeBody": "<dashboardLink>Dashboard</dashboardLink> surfaces your current and upcoming trips and lets you resume the last itinerary you opened. Browse everything under <itinerariesLink>Itineraries</itinerariesLink>, and adjust your preferences — including which page you land on after signing in — in <profileLink>Profile</profileLink>."
     },
     "cta": "Continue to the app"
   },

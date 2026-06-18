@@ -27,16 +27,14 @@
     "kicker": "O aplikaci",
     "title": "Vítejte v Travenary",
     "subtitle": "Plánujte, organizujte a znovu prožívejte své cesty — vše na jednom místě.",
-    "intro": "Travenary vám pomůže proměnit nápady na cesty v itineráře rozdělené po dnech. Přidejte lety, ubytování, přejezdy a zajímavá místa, zobrazte vše na mapě a mějte každou cestu přehledně uspořádanou od prvního nápadu až po poslední den.",
+    "intro": "Travenary je osobní plánovač cest pro tvorbu detailních itinerářů, který vám pomůže proměnit nápady na cesty v itineráře rozdělené po dnech. Přidejte lety, ubytování, přejezdy a zajímavá místa, zobrazte vše na mapě a mějte každou cestu přehledně uspořádanou od prvního nápadu až po poslední den.",
     "sections": {
-      "whatTitle": "Co je Travenary?",
-      "whatBody": "Osobní plánovač cest pro tvorbu detailních itinerářů. Každá cesta je uspořádaná po dnech s bohatými aktivitami — lety, pobyty, přejezdy, půjčovny a poznámky — a mapovým zobrazením, které celou cestu propojí.",
       "startTitle": "Začínáme",
-      "startBody": "Vytvořte svůj první itinerář z dashboardu. Začněte od nuly a sestavte ho ručně, nebo nechte AI připravit návrh, který si poté upravíte.",
+      "startBody": "Vytvořte svůj první itinerář z <dashboardLink>dashboardu</dashboardLink>.<br/>Nechte <aiNewLink>AI připravit návrh</aiNewLink>, který si poté upravíte, nebo začněte od nuly a sestavte ho <manualLink>ručně</manualLink>.",
       "aiTitle": "Plánování s AI",
-      "aiBody": "Popište cestu, kterou máte na mysli, a Travenary připraví strukturovaný itinerář, který můžete upravovat, přeskupovat a přizpůsobit si ho. Dřívější návrhy zůstávají dostupné v Historii AI návrhů.",
+      "aiBody": "Popište cestu, kterou máte na mysli, a Travenary připraví strukturovaný itinerář, který můžete upravovat, přeskupovat a přizpůsobit si ho. Dřívější návrhy zůstávají dostupné v <aiDraftsLink>Historii AI návrhů</aiDraftsLink>.",
       "organizeTitle": "Mějte přehled",
-      "organizeBody": "Dashboard zobrazuje vaše aktuální a nadcházející cesty a umožní vám navázat na naposledy otevřený itinerář. Vše procházejte v sekci Itineráře a své předvolby — včetně toho, na jakou stránku přejdete po přihlášení — upravte v Profilu."
+      "organizeBody": "<dashboardLink>Dashboard</dashboardLink> zobrazuje vaše aktuální a nadcházející cesty a umožní vám navázat na naposledy otevřený itinerář. Vše procházejte v sekci <itinerariesLink>Itineráře</itinerariesLink> a své předvolby — včetně toho, na jakou stránku přejdete po přihlášení — upravte v <profileLink>Profilu</profileLink>."
     },
     "cta": "Pokračovat do aplikace"
   },

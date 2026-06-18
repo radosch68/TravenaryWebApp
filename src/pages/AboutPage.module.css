@@ -71,6 +71,17 @@
   line-height: 1.55;
 }
 
+.inlineLink {
+  color: var(--accent);
+  font-weight: inherit;
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
+}
+
+.inlineLink:hover {
+  text-decoration: none;
+}
+
 .ctaRow {
   display: flex;
 }

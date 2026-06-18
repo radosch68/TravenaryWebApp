@@ -1,14 +1,25 @@
 import type { ReactElement } from 'react'
 import { useEffect, useRef } from 'react'
-import { useTranslation } from 'react-i18next'
-import { useNavigate } from 'react-router-dom'
+import { Trans, useTranslation } from 'react-i18next'
+import { Link, useNavigate } from 'react-router-dom'
 
 import { AppShell } from '@/components/layout/AppShell'
 import { getMe, markAboutSeen } from '@/services/profile-service'
 
 import styles from './AboutPage.module.css'
 
-const SECTION_KEYS = ['what', 'start', 'ai', 'organize'] as const
+const SECTION_KEYS = ['start', 'ai', 'organize'] as const
+
+// Inline links injected into the translated body copy via <Trans>. The matching
+// named tags (e.g. <dashboardLink>…</dashboardLink>) live in the locale strings.
+const BODY_LINKS = {
+  dashboardLink: <Link className={styles.inlineLink} to="/" />,
+  itinerariesLink: <Link className={styles.inlineLink} to="/itineraries" />,
+  manualLink: <Link className={styles.inlineLink} to="/itineraries/new/manual" />,
+  aiDraftsLink: <Link className={styles.inlineLink} to="/ai-drafts" />,
+  aiNewLink: <Link className={styles.inlineLink} to="/ai-drafts/new" />,
+  profileLink: <Link className={styles.inlineLink} to="/profile" />,
+}
 
 export function AboutPage(): ReactElement {
   const { t } = useTranslation('common')
@@ -56,7 +67,9 @@ export function AboutPage(): ReactElement {
           {SECTION_KEYS.map((key) => (
             <article key={key} className={styles.panel}>
               <h2 className={styles.sectionTitle}>{t(`about.sections.${key}Title`)}</h2>
-              <p className={styles.sectionBody}>{t(`about.sections.${key}Body`)}</p>
+              <p className={styles.sectionBody}>
+                <Trans t={t} i18nKey={`about.sections.${key}Body`} components={BODY_LINKS} />
+              </p>
             </article>
           ))}
         </section>
