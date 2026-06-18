@@ -1,5 +1,6 @@
 import type { NavigateFunction } from 'react-router-dom'
 
+import { resolveLandingPath } from '@/features/auth/resolve-landing-path'
 import i18n from '@/i18n'
 import { socialSignIn } from '@/services/auth-service'
 import { ApiError } from '@/services/contracts'
@@ -31,8 +32,8 @@ export async function completeSocialAuth(
 ): Promise<void> {
   try {
     const tokens = await socialSignIn(provider, credential)
-    await useAuthStore.getState().bootstrapAuthenticatedSession(tokens)
-    navigate('/')
+    const profile = await useAuthStore.getState().bootstrapAuthenticatedSession(tokens)
+    navigate(profile ? await resolveLandingPath(profile) : '/')
   } catch (error) {
     if (error instanceof ApiError && error.status === 409) {
       useAuthStore.getState().setIdentityCollision({

@@ -1,0 +1,89 @@
+.page {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.heroCard {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: color-mix(in oklab, var(--card) 92%, white 8%);
+  padding: 1rem;
+  display: grid;
+  gap: 0.45rem;
+}
+
+.kicker {
+  margin: 0;
+  font-size: var(--font-size-xs);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+}
+
+.title {
+  margin: 0;
+  font-size: var(--font-size-title);
+  line-height: 1.2;
+}
+
+.subtitle {
+  margin: 0;
+  color: var(--muted-foreground);
+}
+
+.intro {
+  margin: 0.35rem 0 0;
+  max-width: 60ch;
+  line-height: 1.55;
+}
+
+.grid {
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+@media (max-width: 720px) {
+  .grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.panel {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: color-mix(in oklab, var(--card) 94%, white 6%);
+  padding: 0.9rem;
+  display: grid;
+  gap: 0.5rem;
+  align-content: start;
+}
+
+.sectionTitle {
+  margin: 0;
+  font-size: var(--font-size-xl);
+  font-weight: 650;
+}
+
+.sectionBody {
+  margin: 0;
+  color: var(--muted-foreground);
+  line-height: 1.55;
+}
+
+.ctaRow {
+  display: flex;
+}
+
+.ctaButton {
+  min-height: 2.25rem;
+  border-radius: var(--radius-md);
+  border: 1px solid transparent;
+  background: var(--primary);
+  color: var(--primary-foreground);
+  font: inherit;
+  font-size: var(--font-size-md);
+  font-weight: 600;
+  padding: 0.5rem 1rem;
+  cursor: pointer;
+}

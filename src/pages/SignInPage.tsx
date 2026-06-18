@@ -7,6 +7,7 @@ import { acquireAppleIdToken } from '@/features/auth/apple-auth'
 import { acquireGithubAuthCode } from '@/features/auth/github-auth'
 import { GithubSignInButton } from '@/features/auth/GithubSignInButton'
 import { GoogleSignInButton } from '@/features/auth/GoogleSignInButton'
+import { resolveLandingPath } from '@/features/auth/resolve-landing-path'
 import { completeSocialAuth, handleSocialAuth } from '@/features/auth/social-auth-handlers'
 import { signIn } from '@/services/auth-service'
 import { ApiError } from '@/services/contracts'
@@ -57,8 +58,8 @@ export function SignInPage(): ReactElement {
 
     try {
       const tokens = await signIn({ email, password })
-      await bootstrapAuthenticatedSession(tokens)
-      navigate('/')
+      const profile = await bootstrapAuthenticatedSession(tokens)
+      navigate(profile ? await resolveLandingPath(profile) : '/')
     } catch (error) {
       if (error instanceof ApiError && error.status === 401) {
         setApiError(t('auth:errors.invalidCredentials'))

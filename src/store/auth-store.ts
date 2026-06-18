@@ -5,7 +5,7 @@ import {
   configureApiClientAuthHandlers,
   refreshSessionTokens,
 } from '@/services/api-client'
-import type { AuthTokens } from '@/services/contracts'
+import type { AuthTokens, UserProfile } from '@/services/contracts'
 import { getMe } from '@/services/profile-service'
 import { useProfileStore } from '@/store/profile-store'
 import { tokenService } from '@/services/token-service'
@@ -42,7 +42,7 @@ interface AuthState {
   setIdentityCollision: (payload: NonNullable<AuthState['identityCollision']>) => void
   clearIdentityCollision: () => void
   setSessionFromTokens: (tokens: AuthTokens) => void
-  bootstrapAuthenticatedSession: (tokens: AuthTokens) => Promise<void>
+  bootstrapAuthenticatedSession: (tokens: AuthTokens) => Promise<UserProfile | null>
   restoreSessionFromStorage: () => Promise<void>
   clearSession: () => void
   signOut: () => Promise<void>
@@ -95,8 +95,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     try {
       const profile = await getMe()
       await applyProfileAfterAuthentication(profile)
+      return profile
     } catch {
       // Non-fatal: profile data will be missing until next navigation
+      return null
     }
   },
 

@@ -9,6 +9,7 @@
   },
   "fields": {
     "language": "Jazyk",
+    "landingPage": "Úvodní stránka",
     "email": "E-mail",
     "displayName": "Zobrazované jméno",
     "avatarLabel": "Profilová fotka",
@@ -20,6 +21,15 @@
     "newPassword": "Nové heslo",
     "confirmNewPassword": "Potvrzení nového hesla",
     "password": "Heslo"
+  },
+  "landingPageHint": "Vyberte stránku, kterou uvidíte hned po přihlášení.",
+  "landingPageOptions": {
+    "dashboard": "Dashboard",
+    "about": "O aplikaci",
+    "itineraries": "Itineráře",
+    "ai-drafts": "Historie AI návrhů",
+    "last-opened-trip": "Naposledy otevřený itinerář",
+    "current-or-upcoming-trip": "Aktuální nebo nadcházející cesta"
   },
   "providers": {
     "password": "Heslo",

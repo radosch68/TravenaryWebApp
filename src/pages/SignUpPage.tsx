@@ -7,6 +7,7 @@ import { acquireAppleIdToken } from '@/features/auth/apple-auth'
 import { acquireGithubAuthCode } from '@/features/auth/github-auth'
 import { GithubSignInButton } from '@/features/auth/GithubSignInButton'
 import { GoogleSignInButton } from '@/features/auth/GoogleSignInButton'
+import { resolveLandingPath } from '@/features/auth/resolve-landing-path'
 import { completeSocialAuth, handleSocialAuth } from '@/features/auth/social-auth-handlers'
 import { signUp } from '@/services/auth-service'
 import { ApiError } from '@/services/contracts'
@@ -46,8 +47,8 @@ export function SignUpPage(): ReactElement {
         password,
         displayName: displayName.trim() || undefined,
       })
-      await bootstrapAuthenticatedSession(tokens)
-      navigate('/')
+      const profile = await bootstrapAuthenticatedSession(tokens)
+      navigate(profile ? await resolveLandingPath(profile) : '/')
     } catch (error) {
       if (error instanceof ApiError && error.status === 409) {
         setApiError(t('auth:errors.emailTaken'))

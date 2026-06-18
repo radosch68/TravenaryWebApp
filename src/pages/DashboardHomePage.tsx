@@ -10,26 +10,13 @@ import { Button } from '@/components/ui/button'
 import type { ItinerarySummary } from '@/services/contracts'
 import { listItineraries } from '@/services/itinerary-service'
 import { useProfileStore } from '@/store/profile-store'
-import { formatLocalDate, parseIsoDate } from '@/utils/date-format'
+import { formatLocalDate } from '@/utils/date-format'
+import { selectFeaturedItinerary, toValidLocalDate } from '@/utils/featured-itinerary'
 import type { LoadState } from '@/utils/load-state'
 import { getOngoingProgress } from '@/utils/trip-progress'
 import { unsplashUrl } from '@/utils/unsplash-url'
 
 import styles from './DashboardHomePage.module.css'
-
-function toValidLocalDate(value?: string): Date | null {
-  if (!value) {
-    return null
-  }
-
-  const parsedDate = parseIsoDate(value)
-  if (Number.isNaN(parsedDate.getTime())) {
-    return null
-  }
-
-  parsedDate.setHours(0, 0, 0, 0)
-  return parsedDate
-}
 
 export function DashboardHomePage(): ReactElement {
   const { t, i18n } = useTranslation('common')
@@ -108,76 +95,10 @@ export function DashboardHomePage(): ReactElement {
     return now
   }, [])
 
-  const ongoingItinerary = useMemo(() => {
-    const candidates = itineraries
-      .filter((itinerary) => {
-        const startDate = toValidLocalDate(itinerary.startDate)
-        const endDate = toValidLocalDate(itinerary.endDate)
-
-        if (!startDate || startDate > today) {
-          return false
-        }
-
-        if (endDate && endDate < today) {
-          return false
-        }
-
-        return true
-      })
-      .sort((left, right) => {
-        const leftEnd = toValidLocalDate(left.endDate)
-        const rightEnd = toValidLocalDate(right.endDate)
-
-        if (leftEnd && rightEnd) {
-          return leftEnd.getTime() - rightEnd.getTime()
-        }
-
-        if (leftEnd) {
-          return -1
-        }
-
-        if (rightEnd) {
-          return 1
-        }
-
-        const leftStart = toValidLocalDate(left.startDate)
-        const rightStart = toValidLocalDate(right.startDate)
-        if (!leftStart || !rightStart) {
-          return 0
-        }
-
-        return rightStart.getTime() - leftStart.getTime()
-      })
-
-    return candidates[0] ?? null
-  }, [itineraries, today])
-
-  const upcomingItinerary = useMemo(() => {
-    const candidates = itineraries
-      .filter((itinerary) => {
-        const startDate = toValidLocalDate(itinerary.startDate)
-        return Boolean(startDate && startDate > today)
-      })
-      .sort((left, right) => {
-        const leftStart = toValidLocalDate(left.startDate)
-        const rightStart = toValidLocalDate(right.startDate)
-
-        if (!leftStart || !rightStart) {
-          return 0
-        }
-
-        return leftStart.getTime() - rightStart.getTime()
-      })
-
-    return candidates[0] ?? null
-  }, [itineraries, today])
-
-  const featuredMode: 'ongoing' | 'upcoming' | 'none' = ongoingItinerary
-    ? 'ongoing'
-    : upcomingItinerary
-      ? 'upcoming'
-      : 'none'
-  const featuredItinerary = ongoingItinerary ?? upcomingItinerary
+  const { featured: featuredItinerary, mode: featuredMode } = useMemo(
+    () => selectFeaturedItinerary(itineraries, today),
+    [itineraries, today],
+  )
 
   const tripDistribution = useMemo(() => {
     let upcoming = 0

@@ -4,12 +4,18 @@ import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 
 import { AppShell } from '@/components/layout/AppShell'
-import { ApiError, type UserProfile } from '@/services/contracts'
+import {
+  ApiError,
+  LANDING_PAGE_OPTIONS,
+  type LandingPageOption,
+  type UserProfile,
+} from '@/services/contracts'
 import {
   changePassword,
   deleteAccount,
   getMe,
   updateDisplayName,
+  updateLandingPage,
   updatePreferredLanguage,
 } from '@/services/profile-service'
 import { useAuthStore } from '@/store/auth-store'
@@ -33,6 +39,8 @@ export function ProfilePage() {
   const [isSavingDisplayName, setIsSavingDisplayName] = useState(false)
 
   const [isSavingLanguage, setIsSavingLanguage] = useState(false)
+
+  const [isSavingLandingPage, setIsSavingLandingPage] = useState(false)
 
   const [currentPasswordValue, setCurrentPasswordValue] = useState('')
   const [newPasswordValue, setNewPasswordValue] = useState('')
@@ -160,6 +168,28 @@ export function ProfilePage() {
       setLoadError(t('errors:server'))
     } finally {
       setIsSavingLanguage(false)
+    }
+  }
+
+  async function onLandingPageChange(event: ChangeEvent<HTMLSelectElement>): Promise<void> {
+    if (!profile || isSavingLandingPage) {
+      return
+    }
+
+    const nextLandingPage = event.target.value as LandingPageOption
+    setIsSavingLandingPage(true)
+    try {
+      const updatedProfile = await updateLandingPage(nextLandingPage)
+      setProfile(updatedProfile)
+      setProfileStore(
+        updatedProfile.displayName ?? null,
+        updatedProfile.email,
+        updatedProfile.lastOpenedItinerary ?? null,
+      )
+    } catch {
+      setLoadError(t('errors:server'))
+    } finally {
+      setIsSavingLandingPage(false)
     }
   }
 
@@ -339,6 +369,25 @@ export function ProfilePage() {
                   <option value="en">{t('common:languageSelector.optionEnglish')}</option>
                   <option value="cs-CZ">{t('common:languageSelector.optionCzech')}</option>
                 </select>
+              </div>
+              <div className={styles.field}>
+                <label htmlFor="landingPage">{t('profile:fields.landingPage')}</label>
+                <select
+                  id="landingPage"
+                  className={styles.select}
+                  value={profile.settings.landingPage}
+                  onChange={(event) => {
+                    void onLandingPageChange(event)
+                  }}
+                  disabled={isSavingLandingPage}
+                >
+                  {LANDING_PAGE_OPTIONS.map((option) => (
+                    <option key={option} value={option}>
+                      {t(`profile:landingPageOptions.${option}`)}
+                    </option>
+                  ))}
+                </select>
+                <p className={styles.mutedText}>{t('profile:landingPageHint')}</p>
               </div>
               <button className={styles.primaryButton} type="submit" disabled={isSavingDisplayName}>
                 {t('profile:actions.saveDisplayName')}

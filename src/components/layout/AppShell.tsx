@@ -3,6 +3,7 @@ import {
   ChevronsLeft,
   ChevronsRight,
   ChevronsUp,
+  Info,
   LayoutDashboard,
   ListTodo,
   Settings,
@@ -39,13 +40,14 @@ type AppShellProps = {
 }
 
 const navItems = [
+  { key: 'about', icon: Info, to: '/about' },
   { key: 'dashboard', icon: LayoutDashboard, to: '/' },
   { key: 'itineraries', icon: ListTodo, to: '/itineraries' },
   { key: 'aiDrafts', icon: Sparkles, to: '/ai-drafts' },
   { key: 'profile', icon: UserRound, to: '/profile' },
   { key: 'settings', icon: Settings, to: '/settings' },
 ] as const satisfies ReadonlyArray<{
-  key: 'dashboard' | 'itineraries' | 'aiDrafts' | 'profile' | 'settings'
+  key: 'about' | 'dashboard' | 'itineraries' | 'aiDrafts' | 'profile' | 'settings'
   icon: LucideIcon
   to?: string
 }>

@@ -16,11 +16,29 @@
     "goToDashboard": "Go to dashboard",
     "hideMenu": "Hide main menu",
     "showMenu": "Show main menu",
+    "about": "About",
     "dashboard": "Dashboard",
     "itineraries": "Itineraries",
     "aiDrafts": "AI Draft History",
     "profile": "Profile",
     "settings": "Settings"
+  },
+  "about": {
+    "kicker": "About",
+    "title": "Welcome to Travenary",
+    "subtitle": "Plan, organize, and relive your trips — all in one place.",
+    "intro": "Travenary helps you turn travel ideas into day-by-day itineraries. Add flights, accommodation, transfers, and points of interest, see everything on a map, and keep each trip neatly organized from first idea to final day.",
+    "sections": {
+      "whatTitle": "What is Travenary?",
+      "whatBody": "A personal travel planner for building detailed itineraries. Each trip is organized day by day with rich activities — flights, stays, transfers, rentals, and notes — and a map view that brings the whole journey together.",
+      "startTitle": "Getting started",
+      "startBody": "Create your first itinerary from the dashboard. Start from scratch and build it manually, or let the AI draft a plan for you that you can refine.",
+      "aiTitle": "Plan with AI",
+      "aiBody": "Describe the trip you have in mind and Travenary drafts a structured itinerary you can edit, reorder, and make your own. Past drafts stay available under AI Draft History.",
+      "organizeTitle": "Stay organized",
+      "organizeBody": "Dashboard surfaces your current and upcoming trips and lets you resume the last itinerary you opened. Browse everything under Itineraries, and adjust your preferences — including which page you land on after signing in — in Profile."
+    },
+    "cta": "Continue to the app"
   },
   "dashboardHome": {
     "kicker": "Dashboard",

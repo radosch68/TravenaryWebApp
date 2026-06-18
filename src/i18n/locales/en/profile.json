@@ -9,6 +9,7 @@
   },
   "fields": {
     "language": "Language",
+    "landingPage": "Landing page",
     "email": "Email",
     "displayName": "Display name",
     "avatarLabel": "Profile photo",
@@ -20,6 +21,15 @@
     "newPassword": "New password",
     "confirmNewPassword": "Confirm new password",
     "password": "Password"
+  },
+  "landingPageHint": "Choose the page you see right after signing in.",
+  "landingPageOptions": {
+    "dashboard": "Dashboard",
+    "about": "About",
+    "itineraries": "Itineraries",
+    "ai-drafts": "AI Draft History",
+    "last-opened-trip": "Last opened itinerary",
+    "current-or-upcoming-trip": "Current or upcoming trip"
   },
   "providers": {
     "password": "Password",

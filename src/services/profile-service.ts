@@ -1,5 +1,5 @@
 import { apiRequest } from '@/services/api-client'
-import type { SupportedLanguage, UserProfile } from '@/services/contracts'
+import type { LandingPageOption, SupportedLanguage, UserProfile } from '@/services/contracts'
 
 export async function getMe(): Promise<UserProfile> {
   return apiRequest<UserProfile>('/users/me', {
@@ -43,6 +43,27 @@ export async function updateLastOpenedItinerary(
     method: 'PATCH',
     protected: true,
     body: { lastOpenedItineraryId },
+  })
+}
+
+export async function updateLandingPage(
+  landingPage: LandingPageOption,
+): Promise<UserProfile> {
+  return apiRequest<UserProfile>('/users/me', {
+    method: 'PATCH',
+    protected: true,
+    body: { landingPage },
+  })
+}
+
+// Idempotent, fire-and-forget: records that the user dismissed the About intro.
+// Failures are non-critical (worst case the intro shows once more), so callers
+// should not block UI or surface errors on rejection.
+export async function markAboutSeen(): Promise<void> {
+  await apiRequest<UserProfile>('/users/me', {
+    method: 'PATCH',
+    protected: true,
+    body: { seenAbout: true },
   })
 }
 

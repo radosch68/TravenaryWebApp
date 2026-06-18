@@ -23,6 +23,23 @@ export interface LastOpenedItinerary {
   openedAt: string
 }
 
+export type LandingPageOption =
+  | 'dashboard'
+  | 'about'
+  | 'itineraries'
+  | 'ai-drafts'
+  | 'last-opened-trip'
+  | 'current-or-upcoming-trip'
+
+export const LANDING_PAGE_OPTIONS: readonly LandingPageOption[] = [
+  'dashboard',
+  'about',
+  'itineraries',
+  'ai-drafts',
+  'last-opened-trip',
+  'current-or-upcoming-trip',
+]
+
 export interface UserProfile {
   id: string
   email: string
@@ -31,6 +48,12 @@ export interface UserProfile {
   preferredLanguage: SupportedLanguage
   authProviders: Array<'password' | 'google' | 'apple' | 'github'>
   lastOpenedItinerary?: LastOpenedItinerary
+  onboarding: {
+    seenAbout: boolean
+  }
+  settings: {
+    landingPage: LandingPageOption
+  }
   createdAt: string
   updatedAt: string
 }

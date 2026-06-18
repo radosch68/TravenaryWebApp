@@ -6,6 +6,7 @@ import { CollisionGuardRoute } from '@/app/guards/CollisionGuardRoute'
 import { ProtectedRoute } from '@/app/guards/ProtectedRoute'
 import { PublicOnlyRoute } from '@/app/guards/PublicOnlyRoute'
 import { TopBanner } from '@/components/layout/TopBanner'
+import { AboutPage } from '@/pages/AboutPage'
 import { AiDraftDetailPage } from '@/pages/AiDraftDetailPage'
 import { AiDraftsListPage } from '@/pages/AiDraftsListPage'
 import { AiGenerationStartPage } from '@/pages/AiGenerationStartPage'
@@ -70,6 +71,14 @@ export default function App(): ReactElement {
           element={
             <ProtectedRoute>
               <DashboardHomePage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/about"
+          element={
+            <ProtectedRoute>
+              <AboutPage />
             </ProtectedRoute>
           }
         />
