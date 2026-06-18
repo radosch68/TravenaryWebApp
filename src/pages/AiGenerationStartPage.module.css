@@ -39,6 +39,114 @@
   align-items: center;
 }
 
+.flowGuide {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: color-mix(in oklab, var(--card) 92%, var(--brand) 8%);
+  padding: 0.7rem 0.9rem;
+}
+
+.flowGuideSummary {
+  margin: 0;
+  font-size: var(--font-size-md);
+  font-weight: 700;
+  color: var(--foreground);
+  cursor: pointer;
+}
+
+.flowGuideSummary:hover {
+  color: color-mix(in oklab, var(--foreground) 85%, var(--brand) 15%);
+}
+
+.flowGuideContent {
+  margin-top: 0.7rem;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.8rem;
+}
+
+.flowStep {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 0.6rem;
+  align-items: start;
+}
+
+.flowStepBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.9rem;
+  height: 1.9rem;
+  border-radius: 999px;
+  background: var(--brand);
+  color: #fff;
+  flex-shrink: 0;
+}
+
+.flowStepBadge svg {
+  width: 1.05rem;
+  height: 1.05rem;
+}
+
+.flowStepTitle {
+  margin: 0;
+  font-size: var(--font-size-md);
+  font-weight: 700;
+  color: var(--foreground);
+}
+
+.flowStepBody {
+  margin: 0.2rem 0 0;
+  color: var(--muted-foreground);
+  font-size: var(--font-size-md);
+  line-height: 1.35;
+}
+
+.flowSubLine {
+  display: flex;
+  align-items: baseline;
+  gap: 0.35rem;
+  margin: 0.4rem 0 0;
+  color: var(--muted-foreground);
+  font-size: var(--font-size-sm);
+  line-height: 1.35;
+}
+
+.flowSubLine svg {
+  width: 0.85rem;
+  height: 0.85rem;
+  flex-shrink: 0;
+  transform: translateY(0.12rem);
+  color: color-mix(in oklab, var(--brand) 70%, var(--muted-foreground) 30%);
+}
+
+.flowSubLabel {
+  font-weight: 700;
+  color: var(--foreground);
+}
+
+.flowGuideNote {
+  margin-top: 0.8rem;
+  padding-top: 0.7rem;
+  border-top: 1px solid color-mix(in oklab, var(--border) 70%, transparent 30%);
+  display: grid;
+  gap: 0.35rem;
+}
+
+.flowGuideNoteHeading {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+  color: var(--foreground);
+}
+
+@media (max-width: 40rem) {
+  .flowGuideContent {
+    grid-template-columns: 1fr;
+  }
+}
+
 .formCard {
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
@@ -189,15 +297,22 @@
   color: var(--muted-foreground);
 }
 
-.advancedToggle {
-  justify-self: center;
-  border: none;
-  background: transparent;
-  color: var(--brand);
-  font: inherit;
-  font-size: var(--font-size-xl);
+.advancedSection {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.advancedSummary {
+  margin: 0;
+  font-size: var(--font-size-md);
   font-weight: 600;
+  color: var(--foreground);
   cursor: pointer;
+}
+
+.advancedFields {
+  display: grid;
+  gap: 0.55rem;
 }
 
 .departureGroup {

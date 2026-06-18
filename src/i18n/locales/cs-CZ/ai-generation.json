@@ -98,6 +98,17 @@
     "subtitleRefine": "Vybraný návrh z předchozího požadavku se použije jako základ. Napište, co se má změnit.",
     "subtitleDefault": "Použijte AI k vygenerování jednoho nebo více návrhů podle vašeho promptu a volitelných nastavení.",
     "backToList": "Zpět na historii AI návrhů",
+    "flowGuide": {
+      "title": "Jak funguje tvorba itineráře pomocí AI",
+      "step1Title": "Popište a vygenerujte",
+      "step1Body": "Na této stránce popište svou cestu slovy, přidejte volitelná nastavení a nechte AI vygenerovat až 3 návrhy.",
+      "refineLabel": "Upravit",
+      "refineBody": "požádejte AI o úpravu návrhu. Opakujte, jak často chcete, a vraťte se k jakékoli dřívější verzi a větvete od ní.",
+      "step2Title": "Vytvořte a přizpůsobte",
+      "step2Body": "Vyberte návrh, který se vám líbí, a stiskněte „Vytvořit itinerář“. Veškeré úpravy pomocí AI proveďte předtím — po vytvoření už itinerář nelze pomocí AI upravovat.",
+      "customizeLabel": "Přizpůsobit",
+      "customizeBody": "použijte nástroje pro úpravy a udělejte si ho podle svého — formátovaný text, aktivity, fotky, místa a mnoho dalšího."
+    },
     "promptLabel": "Prompt",
     "refineInstructionLabel": "Instrukce pro úpravu",
     "refinementModeLabel": "Režim úpravy",

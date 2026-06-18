@@ -1,3 +1,4 @@
+import { Pencil, RefreshCw, Sparkles, Wand2 } from 'lucide-react'
 import type { FormEvent, ReactElement } from 'react'
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -58,7 +59,7 @@ const BUDGET_VALUES = ['budget', 'midRange', 'premium', 'luxury', 'other'] as co
 
 const DEFAULT_FORM: FormState = {
   prompt: '',
-  model: 'gpt-4o',
+  model: 'gpt-5.5',
   draftCount: 2,
   languageMode: 'auto',
   languageCode: 'en',
@@ -73,6 +74,24 @@ const DEFAULT_FORM: FormState = {
   budgetProfile: '',
   budgetProfileOther: '',
   refinementMode: 'balanced',
+}
+
+const FLOW_GUIDE_COLLAPSED_KEY = 'travenary.aiFlowGuideCollapsed'
+
+function isFlowGuideInitiallyCollapsed(): boolean {
+  if (typeof window === 'undefined') {
+    return false
+  }
+
+  return window.localStorage.getItem(FLOW_GUIDE_COLLAPSED_KEY) === 'true'
+}
+
+function persistFlowGuideCollapsed(collapsed: boolean): void {
+  if (typeof window === 'undefined') {
+    return
+  }
+
+  window.localStorage.setItem(FLOW_GUIDE_COLLAPSED_KEY, collapsed ? 'true' : 'false')
 }
 
 function trimOrUndefined(value: string): string | undefined {
@@ -107,7 +126,7 @@ export function AiGenerationStartPage(): ReactElement {
   const [form, setForm] = useState<FormState>(DEFAULT_FORM)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isPrefilling, setIsPrefilling] = useState(false)
-  const [showAdvanced, setShowAdvanced] = useState(true)
+  const [isFlowGuideCollapsed, setIsFlowGuideCollapsed] = useState(isFlowGuideInitiallyCollapsed)
   const [availableModels, setAvailableModels] = useState<ModelInfo[]>([])
   const [locating, setLocating] = useState(false)
   const [geoError, setGeoError] = useState<string | null>(null)
@@ -130,7 +149,7 @@ export function AiGenerationStartPage(): ReactElement {
             return previous
           }
 
-          const defaultModel = models.find((model) => model.id === 'gpt-4o') ?? models[0]
+          const defaultModel = models.find((model) => model.id === 'gpt-5.5') ?? models[0]
           return {
             ...previous,
             model: defaultModel.id,
@@ -381,6 +400,79 @@ export function AiGenerationStartPage(): ReactElement {
           </div>
         </section>
 
+        {!isRefineMode ? (
+          <details
+            className={styles.flowGuide}
+            open={!isFlowGuideCollapsed}
+            onToggle={(event) => {
+              const collapsed = !event.currentTarget.open
+              setIsFlowGuideCollapsed(collapsed)
+              persistFlowGuideCollapsed(collapsed)
+            }}
+          >
+            <summary className={styles.flowGuideSummary}>
+              {t('ai-generation:start.flowGuide.title')}
+            </summary>
+
+            <div className={styles.flowGuideContent}>
+              <div className={styles.flowStep}>
+                <span className={styles.flowStepBadge}>
+                  <Sparkles aria-hidden="true" />
+                </span>
+                <div>
+                  <p className={styles.flowStepTitle}>1 · {t('ai-generation:start.flowGuide.step1Title')}</p>
+                  <p className={styles.flowStepBody}>{t('ai-generation:start.flowGuide.step1Body')}</p>
+                  <p className={styles.flowSubLine}>
+                    <RefreshCw aria-hidden="true" />
+                    <span>
+                      <span className={styles.flowSubLabel}>
+                        {t('ai-generation:start.flowGuide.refineLabel')} —{' '}
+                      </span>
+                      {t('ai-generation:start.flowGuide.refineBody')}
+                    </span>
+                  </p>
+                </div>
+              </div>
+
+              <div className={styles.flowStep}>
+                <span className={styles.flowStepBadge}>
+                  <Wand2 aria-hidden="true" />
+                </span>
+                <div>
+                  <p className={styles.flowStepTitle}>2 · {t('ai-generation:start.flowGuide.step2Title')}</p>
+                  <p className={styles.flowStepBody}>{t('ai-generation:start.flowGuide.step2Body')}</p>
+                  <p className={styles.flowSubLine}>
+                    <Pencil aria-hidden="true" />
+                    <span>
+                      <span className={styles.flowSubLabel}>
+                        {t('ai-generation:start.flowGuide.customizeLabel')} —{' '}
+                      </span>
+                      {t('ai-generation:start.flowGuide.customizeBody')}
+                    </span>
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className={styles.flowGuideNote}>
+              <p className={styles.flowGuideNoteHeading}>
+                {t('ai-generation:start.promptGuidanceTitle')}
+              </p>
+              <p className={styles.promptGuidanceNote}>
+                {t('ai-generation:start.promptGuidanceNote')}
+              </p>
+              <p className={styles.promptExamplesTitle}>
+                {t('ai-generation:start.promptExamplesTitle')}
+              </p>
+              <ul className={styles.promptGuidanceList}>
+                <li>{t('ai-generation:start.promptExample1')}</li>
+                <li>{t('ai-generation:start.promptExample2')}</li>
+                <li>{t('ai-generation:start.promptExample3')}</li>
+              </ul>
+            </div>
+          </details>
+        ) : null}
+
         <form className={styles.formCard} onSubmit={(event) => void onSubmit(event)}>
           <label className={styles.fieldWide}>
             <span>
@@ -432,44 +524,28 @@ export function AiGenerationStartPage(): ReactElement {
             </div>
           ) : null}
 
-          <details className={styles.promptGuidance}>
-            <summary className={styles.promptGuidanceSummary}>
-              {isRefineMode
-                ? t('ai-generation:start.refineGuidanceTitle')
-                : t('ai-generation:start.promptGuidanceTitle')}
-            </summary>
+          {isRefineMode ? (
+            <details className={styles.promptGuidance}>
+              <summary className={styles.promptGuidanceSummary}>
+                {t('ai-generation:start.refineGuidanceTitle')}
+              </summary>
 
-            <div className={styles.promptGuidanceContent}>
-              <p className={styles.promptGuidanceNote}>
-                {isRefineMode
-                  ? t('ai-generation:start.refineGuidanceNote')
-                  : t('ai-generation:start.promptGuidanceNote')}
-              </p>
+              <div className={styles.promptGuidanceContent}>
+                <p className={styles.promptGuidanceNote}>
+                  {t('ai-generation:start.refineGuidanceNote')}
+                </p>
 
-              <p className={styles.promptExamplesTitle}>
-                {isRefineMode
-                  ? t('ai-generation:start.refineExamplesTitle')
-                  : t('ai-generation:start.promptExamplesTitle')}
-              </p>
-              <ul className={styles.promptGuidanceList}>
-                <li>
-                  {isRefineMode
-                    ? t('ai-generation:start.refineExample1')
-                    : t('ai-generation:start.promptExample1')}
-                </li>
-                <li>
-                  {isRefineMode
-                    ? t('ai-generation:start.refineExample2')
-                    : t('ai-generation:start.promptExample2')}
-                </li>
-                <li>
-                  {isRefineMode
-                    ? t('ai-generation:start.refineExample3')
-                    : t('ai-generation:start.promptExample3')}
-                </li>
-              </ul>
-            </div>
-          </details>
+                <p className={styles.promptExamplesTitle}>
+                  {t('ai-generation:start.refineExamplesTitle')}
+                </p>
+                <ul className={styles.promptGuidanceList}>
+                  <li>{t('ai-generation:start.refineExample1')}</li>
+                  <li>{t('ai-generation:start.refineExample2')}</li>
+                  <li>{t('ai-generation:start.refineExample3')}</li>
+                </ul>
+              </div>
+            </details>
+          ) : null}
 
           <div className={styles.fieldWide}>
             <span>{t('ai-generation:start.draftCountLabel')}</span>
@@ -492,18 +568,12 @@ export function AiGenerationStartPage(): ReactElement {
             <p className={styles.controlsHint}>{t('ai-generation:start.controlsHint')}</p>
           </div>
 
-          <button
-            type="button"
-            className={styles.advancedToggle}
-            onClick={() => {
-              setShowAdvanced((previous) => !previous)
-            }}
-          >
-            {t('ai-generation:start.advancedOptions')} {showAdvanced ? '▲' : '▼'}
-          </button>
+          <details className={styles.advancedSection} open>
+            <summary className={styles.advancedSummary}>
+              {t('ai-generation:start.advancedOptions')}
+            </summary>
 
-          {showAdvanced ? (
-            <>
+            <div className={styles.advancedFields}>
               <label className={styles.fieldWide}>
                 <span>{t('ai-generation:start.languageLabel')}</span>
                 <div className={styles.advancedRow}>
@@ -707,8 +777,8 @@ export function AiGenerationStartPage(): ReactElement {
                   ))}
                 </select>
               </label>
-            </>
-          ) : null}
+            </div>
+          </details>
 
           {errorMessage ? <p className={styles.errorText}>{errorMessage}</p> : null}
 

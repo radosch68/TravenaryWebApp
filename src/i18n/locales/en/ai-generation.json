@@ -94,6 +94,17 @@
     "subtitleRefine": "This will refine the selected draft from a previous request. Enter what should change.",
     "subtitleDefault": "Use AI to generate one or more drafts based on your prompt and optional settings.",
     "backToList": "Back to AI Draft History",
+    "flowGuide": {
+      "title": "How AI itinerary creation works",
+      "step1Title": "Describe & generate",
+      "step1Body": "On this page, describe your trip in words, add optional settings, and let AI generate up to 3 drafts.",
+      "refineLabel": "Refine",
+      "refineBody": "ask AI to adjust a draft. Repeat as often as you like, and step back to any earlier revision to branch from there.",
+      "step2Title": "Create & customize",
+      "step2Body": "Pick the draft you like and press “Create Itinerary”. Do all your AI refining beforehand — once created, an itinerary can no longer be refined by AI.",
+      "customizeLabel": "Customize",
+      "customizeBody": "use the editing tools to make it yours — rich text, activities, photos, locations, and more."
+    },
     "promptLabel": "Prompt",
     "refineInstructionLabel": "Refinement instruction",
     "refinementModeLabel": "Refinement mode",
