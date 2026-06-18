@@ -15,6 +15,22 @@ import { useAuthStore } from '@/store/auth-store'
 
 import styles from './AuthPage.module.css'
 
+function getApiErrorDetail(error: ApiError): string | null {
+  const firstDetail = error.details?.[0]
+  const detailMessage = firstDetail?.message?.trim()
+  const detailField = firstDetail?.field?.trim()
+  if (detailMessage) {
+    return detailField ? `${detailField}: ${detailMessage}` : detailMessage
+  }
+
+  const message = error.message?.trim()
+  if (!message || message === 'Request failed' || message === 'Invalid request payload') {
+    return null
+  }
+
+  return message
+}
+
 export function SignUpPage(): ReactElement {
   const navigate = useNavigate()
   const { t } = useTranslation(['auth', 'errors'])
@@ -52,6 +68,9 @@ export function SignUpPage(): ReactElement {
     } catch (error) {
       if (error instanceof ApiError && error.status === 409) {
         setApiError(t('auth:errors.emailTaken'))
+      } else if (error instanceof ApiError) {
+        const detail = getApiErrorDetail(error)
+        setApiError(detail ? `${t('errors:server')} (${detail})` : t('errors:server'))
       } else {
         setApiError(t('errors:server'))
       }
