@@ -67,6 +67,8 @@
     "lineageOriginal": "Původní požadavek",
     "lineageRevision": "Revize {{n}}",
     "draftsTitle": "Návrhy ({{count}})",
+    "guidanceWithHistory": "Vraťte se k libovolné starší verzi z revizí výše, tlačítkem „Upravit“ doplňte návrh pomocí AI, nebo tlačítkem „Vytvořit itinerář“ vytvořte z návrhu itinerář. Vytvořený itinerář pak můžete dále ručně upravit.",
+    "guidanceNoHistory": "Tlačítkem „Upravit“ doplňte návrh pomocí AI, nebo tlačítkem „Vytvořit itinerář“ vytvořte z návrhu itinerář. Vytvořený itinerář pak můžete dále ručně upravit.",
     "createAll": "Vytvořit všechny itineráře",
     "creatingAll": "Vytvářím vše...",
     "createItinerary": "Vytvořit itinerář",

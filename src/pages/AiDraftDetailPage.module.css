@@ -279,6 +279,17 @@
   color: var(--muted-foreground);
 }
 
+.guidanceNote {
+  margin: 0;
+  padding: 0.55rem 0.7rem;
+  border-radius: var(--radius-md);
+  border: 1px solid color-mix(in oklab, var(--border) 70%, transparent 30%);
+  background: color-mix(in oklab, var(--card) 90%, var(--brand) 10%);
+  color: var(--muted-foreground);
+  font-size: var(--font-size-sm);
+  line-height: 1.4;
+}
+
 .draftsList {
   display: grid;
   gap: 0.7rem;

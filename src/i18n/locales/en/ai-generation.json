@@ -65,6 +65,8 @@
     "lineageOriginal": "Original request",
     "lineageRevision": "Revision {{n}}",
     "draftsTitle": "Drafts ({{count}})",
+    "guidanceWithHistory": "Step back to any earlier version from the revisions above, use “Refine” to adjust a draft with AI, or press “Create Itinerary” to build your itinerary from the draft. You can then further customize the created itinerary manually.",
+    "guidanceNoHistory": "Use “Refine” to adjust a draft with AI, or press “Create Itinerary” to build your itinerary from the draft. You can then further customize the created itinerary manually.",
     "createAll": "Create All Itineraries",
     "creatingAll": "Creating all...",
     "createItinerary": "Create Itinerary",

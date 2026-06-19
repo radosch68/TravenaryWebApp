@@ -434,6 +434,14 @@ export function AiDraftDetailPage(): ReactElement {
 
           {actionError ? <p className={styles.errorText}>{actionError}</p> : null}
 
+          {detail.drafts.length > 0 ? (
+            <p className={styles.guidanceNote}>
+              {lineageItems.length > 1
+                ? t('ai-generation:detail.guidanceWithHistory')
+                : t('ai-generation:detail.guidanceNoHistory')}
+            </p>
+          ) : null}
+
           {detail.drafts.length === 0 ? (
             <p className={styles.emptyText}>{t('ai-generation:detail.noDrafts')}</p>
           ) : (
