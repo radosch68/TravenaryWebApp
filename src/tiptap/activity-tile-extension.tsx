@@ -1003,7 +1003,7 @@ function LocationChip({
     location.address?.trim() ||
     coordinatesLabel ||
     labels.display.locationFallback
-  const displayLocationLabel = toDisplayLabel(fullLocationLabel)
+  const displayLocationLabel = toTruncatedLabel(toDisplayLabel(fullLocationLabel), LOCATION_LABEL_MAX_LENGTH)
   const LocationIcon = location.showOnMap ? MapPinned : MapPin
 
   if (!mapUrl) {
@@ -1014,7 +1014,7 @@ function LocationChip({
     return (
       <span className={locationChipClassName}>
         <LocationIcon aria-hidden="true" size={12} />
-        <span>{displayLocationLabel}</span>
+        <span title={fullLocationLabel}>{displayLocationLabel}</span>
       </span>
     )
   }
@@ -1038,7 +1038,7 @@ function LocationChip({
       }}
     >
       <LocationIcon aria-hidden="true" size={12} />
-      <span>{displayLocationLabel}</span>
+      <span title={fullLocationLabel}>{displayLocationLabel}</span>
       <ExternalLink aria-hidden="true" size={12} />
     </button>
   )
@@ -1477,6 +1477,17 @@ function toDisplayLabel(value: string): string {
     .replace(/[\u200B-\u200D\uFEFF]/g, '')
     .replace(/\s+/g, ' ')
     .trim()
+}
+
+// Cap on the visible location chip label so long AI/user addresses don't break
+// the activity tile layout. Full text is preserved for the title tooltip / aria.
+const LOCATION_LABEL_MAX_LENGTH = 40
+
+function toTruncatedLabel(value: string, maxLength: number): string {
+  if (value.length <= maxLength) {
+    return value
+  }
+  return `${value.slice(0, maxLength - 1).trimEnd()}\u2026`
 }
 
 function toReferenceLabel(reference: WebReference): string {

@@ -542,7 +542,7 @@ export function ActivityFormPanel({
   const [locationAddRow, setLocationAddRow] = useState<LocationDraftRow>(() => createEmptyLocationRow())
   const [referenceAddError, setReferenceAddError] = useState<string | null>(null)
   const [locationAddError, setLocationAddError] = useState<string | null>(null)
-  const [photoSearchKeywords, setPhotoSearchKeywords] = useState(() => activity?.title ?? '')
+  const [photoSearchKeywords, setPhotoSearchKeywords] = useState(() => activity?.placePhotoKeywords ?? activity?.title ?? '')
   const [photoSearchBusy, setPhotoSearchBusy] = useState(false)
   const [photoSearchError, setPhotoSearchError] = useState<string | null>(null)
   const [photoSearchResults, setPhotoSearchResults] = useState<PhotoSearchResult[]>([])

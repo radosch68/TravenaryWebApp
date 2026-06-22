@@ -160,6 +160,10 @@ export interface ItineraryActivity {
   details?: ActivityDetails
   references?: WebReference[]
   locations?: ActivityLocation[]
+  // Original AI place hints, kept after the user edits locations[].address.
+  // placePhotoKeywords seeds the activity photo search; placeAddressQuery the original geocode query.
+  placeAddressQuery?: string
+  placePhotoKeywords?: string
 }
 
 export interface DayDocumentNode {
