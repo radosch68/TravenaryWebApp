@@ -35,6 +35,10 @@ function toQuery(params: AiGenerationHistoryListParams = {}): string {
     query.set('status', params.status)
   }
 
+  if (params.rootRequestId) {
+    query.set('rootRequestId', params.rootRequestId)
+  }
+
   const encoded = query.toString()
   return encoded.length > 0 ? `?${encoded}` : ''
 }

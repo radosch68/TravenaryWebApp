@@ -314,6 +314,7 @@ export interface AiGenerationHistoryItem {
   id: string
   prompt: string
   rootPrompt: string | null
+  rootRequestId: string | null
   status: GenerationRequestStatus
   selectedModel: string
   requestedDraftCount: number
@@ -367,6 +368,7 @@ export interface AiGenerationHistoryListParams {
   sortBy?: 'createdAt' | 'updatedAt' | 'generationCompletedAt' | 'draftCount'
   sortOrder?: 'asc' | 'desc'
   status?: GenerationRequestStatus
+  rootRequestId?: string
 }
 
 export class ApiError extends Error {

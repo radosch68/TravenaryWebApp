@@ -1,5 +1,5 @@
-import { Layers, RefreshCw } from 'lucide-react'
-import type { ReactElement } from 'react'
+import { Layers, RefreshCw, X } from 'lucide-react'
+import type { CSSProperties, ReactElement } from 'react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, useSearchParams } from 'react-router-dom'
@@ -52,6 +52,25 @@ function parseStatus(value: string | null): StatusFilter {
   return 'all'
 }
 
+// A spread of visually distinct, non-reddish hues (green, blue, brown, violet,
+// teal, amber, slate, indigo, deep cyan, olive, magenta, navy) so sibling groups
+// read as clearly different colors. Reds are deliberately excluded — they read
+// as an error/destructive state.
+const ROOT_ACCENT_PALETTE = [
+  '#2f9e44',
+  '#1c7ed6',
+  '#9c6b3f',
+  '#7048e8',
+  '#0ca678',
+  '#f59f00',
+  '#495d6e',
+  '#5f3dc4',
+  '#0b7285',
+  '#5c940d',
+  '#9c36b5',
+  '#1864ab',
+] as const
+
 function getElapsedSeconds(startedAt: string | undefined, nowEpochMs: number): number | null {
   if (!startedAt) {
     return null
@@ -82,6 +101,7 @@ export function AiDraftsListPage(): ReactElement {
   const sortBy = parseSortBy(searchParams.get('sortBy'))
   const sortOrder = parseSortOrder(searchParams.get('sortOrder'))
   const status = parseStatus(searchParams.get('status'))
+  const rootRequestId = searchParams.get('rootRequestId') ?? undefined
 
   const totalPages = Math.max(1, Math.ceil(total / limit))
 
@@ -100,6 +120,7 @@ export function AiDraftsListPage(): ReactElement {
           sortBy,
           sortOrder,
           ...(status !== 'all' ? { status } : {}),
+          ...(rootRequestId ? { rootRequestId } : {}),
         })
 
         setItems(response.items)
@@ -112,7 +133,7 @@ export function AiDraftsListPage(): ReactElement {
         setIsRefreshing(false)
       }
     },
-    [limit, page, sortBy, sortOrder, status],
+    [limit, page, sortBy, sortOrder, status, rootRequestId],
   )
 
   useEffect(() => {
@@ -190,6 +211,38 @@ export function AiDraftsListPage(): ReactElement {
   const title = useMemo(() => t('ai-generation:list.title'), [t])
   const canGoPrev = page > 1 && !isRefreshing
   const canGoNext = page < totalPages && !isRefreshing
+
+  const filterByRoot = useCallback(
+    (rootId: string): void => {
+      const next = new URLSearchParams(searchParams)
+      next.set('rootRequestId', rootId)
+      next.set('page', '1')
+      setSearchParams(next)
+    },
+    [searchParams, setSearchParams],
+  )
+
+  const clearRootFilter = useCallback((): void => {
+    const next = new URLSearchParams(searchParams)
+    next.delete('rootRequestId')
+    next.set('page', '1')
+    setSearchParams(next)
+  }, [searchParams, setSearchParams])
+
+  // Assign a distinct palette color per root by order of appearance, so different
+  // roots visible on the page never share a color (hashing collided too easily).
+  const rootColorByRequestId = useMemo(() => {
+    const map = new Map<string, string>()
+    for (const item of items) {
+      if (item.ancestorCount > 0 && item.rootRequestId && !map.has(item.rootRequestId)) {
+        map.set(item.rootRequestId, ROOT_ACCENT_PALETTE[map.size % ROOT_ACCENT_PALETTE.length])
+      }
+    }
+    return map
+  }, [items])
+
+  // All leaves in a filtered view share one root, so any item's rootPrompt names the group.
+  const activeRootPrompt = rootRequestId ? (items.find((item) => item.rootPrompt)?.rootPrompt ?? null) : null
 
   return (
     <AppShell>
@@ -342,6 +395,27 @@ export function AiDraftsListPage(): ReactElement {
             : t('ai-generation:list.ttlNoticeGeneric')}
         </p>
 
+        {rootRequestId ? (
+          <div className={styles.activeFilter}>
+            <span>{t('ai-generation:list.activeFilterLabel')}</span>
+            {activeRootPrompt ? (
+              <span className={styles.activeFilterPrompt}>
+                {activeRootPrompt.length > 150 ? `${activeRootPrompt.slice(0, 150)}…` : activeRootPrompt}
+              </span>
+            ) : null}
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className={styles.activeFilterClear}
+              onClick={clearRootFilter}
+            >
+              <X aria-hidden="true" />
+              {t('ai-generation:list.clearRootFilter')}
+            </Button>
+          </div>
+        ) : null}
+
         {loadState === 'loading' || loadState === 'idle' ? (
           <CommonListingStateCard>
             <p>{t('common:loading')}</p>
@@ -366,11 +440,20 @@ export function AiDraftsListPage(): ReactElement {
               ref={listRef}
               className={`${styles.list} ${isSingleColumnList ? styles.listSingleColumn : styles.listMultiColumn}`}
             >
-              {items.map((item) => (
+              {items.map((item) => {
+                const accentColor =
+                  item.ancestorCount > 0 && item.rootRequestId
+                    ? rootColorByRequestId.get(item.rootRequestId) ?? null
+                    : null
+                const isActiveRoot = accentColor != null && item.rootRequestId === rootRequestId
+
+                return (
                 <article
                   key={item.id}
                   data-ai-draft-card="true"
+                  data-grouped={accentColor ? 'true' : undefined}
                   className={`${styles.card} ${isSingleColumnList ? styles.cardSingleColumn : styles.cardMultiColumn}`}
+                  style={accentColor ? ({ '--root-accent': accentColor } as CSSProperties) : undefined}
                 >
                   {/** Pending rows surface live elapsed seconds prominently while generation runs. */}
                   {(() => {
@@ -388,6 +471,22 @@ export function AiDraftsListPage(): ReactElement {
                         <span className={styles.runningSecondsValue}>
                           {t('ai-generation:list.runningSeconds', { seconds: runningSeconds })}
                         </span>
+                      ) : item.ancestorCount > 0 && accentColor && item.rootRequestId ? (
+                        <button
+                          type="button"
+                          className={styles.revisionFilterButton}
+                          data-active={isActiveRoot ? 'true' : undefined}
+                          onClick={(event) => {
+                            event.preventDefault()
+                            event.stopPropagation()
+                            filterByRoot(item.rootRequestId as string)
+                          }}
+                          aria-label={t('ai-generation:list.filterByRootAria')}
+                          title={item.rootPrompt ?? t('ai-generation:list.filterByRootAria')}
+                        >
+                          <Layers aria-hidden="true" />
+                          {t('ai-generation:list.revisionCount', { count: item.ancestorCount })}
+                        </button>
                       ) : item.ancestorCount > 0 ? (
                         <span className={styles.revisionRailText}>
                           <Layers aria-hidden="true" />
@@ -442,7 +541,8 @@ export function AiDraftsListPage(): ReactElement {
                     )
                   })()}
                 </article>
-              ))}
+                )
+              })}
             </section>
 
             <CommonListingPagination
