@@ -56,7 +56,6 @@ const ACTIVITY_TYPE_LABEL_KEY: Record<ActivityType, string> = {
 
 const MAX_REFERENCE_ROWS = 10
 const MAX_LOCATION_ROWS = 10
-const AUTO_EXPAND_SECTION_ITEM_LIMIT = 4
 
 type ReferenceType = NonNullable<WebReference['type']>
 
@@ -527,10 +526,12 @@ export function ActivityFormPanel({
   const initialLocationRows = toLocationDraftRows(activity?.locations)
   const [referenceRows, setReferenceRows] = useState<ReferenceDraftRow[]>(initialReferenceRows)
   const [locationRows, setLocationRows] = useState<LocationDraftRow[]>(initialLocationRows)
+  // All sections start expanded so the full activity is visible at a glance when
+  // the editor opens; the user can collapse any section they don't need.
   const [commonSectionOpen, setCommonSectionOpen] = useState(true)
-  const [activityDetailsSectionOpen, setActivityDetailsSectionOpen] = useState(false)
-  const [referenceSectionOpen, setReferenceSectionOpen] = useState(initialReferenceRows.length <= AUTO_EXPAND_SECTION_ITEM_LIMIT)
-  const [locationSectionOpen, setLocationSectionOpen] = useState(initialLocationRows.length <= AUTO_EXPAND_SECTION_ITEM_LIMIT)
+  const [activityDetailsSectionOpen, setActivityDetailsSectionOpen] = useState(true)
+  const [referenceSectionOpen, setReferenceSectionOpen] = useState(true)
+  const [locationSectionOpen, setLocationSectionOpen] = useState(true)
   const [referenceRowOpen, setReferenceRowOpen] = useState<Record<string, boolean>>(() => toRowOpenState(initialReferenceRows))
   const [locationRowOpen, setLocationRowOpen] = useState<Record<string, boolean>>(() => toRowOpenState(initialLocationRows))
   const [referenceErrors, setReferenceErrors] = useState<Record<string, string>>({})
@@ -556,7 +557,7 @@ export function ActivityFormPanel({
 
   const resetTypeSpecificFields = (nextType: ActivityType): void => {
     setValidationErrors([])
-    setActivityDetailsSectionOpen(nextType === 'food' || nextType === 'tour' || nextType === 'accommodation' || nextType === 'rental' || nextType === 'flight')
+    setActivityDetailsSectionOpen(true)
     setCuisine('')
     setGuidanceMode('selfGuided')
     setNightsInput('1')
@@ -1510,7 +1511,7 @@ export function ActivityFormPanel({
     <div className="activity-form-panel">
       {submitError ? <p className="activity-form-panel__submit-error" role="alert">{submitError}</p> : null}
 
-      <section className="activity-form-panel__section" aria-label={t('common:itinerary.dayEditor.commonTitle')}>
+      <section className="activity-form-panel__section activity-form-panel__section--common" aria-label={t('common:itinerary.dayEditor.commonTitle')}>
         <div className="activity-form-panel__section-header">
           <button
             type="button"
@@ -1632,7 +1633,7 @@ export function ActivityFormPanel({
       </section>
 
       {hasActivitySpecificFields ? (
-        <section className="activity-form-panel__section" aria-label={activitySpecificSectionTitle}>
+        <section className="activity-form-panel__section activity-form-panel__section--details" aria-label={activitySpecificSectionTitle}>
           <div className="activity-form-panel__section-header">
             <button
               type="button"
@@ -2052,7 +2053,7 @@ export function ActivityFormPanel({
         </section>
       ) : null}
 
-      <section className="activity-form-panel__section" aria-label={t('common:itinerary.dayEditor.referencesTitle')}>
+      <section className="activity-form-panel__section activity-form-panel__section--references" aria-label={t('common:itinerary.dayEditor.referencesTitle')}>
         <div className="activity-form-panel__section-header">
           <button
             type="button"
@@ -2212,7 +2213,7 @@ export function ActivityFormPanel({
         ) : null}
       </section>
 
-      <section className="activity-form-panel__section" aria-label={t('common:itinerary.dayEditor.locationsTitle')}>
+      <section className="activity-form-panel__section activity-form-panel__section--locations" aria-label={t('common:itinerary.dayEditor.locationsTitle')}>
         <div className="activity-form-panel__section-header">
           <button
             type="button"

@@ -186,17 +186,20 @@
 }
 
 .activity-form-panel__section {
+  /* --section-accent is overridden per section type below so each header band
+     reads as a distinct color while sharing one set of layout rules. */
+  --section-accent: var(--accent);
   display: flex;
   flex-direction: column;
   gap: 0.45rem;
   padding-top: 0.2rem;
-  border-top: 1px solid color-mix(in oklab, var(--border) 85%, transparent);
 }
 
 .activity-form-panel__section-content {
   display: flex;
   flex-direction: column;
   gap: 0.65rem;
+  padding-top: 0.15rem;
 }
 
 .activity-form-panel__section-header {
@@ -204,6 +207,42 @@
   align-items: center;
   justify-content: space-between;
   gap: 0.5rem;
+  /* Stretch the band edge-to-edge by cancelling the panel's horizontal padding,
+     then restore it inside so the content stays aligned with the form fields. */
+  margin-inline: calc(-1 * var(--space-3));
+  padding: 0.32rem var(--space-3);
+  border-block: 1px solid color-mix(in oklab, var(--section-accent) 35%, transparent);
+  background: color-mix(in oklab, var(--section-accent) 16%, var(--card));
+}
+
+/* Tint the header band, its title and chevron per section so the groups are
+   distinguishable at a glance instead of blending together. */
+.activity-form-panel__section--common {
+  --section-accent: #5f7fa3;
+}
+
+.activity-form-panel__section--details {
+  --section-accent: #b5793a;
+}
+
+.activity-form-panel__section--references {
+  --section-accent: #7d5ba6;
+}
+
+.activity-form-panel__section--locations {
+  --section-accent: #3f9472;
+}
+
+.activity-form-panel__section-header .activity-form-panel__section-title {
+  color: color-mix(in oklab, var(--section-accent) 72%, var(--text-primary));
+}
+
+.activity-form-panel__section-header .activity-form-panel__section-collapse {
+  color: color-mix(in oklab, var(--section-accent) 70%, var(--text-primary));
+}
+
+.activity-form-panel__section-header .activity-form-panel__section-collapse:hover:not(:disabled) {
+  background: color-mix(in oklab, var(--section-accent) 22%, transparent);
 }
 
 .activity-form-panel__section-count {
