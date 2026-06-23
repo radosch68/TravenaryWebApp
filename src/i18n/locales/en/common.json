@@ -299,11 +299,11 @@
       "motorcycle": "Motorcycle",
       "car": "Car",
       "bus": "Bus",
-      "train": "Train",
-      "plane": "Plane"
+      "train": "Train"
     },
     "transferEstimateLabel": "Estimate",
     "transferEstimateUnavailable": "Estimate unavailable",
+    "transferEstimatePending": "(open & save to estimate)",
     "accommodationSummaryNights": "Nights",
     "accommodationSummaryCheckIn": "Check-in",
     "accommodationSummaryCheckOut": "Check-out",
@@ -466,8 +466,7 @@
         "motorcycle": "Motorcycle",
         "car": "Car",
         "bus": "Bus",
-        "train": "Train",
-        "plane": "Plane"
+        "train": "Train"
       },
       "anchorToDay": "Anchor to this day ({{date}})",
       "timeRepositionHint": "Changing the time may reposition this activity within the day.",

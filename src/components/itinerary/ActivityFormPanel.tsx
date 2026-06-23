@@ -31,14 +31,13 @@ const EDITABLE_ACTIVITY_TYPES: readonly ActivityType[] = [
   'custom',
 ]
 
-const TRANSFER_MOT_OPTIONS: ReadonlyArray<'walk' | 'bike' | 'motorcycle' | 'car' | 'bus' | 'train' | 'plane'> = [
+const TRANSFER_MOT_OPTIONS: ReadonlyArray<'walk' | 'bike' | 'motorcycle' | 'car' | 'bus' | 'train'> = [
   'walk',
   'bike',
   'motorcycle',
   'car',
   'bus',
   'train',
-  'plane',
 ]
 
 const ACTIVITY_TYPE_LABEL_KEY: Record<ActivityType, string> = {
@@ -94,7 +93,7 @@ interface TransferEstimateDraft {
 interface TransferRouteDraft {
   from: LocationDraftRow
   to: LocationDraftRow
-  mot: 'walk' | 'bike' | 'motorcycle' | 'car' | 'bus' | 'train' | 'plane'
+  mot: 'walk' | 'bike' | 'motorcycle' | 'car' | 'bus' | 'train'
   estimateValue: string
   estimateSource: TransferEstimateDraft['source']
 }
@@ -649,14 +648,6 @@ export function ActivityFormPanel({
 
     if (!origin || !destination || !isTransferLocationComplete(transferFrom) || !isTransferLocationComplete(transferTo)) {
       scheduleEstimateState({ loading: false, error: null })
-      return
-    }
-
-    if (transferMot === 'plane') {
-      scheduleEstimateState({ loading: false, error: null })
-      if (transferEstimateValueRef.current.trim().length === 0) {
-        scheduleEstimateState({ source: 'fallback' })
-      }
       return
     }
 

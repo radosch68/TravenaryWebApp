@@ -337,6 +337,12 @@
   font-weight: 700;
 }
 
+.transferEstimatePending {
+  color: var(--muted-foreground);
+  font-style: italic;
+  font-size: var(--font-size-sm);
+}
+
 .transferSummaryItem {
   display: flex;
   align-items: center;

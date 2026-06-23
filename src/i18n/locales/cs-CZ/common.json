@@ -311,11 +311,11 @@
       "motorcycle": "Motorkou",
       "car": "Autem",
       "bus": "Autobusem",
-      "train": "Vlakem",
-      "plane": "Letadlem"
+      "train": "Vlakem"
     },
     "transferEstimateLabel": "Odhad",
     "transferEstimateUnavailable": "Odhad není k dispozici",
+    "transferEstimatePending": "(odhad po otevření a uložení)",
     "accommodationSummaryNights": "Noci",
     "accommodationSummaryCheckIn": "Check-in",
     "accommodationSummaryCheckOut": "Check-out",
@@ -479,8 +479,7 @@
         "motorcycle": "Motorkou",
         "car": "Autem",
         "bus": "Autobusem",
-        "train": "Vlakem",
-        "plane": "Letadlem"
+        "train": "Vlakem"
       },
       "anchorToDay": "Ukotvit k tomuto dni ({{date}})",
       "timeRepositionHint": "Změna času může přesunout tuto aktivitu v rámci dne.",

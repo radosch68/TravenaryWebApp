@@ -88,7 +88,7 @@ export type ActivityType =
 
 export type AccommodationPlatform = 'booking' | 'airbnb' | 'agoda' | 'direct' | 'other'
 export type RentalType = 'bike' | 'motorcycle' | 'car' | 'other'
-export type TransferMot = 'walk' | 'bike' | 'motorcycle' | 'car' | 'bus' | 'train' | 'plane'
+export type TransferMot = 'walk' | 'bike' | 'motorcycle' | 'car' | 'bus' | 'train'
 
 export interface TransferLocation {
   caption?: string

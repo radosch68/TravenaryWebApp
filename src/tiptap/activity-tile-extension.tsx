@@ -79,6 +79,7 @@ export interface ActivityTileLabels {
     transferMotOptions: Record<TransferMot, string>
     transferEstimateLabel: string
     transferEstimateUnavailable: string
+    transferEstimatePending: string
     accommodationSummaryNights: string
     accommodationSummaryCheckIn: string
     accommodationSummaryCheckOut: string
@@ -149,10 +150,10 @@ export function buildActivityTileLabels(t: TranslateFn, locale: string): Activit
         car: t('itineraryView.transferMot.car'),
         bus: t('itineraryView.transferMot.bus'),
         train: t('itineraryView.transferMot.train'),
-        plane: t('itineraryView.transferMot.plane'),
       },
       transferEstimateLabel: t('itineraryView.transferEstimateLabel'),
       transferEstimateUnavailable: t('itineraryView.transferEstimateUnavailable'),
+      transferEstimatePending: t('itineraryView.transferEstimatePending'),
       accommodationSummaryNights: t('itineraryView.accommodationSummaryNights'),
       accommodationSummaryCheckIn: t('itineraryView.accommodationSummaryCheckIn'),
       accommodationSummaryCheckOut: t('itineraryView.accommodationSummaryCheckOut'),
@@ -1180,6 +1181,8 @@ function TransferDetails({
                 ) : (
                   <span>{estimateValue}</span>
                 )
+              ) : motLabel ? (
+                <span className={styles.transferEstimatePending}>{labels.display.transferEstimatePending}</span>
               ) : null}
             </>
           ) : <strong>-</strong>}
@@ -1681,10 +1684,10 @@ export const ActivityTile = Node.create<ActivityTileOptions>({
             car: '',
             bus: '',
             train: '',
-            plane: '',
           },
           transferEstimateLabel: '',
           transferEstimateUnavailable: '',
+          transferEstimatePending: '',
           accommodationSummaryNights: '',
           accommodationSummaryCheckIn: '',
           accommodationSummaryCheckOut: '',
