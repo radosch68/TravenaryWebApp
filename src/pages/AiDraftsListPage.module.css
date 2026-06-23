@@ -230,6 +230,28 @@
   overflow: hidden;
 }
 
+.latestPrompt {
+  margin: 0.3rem 0 0;
+  font-size: 0.82rem;
+  font-weight: 500;
+  line-height: 1.3;
+  color: var(--muted-foreground);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.latestPromptLabel {
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-size: 0.68rem;
+  margin-right: 0.35rem;
+  color: var(--muted-foreground);
+  opacity: 0.8;
+}
+
 .metrics {
   margin: 0;
   display: grid;

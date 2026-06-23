@@ -313,6 +313,7 @@ export interface AiGenerationContext {
 export interface AiGenerationHistoryItem {
   id: string
   prompt: string
+  rootPrompt: string | null
   status: GenerationRequestStatus
   selectedModel: string
   requestedDraftCount: number

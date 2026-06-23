@@ -399,7 +399,19 @@ export function AiDraftsListPage(): ReactElement {
                     </div>
 
                     <div className={styles.cardBody}>
-                      <p className={styles.prompt}>{item.prompt}</p>
+                      {item.ancestorCount > 0 && item.rootPrompt ? (
+                        <>
+                          <p className={styles.prompt}>{item.rootPrompt}</p>
+                          <p className={styles.latestPrompt}>
+                            <span className={styles.latestPromptLabel}>
+                              {t('ai-generation:list.latestRevisionLabel')}
+                            </span>
+                            {item.prompt}
+                          </p>
+                        </>
+                      ) : (
+                        <p className={styles.prompt}>{item.prompt}</p>
+                      )}
 
                       <dl className={styles.metrics}>
                         {item.status !== 'pending' ? (

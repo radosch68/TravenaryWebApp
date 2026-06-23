@@ -24,6 +24,7 @@
     "original": "Original",
     "revisionCount_one": "{{count}} revision",
     "revisionCount_other": "{{count}} revisions",
+    "latestRevisionLabel": "Latest:",
     "model": "Model",
     "createdAt": "Created",
     "ttlNoticeWithDays": "History records are retained for {{days}} days and then deleted automatically.",

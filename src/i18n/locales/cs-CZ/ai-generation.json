@@ -26,6 +26,7 @@
     "revisionCount_few": "{{count}} revize",
     "revisionCount_many": "{{count}} revizí",
     "revisionCount_other": "{{count}} revizí",
+    "latestRevisionLabel": "Poslední:",
     "model": "Model",
     "createdAt": "Vytvořeno",
     "ttlNoticeWithDays": "Záznamy historie se uchovávají {{days}} dní a po vypršení se automaticky odstraní.",
