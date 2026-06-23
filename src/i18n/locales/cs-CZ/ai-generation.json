@@ -29,7 +29,7 @@
     "latestRevisionLabel": "Poslední:",
     "filterByRootAria": "Zobrazit jen revize tohoto výletu",
     "activeFilterLabel": "Zobrazené revize:",
-    "clearRootFilter": "Zrušit",
+    "clearRootFilter": "Zrušit filtr",
     "model": "Model",
     "createdAt": "Vytvořeno",
     "ttlNoticeWithDays": "Záznamy historie se uchovávají {{days}} dní a po vypršení se automaticky odstraní.",

@@ -27,7 +27,7 @@
     "latestRevisionLabel": "Latest:",
     "filterByRootAria": "Show only revisions of this trip",
     "activeFilterLabel": "Showing revisions of:",
-    "clearRootFilter": "Clear",
+    "clearRootFilter": "Clear Filter",
     "model": "Model",
     "createdAt": "Created",
     "ttlNoticeWithDays": "History records are retained for {{days}} days and then deleted automatically.",
