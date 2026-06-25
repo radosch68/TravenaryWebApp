@@ -430,7 +430,6 @@
       "saving": "Saving..."
     },
     "dayEditor": {
-      "activityType": "Activity type",
       "activityTypeOptions": {
         "flight": "Flight",
         "transfer": "Transit",

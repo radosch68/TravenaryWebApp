@@ -16,21 +16,6 @@ import { validateActivity } from './activity-validation'
 import formStyles from './ActivityFormPanel.module.css'
 import { ensureGoogleMapsScript, waitForGoogleMapsApiReady } from '@/utils/google-maps-api'
 
-const FULL_EDIT_TYPES: ReadonlySet<ActivityType> = new Set(['note', 'poi', 'custom', 'rental', 'food', 'shopping', 'tour', 'accommodation', 'flight'])
-const LIMITED_EDIT_FIELDS = ['title', 'text', 'time', 'timeEnd'] as const
-const EDITABLE_ACTIVITY_TYPES: readonly ActivityType[] = [
-  'flight',
-  'transfer',
-  'rental',
-  'accommodation',
-  'poi',
-  'food',
-  'shopping',
-  'tour',
-  'note',
-  'custom',
-]
-
 const TRANSFER_MOT_OPTIONS: ReadonlyArray<'walk' | 'bike' | 'motorcycle' | 'car' | 'bus' | 'train'> = [
   'walk',
   'bike',
@@ -459,8 +444,9 @@ export function ActivityFormPanel({
 }: ActivityFormPanelProps): ReactElement {
   const { t, i18n } = useTranslation(['common'])
   const isCreate = !activity
-  const [selectedActivityType, setSelectedActivityType] = useState<ActivityType>(activityType)
-  const isFullEdit = isCreate || FULL_EDIT_TYPES.has(selectedActivityType)
+  // Activity type is fixed at creation (chosen via the editor's slash menu) and is
+  // not editable afterward, so this is a constant rather than mutable state.
+  const selectedActivityType = activityType
   const timePlaceholder = getLocalizedTimeInputPlaceholder(i18n.language)
   const useNativeTimeInput = typeof window !== 'undefined'
     && window.matchMedia('(hover: none), (pointer: coarse)').matches
@@ -553,47 +539,6 @@ export function ActivityFormPanel({
   const timeInputRef = useRef<HTMLInputElement | null>(null)
   const timeEndInputRef = useRef<HTMLInputElement | null>(null)
   const isFormDisabled = disabled || isSubmitting
-
-  const resetTypeSpecificFields = (nextType: ActivityType): void => {
-    setValidationErrors([])
-    setActivityDetailsSectionOpen(true)
-    setCuisine('')
-    setGuidanceMode('selfGuided')
-    setNightsInput('1')
-    setGuestsInput('')
-    setCheckInFrom('')
-    setCheckInUntil('')
-    setCheckOutUntil('')
-    setPlatform('')
-    setContactPhone('')
-    setContactEmail('')
-    setBookingRef('')
-    setRentalType(nextType === 'rental' ? 'car' : '')
-    setRentalDaysInput('')
-    setReturnUntil('')
-    setFlightNumber('')
-    setDepartureAirport(undefined)
-    setArrivalAirport(undefined)
-    setFlightBookingRef('')
-    setTransferFrom(nextType === 'transfer' ? toTransferRouteLocationDraft(transferPrefillFrom) : createEmptyLocationRow())
-    setTransferTo(nextType === 'transfer' ? createTransferToDraftRow() : createEmptyLocationRow())
-    setTransferMot('car')
-    setTransferEstimateValue('')
-    setTransferEstimateSource('google')
-    setTransferEstimateLoading(false)
-    setTransferEstimateError(null)
-    setTransferFromError(null)
-    setTransferToError(null)
-  }
-
-  const handleSelectedActivityTypeChange = (nextType: ActivityType): void => {
-    if (nextType === selectedActivityType || !EDITABLE_ACTIVITY_TYPES.includes(nextType)) {
-      return
-    }
-
-    setSelectedActivityType(nextType)
-    resetTypeSpecificFields(nextType)
-  }
 
   const handleTimeInput = (value: string): void => {
     setTime(value)
@@ -1519,24 +1464,6 @@ export function ActivityFormPanel({
 
         {commonSectionOpen ? (
           <div id="activity-common-section-content" className="activity-form-panel__section-content">
-            {!isCreate ? (
-              <div className="activity-form-panel__field">
-                <label htmlFor="activity-type">{t('common:itinerary.dayEditor.activityType')}</label>
-                <select
-                  id="activity-type"
-                  value={selectedActivityType}
-                  onChange={(e) => handleSelectedActivityTypeChange(e.target.value as ActivityType)}
-                  disabled={isFormDisabled}
-                >
-                  {EDITABLE_ACTIVITY_TYPES.map((optionType) => (
-                    <option key={optionType} value={optionType}>
-                      {t(`common:itinerary.dayEditor.activityTypeOptions.${ACTIVITY_TYPE_LABEL_KEY[optionType]}`)}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            ) : null}
-
             <div className="activity-form-panel__field">
               <label htmlFor="activity-title">{t('common:itinerary.dayEditor.fieldTitle')}</label>
               <input
@@ -1548,18 +1475,16 @@ export function ActivityFormPanel({
               />
             </div>
 
-            {(isFullEdit || LIMITED_EDIT_FIELDS.includes('text' as never)) && (
-              <div className="activity-form-panel__field">
-                <label htmlFor="activity-text">{t('common:itinerary.dayEditor.fieldText')}</label>
-                <textarea
-                  id="activity-text"
-                  value={text}
-                  onChange={(e) => setText(e.target.value)}
-                  disabled={isFormDisabled}
-                  rows={5}
-                />
-              </div>
-            )}
+            <div className="activity-form-panel__field">
+              <label htmlFor="activity-text">{t('common:itinerary.dayEditor.fieldText')}</label>
+              <textarea
+                id="activity-text"
+                value={text}
+                onChange={(e) => setText(e.target.value)}
+                disabled={isFormDisabled}
+                rows={5}
+              />
+            </div>
 
             {selectedActivityType !== 'accommodation' && (
               <>

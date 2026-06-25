@@ -443,7 +443,6 @@
       "saving": "Ukládání..."
     },
     "dayEditor": {
-      "activityType": "Typ aktivity",
       "activityTypeOptions": {
         "flight": "Let",
         "transfer": "Přesun",
