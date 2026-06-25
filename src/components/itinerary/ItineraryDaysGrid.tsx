@@ -34,7 +34,7 @@ import {
 import { getSpanActivityConfig } from '@/components/itinerary/span-activity'
 import { buildActivityFooterItems } from '@/components/itinerary/activity-validation'
 import { ACTIVITY_TYPE_ICON } from '@/components/itinerary/activity-presentation'
-import { ActivityTileDisplay, buildActivityTileLabels } from '@/tiptap/activity-tile-extension'
+import { ActivityTileDisplay, buildActivityTileLabels, requestActivityAutoEdit } from '@/tiptap/activity-tile-extension'
 import { toDayActivities } from '@/utils/tiptap-compatibility'
 
 import styles from './ItineraryDaysGrid.module.css'
@@ -579,8 +579,18 @@ export function ItineraryDaysGrid({
   // flushes its save) and remember where the user tapped so the caret lands
   // there once the editor mounts.
   const activateDayEditor = useCallback(
-    (dayNumber: number, coords: { x: number; y: number } | 'end' | null): void => {
-      pendingFocusCoordsRef.current = coords
+    (
+      dayNumber: number,
+      focus: { x: number; y: number } | 'end' | { activityId: string } | null,
+    ): void => {
+      if (focus && typeof focus === 'object' && 'activityId' in focus) {
+        // Tap landed on a tile: open its editor on mount instead of dropping a
+        // caret. The tile's mount effect consumes pendingAutoEditActivityId.
+        requestActivityAutoEdit(focus.activityId)
+        pendingFocusCoordsRef.current = null
+      } else {
+        pendingFocusCoordsRef.current = focus
+      }
       setActiveEditorDayNumber(dayNumber)
       setActiveSavedOkDayNumber(dayNumber)
     },
@@ -1153,11 +1163,20 @@ export function ItineraryDaysGrid({
                       tabIndex={0}
                       aria-label={t('itineraryView.editDayActivitiesAria', { dayNumber: day.dayNumber })}
                       onClick={(event) => {
+                        const target = event.target as HTMLElement
                         // Let links/buttons inside the static day behave normally.
-                        if ((event.target as HTMLElement).closest('a, button')) {
+                        if (target.closest('a, button')) {
                           return
                         }
-                        activateDayEditor(day.dayNumber, { x: event.clientX, y: event.clientY })
+                        // A tap on an activity tile opens that activity's editor
+                        // once the day's live editor mounts; elsewhere drops a
+                        // caret at the tap point.
+                        const activityId = target.closest<HTMLElement>('[data-activity-id]')?.dataset.activityId
+                        if (activityId) {
+                          activateDayEditor(day.dayNumber, { activityId })
+                        } else {
+                          activateDayEditor(day.dayNumber, { x: event.clientX, y: event.clientY })
+                        }
                       }}
                       onKeyDown={(event) => {
                         if (event.target !== event.currentTarget) {

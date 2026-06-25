@@ -840,7 +840,7 @@ export function ActivityTileDisplay({
     : `${styles.activityHeader} ${styles.activityHeaderOnly}`
 
   return (
-    <div className={activityDisplayClassName} data-activity-type={activity.type} data-anchored={hasAnchoredDate ? 'true' : undefined}>
+    <div className={activityDisplayClassName} data-activity-type={activity.type} data-activity-id={activity.id} data-anchored={hasAnchoredDate ? 'true' : undefined}>
       <header className={activityHeaderClassName}>
         <div className={styles.activityHeaderLine}>
           <span className={styles.activityIcon}>
