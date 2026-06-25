@@ -250,6 +250,14 @@ function cloneActivity(activity: ItineraryActivity): ItineraryActivity {
   }
 }
 
+function createActivityId(): string {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return `activity-${crypto.randomUUID()}`
+  }
+
+  return `activity-${Date.now()}-${Math.random().toString(16).slice(2)}`
+}
+
 function toPrefillLocation(location: ActivityLocation | undefined): ActivityLocation | undefined {
   if (!location) {
     return undefined
@@ -1725,6 +1733,31 @@ export const ActivityTile = Node.create<ActivityTileOptions>({
     return {
       activity: {
         default: null,
+        // Serialize the activity object into the DOM so copy/paste round-trips
+        // through the clipboard (ProseMirror always re-parses pasted HTML, even
+        // within the same editor). A fresh id is minted on parse so pasting a
+        // tile yields a genuine duplicate instead of an id collision.
+        parseHTML: (element) => {
+          const raw = element.getAttribute('data-activity')
+          if (!raw) {
+            return null
+          }
+
+          try {
+            const parsed = JSON.parse(raw) as ItineraryActivity
+            return { ...parsed, id: createActivityId() }
+          } catch {
+            return null
+          }
+        },
+        renderHTML: (attributes) => {
+          const activity = attributes.activity as ItineraryActivity | null
+          if (!activity) {
+            return {}
+          }
+
+          return { 'data-activity': JSON.stringify(activity) }
+        },
       },
     }
   },
