@@ -1,4 +1,4 @@
-import { getSpanActivityConfig } from '@/components/itinerary/span-activity'
+import { getSpanActivityConfig, isOvernightArrival } from '@/components/itinerary/span-activity'
 import type { ActivityType, ItineraryActivity, ItineraryDay } from '@/services/contracts'
 import { toDayActivities } from '@/utils/tiptap-compatibility'
 
@@ -19,6 +19,10 @@ export interface VirtualSpanActivityCheckout {
   sourceType: ActivityType
   title: string
   checkOutTime?: string
+  // 'span-checkout': day-granular closure of an accommodation/rental (check-out
+  // / return). 'overnight-arrival': time-granular arrival of a flight/transfer
+  // that ended after midnight. Drives the trailing tile's label.
+  kind: 'span-checkout' | 'overnight-arrival'
 }
 
 interface OvernightAccommodation {
@@ -154,8 +158,48 @@ export function getVirtualSpanActivityCheckoutsByDay(
         sourceType: activity.type,
         title: activity.title,
         checkOutTime: typeof closureTime === 'string' ? closureTime : undefined,
+        kind: 'span-checkout',
       })
       byDay.set(checkoutDayNumber, items)
+    })
+  })
+
+  return byDay
+}
+
+// Overnight journey arrivals (flight/transfer ending after midnight) produce a
+// trailing "arrival" tile on the next day, the time-granular sibling of a span
+// activity's checkout tile. Returns a per-day map keyed by the arrival day. A
+// journey on the last day (no next day) is omitted here; its source tile shows a
+// beyond-itinerary footer warning instead (getOvernightBeyondItineraryFooterItems).
+export function getOvernightArrivalsByDay(
+  days: ItineraryDay[],
+): Map<number, VirtualSpanActivityCheckout[]> {
+  const dayNumbers = new Set(days.map((day) => day.dayNumber))
+  const byDay = new Map<number, VirtualSpanActivityCheckout[]>()
+
+  days.forEach((day) => {
+    toDayActivities(day).forEach((activity) => {
+      if (!activity.id || !isOvernightArrival(activity)) {
+        return
+      }
+
+      const arrivalDayNumber = day.dayNumber + 1
+      if (!dayNumbers.has(arrivalDayNumber)) {
+        return
+      }
+
+      const items = byDay.get(arrivalDayNumber) ?? []
+      items.push({
+        dayNumber: arrivalDayNumber,
+        sourceDayNumber: day.dayNumber,
+        sourceActivityId: activity.id,
+        sourceType: activity.type,
+        title: activity.title,
+        checkOutTime: activity.timeEnd,
+        kind: 'overnight-arrival',
+      })
+      byDay.set(arrivalDayNumber, items)
     })
   })
 

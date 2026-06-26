@@ -13,6 +13,7 @@ import { inferReferenceTypeFromUrl } from '@/utils/reference-url'
 import { ACTIVITY_TYPE_ICON } from './activity-presentation'
 import { AirportSelect } from './AirportSelect'
 import { validateActivity } from './activity-validation'
+import { isOvernightArrivalType } from '@/components/itinerary/span-activity'
 import formStyles from './ActivityFormPanel.module.css'
 import { ensureGoogleMapsScript, waitForGoogleMapsApiReady } from '@/utils/google-maps-api'
 
@@ -536,6 +537,10 @@ export function ActivityFormPanel({
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [validationErrors, setValidationErrors] = useState<string[]>([])
+  // Set true while the overnight-arrival confirm dialog is open. Once the user
+  // confirms, overnightConfirmedRef short-circuits the re-entered submit.
+  const [overnightConfirmOpen, setOvernightConfirmOpen] = useState(false)
+  const overnightConfirmedRef = useRef(false)
   const timeInputRef = useRef<HTMLInputElement | null>(null)
   const timeEndInputRef = useRef<HTMLInputElement | null>(null)
   const isFormDisabled = disabled || isSubmitting
@@ -1038,6 +1043,19 @@ export function ActivityFormPanel({
 
     const liveTime = normalizeTimeValue(timeInputRef.current?.value ?? time)
     const liveTimeEnd = normalizeTimeValue(timeEndInputRef.current?.value ?? timeEnd)
+
+    // Overnight journey (flight/transfer ending after midnight): confirm intent
+    // before saving instead of silently accepting a backwards time range. The
+    // confirm dialog re-enters handleSubmit with overnightConfirmedRef set.
+    const isOvernightEntry =
+      isOvernightArrivalType(selectedActivityType)
+      && Boolean(liveTime && liveTimeEnd && liveTimeEnd < liveTime)
+    if (isOvernightEntry && !overnightConfirmedRef.current) {
+      setOvernightConfirmOpen(true)
+      return
+    }
+    // Consume the confirmation so a later edit re-prompts.
+    overnightConfirmedRef.current = false
 
     const nextReferenceErrors: Record<string, string> = {}
     const normalizedReferences: WebReference[] = []
@@ -2608,6 +2626,33 @@ export function ActivityFormPanel({
     </>
   )
 
+  const overnightConfirmDialog = overnightConfirmOpen ? (
+    <DialogShell
+      title={t('common:itinerary.dayEditor.overnightConfirm.title')}
+      onClose={() => {
+        setOvernightConfirmOpen(false)
+        timeEndInputRef.current?.focus()
+      }}
+      footer={
+        <button
+          type="button"
+          className={formStyles.dialogConfirmButton}
+          onClick={() => {
+            overnightConfirmedRef.current = true
+            setOvernightConfirmOpen(false)
+            void handleSubmit()
+          }}
+          aria-label={t('common:itinerary.dayEditor.overnightConfirm.confirm')}
+          title={t('common:itinerary.dayEditor.overnightConfirm.confirm')}
+        >
+          <Check size={16} strokeWidth={2.5} aria-hidden="true" />
+        </button>
+      }
+    >
+      <p>{t('common:itinerary.dayEditor.overnightConfirm.message')}</p>
+    </DialogShell>
+  ) : null
+
   if (mode === 'inline') {
     return (
       <div className={formStyles.inlinePanel}>
@@ -2625,19 +2670,23 @@ export function ActivityFormPanel({
           </button>
           {dialogFooter}
         </div>
+        {overnightConfirmDialog}
       </div>
     )
   }
 
   return (
-    <DialogShell
-      title={typeBadge}
-      onClose={handleDialogClose}
-      className={formStyles.modal}
-      bodyClassName={formStyles.modalBody}
-      footer={dialogFooter}
-    >
-      {panelBody}
-    </DialogShell>
+    <>
+      <DialogShell
+        title={typeBadge}
+        onClose={handleDialogClose}
+        className={formStyles.modal}
+        bodyClassName={formStyles.modalBody}
+        footer={dialogFooter}
+      >
+        {panelBody}
+      </DialogShell>
+      {overnightConfirmDialog}
+    </>
   )
 }

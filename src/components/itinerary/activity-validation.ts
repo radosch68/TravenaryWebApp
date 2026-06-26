@@ -2,6 +2,8 @@ import type { ActivityType, ItineraryActivity } from '@/services/contracts'
 import {
   getSpanActivityConfig,
   getSpanBeyondItineraryFooterItems,
+  getOvernightBeyondItineraryFooterItems,
+  isOvernightArrivalType,
   type ActivityFooterItem,
 } from '@/components/itinerary/span-activity'
 
@@ -45,10 +47,13 @@ export function validateActivity(activity: ItineraryActivity): ActivityIssue[] {
     issues.push({ field: 'title', severity: 'error', messageKey: 'itineraryView.validation.titleRequired' })
   }
 
-  // End time before start time — only when both are populated.
+  // End time before start time — only when both are populated. For journey types
+  // (flight/transfer) this is a valid overnight arrival (implicit "+1 day"),
+  // shown via the "+1" badge and next-day arrival tile, so it is not an error;
+  // for every other type it stays a blocking error.
   const time = activity.time?.trim()
   const timeEnd = activity.timeEnd?.trim()
-  if (time && timeEnd && timeEnd < time) {
+  if (time && timeEnd && timeEnd < time && !isOvernightArrivalType(activity.type)) {
     issues.push({ field: 'time', severity: 'error', messageKey: 'itineraryView.validation.timeEndBeforeStart' })
   }
 
@@ -111,6 +116,12 @@ export function buildActivityFooterItems(
   return [
     ...issuesToFooterItems(validateActivity(activity), context.validationMessages),
     ...getSpanBeyondItineraryFooterItems(
+      activity,
+      context.dayNumber,
+      context.lastDayNumber,
+      context.spanBeyondLabelByType,
+    ),
+    ...getOvernightBeyondItineraryFooterItems(
       activity,
       context.dayNumber,
       context.lastDayNumber,

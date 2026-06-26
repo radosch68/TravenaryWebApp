@@ -316,7 +316,8 @@
       "accommodationCheckOutBeyondItinerary": "Check-out falls after the last day of the itinerary",
       "rentalReturnBeyondItinerary": "Return falls after the last day of the itinerary",
       "accommodationCheckOutTimeMissing": "Check-out time not set",
-      "rentalReturnTimeMissing": "Return time not set"
+      "rentalReturnTimeMissing": "Return time not set",
+      "overnightArrivalBeyondItinerary": "Arrives the next day, beyond the itinerary"
     },
     "validation": {
       "titleRequired": "Title is required",
@@ -423,7 +424,9 @@
     "deletingItinerary": "Deleting...",
     "cancel": "Cancel",
     "deleteError": "Unable to delete itinerary right now.",
-    "backToView": "Back to view"
+    "backToView": "Back to view",
+    "overnightArrivalLabel": "Arrival",
+    "nextDayBadgeAria": "Next day"
   },
   "itinerary": {
     "edit": {
@@ -546,7 +549,12 @@
         "direct": "Direct",
         "other": "Other"
       },
-      "saveFailed": "Could not save day changes. Your draft is preserved."
+      "saveFailed": "Could not save day changes. Your draft is preserved.",
+      "overnightConfirm": {
+        "title": "Overnight arrival?",
+        "message": "The end time is earlier than the start time. Save this as arriving the next day?",
+        "confirm": "Yes, next day"
+      }
     },
     "activityMeta": {
       "openReference": "Open reference: {{label}}",

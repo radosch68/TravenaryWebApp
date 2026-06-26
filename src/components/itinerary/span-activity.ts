@@ -72,6 +72,87 @@ export function getSpanActivityConfig(type: ActivityType): SpanActivityConfig | 
   return SPAN_ACTIVITY_CONFIGS.find((config) => config.type === type)
 }
 
+// Journey activities that may end after midnight (timeEnd < time), producing an
+// "arrival" trailing tile on the next day — the time-granular cousin of a span
+// activity's day-granular checkout. Other timed activities keep treating a
+// timeEnd before time as an input error (see validateActivity).
+export const OVERNIGHT_ARRIVAL_TYPES: readonly ActivityType[] = ['flight', 'transfer']
+
+// i18n key (common namespace) for the closure label on an overnight arrival's
+// trailing tile (e.g. "Arrival: 00:30").
+export const OVERNIGHT_ARRIVAL_LABEL_KEY = 'itineraryView.overnightArrivalLabel'
+
+export function isOvernightArrivalType(type: ActivityType): boolean {
+  return OVERNIGHT_ARRIVAL_TYPES.includes(type)
+}
+
+// Lucide icons (size 18) inlined for the live editor's DOM widget decoration,
+// which renders outside React and can't use the icon component. Mirror the React
+// ACTIVITY_TYPE_ICON for flight (Plane) and transfer (Route) so the live arrival
+// tile matches the static one.
+const PLANE_ICON_SVG =
+  '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z"/></svg>'
+const ROUTE_ICON_SVG =
+  '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="19" r="3"/><path d="M9 19h8.5a3.5 3.5 0 0 0 0-7h-11a3.5 3.5 0 0 1 0-7H15"/><circle cx="18" cy="5" r="3"/></svg>'
+
+const OVERNIGHT_ARRIVAL_ICON_SVG: Partial<Record<ActivityType, string>> = {
+  flight: PLANE_ICON_SVG,
+  transfer: ROUTE_ICON_SVG,
+}
+
+// Inline SVG icon for a trailing tile of `type`: a span config's icon, or the
+// overnight journey-type icon. '' when none (callers render no icon).
+export function getTrailingTileIconSvg(type: ActivityType): string {
+  return getSpanActivityConfig(type)?.iconSvg ?? OVERNIGHT_ARRIVAL_ICON_SVG[type] ?? ''
+}
+
+// True when this activity is a journey type whose end time falls on the next
+// day. Implicit overnight model: a populated timeEnd strictly before time means
+// "+1 day" (see the overnight-handling discussion).
+export function isOvernightArrival(activity: ItineraryActivity): boolean {
+  if (!isOvernightArrivalType(activity.type)) {
+    return false
+  }
+
+  const time = activity.time?.trim()
+  const timeEnd = activity.timeEnd?.trim()
+  return Boolean(time && timeEnd && timeEnd < time)
+}
+
+// The closure label key for a trailing tile of `type`: a span activity's
+// check-out/return key, or the arrival key for overnight journey types. null
+// when the type produces no trailing tile. Single source of truth shared by the
+// static tile and the live-editor widget so their labels never drift.
+export function getClosureLabelKey(type: ActivityType): string | null {
+  const config = getSpanActivityConfig(type)
+  if (config) {
+    return config.checkoutLabelKey
+  }
+
+  return isOvernightArrivalType(type) ? OVERNIGHT_ARRIVAL_LABEL_KEY : null
+}
+
+// Footer warning for an overnight journey activity (flight/transfer ending after
+// midnight) whose arrival day falls past the itinerary's last day, so no trailing
+// arrival tile is produced. Mirrors getSpanBeyondItineraryFooterItems.
+export function getOvernightBeyondItineraryFooterItems(
+  activity: ItineraryActivity,
+  dayNumber: number,
+  lastDayNumber: number,
+  labelByType: Partial<Record<ActivityType, string>>,
+): ActivityFooterItem[] {
+  if (lastDayNumber < 1 || !isOvernightArrival(activity)) {
+    return []
+  }
+
+  if (dayNumber + 1 <= lastDayNumber) {
+    return []
+  }
+
+  const text = labelByType[activity.type]
+  return text ? [{ severity: 'warning', text }] : []
+}
+
 // Footer warning for a span activity (accommodation, rental, …) whose span runs
 // past the itinerary's last day — i.e. its closure (check-out / return) lands on
 // a day that doesn't exist, so the user never sees a virtual checkout tile for

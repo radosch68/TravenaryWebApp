@@ -328,7 +328,8 @@
       "accommodationCheckOutBeyondItinerary": "Check-out je až po posledním dni itineráře",
       "rentalReturnBeyondItinerary": "Vrácení je až po posledním dni itineráře",
       "accommodationCheckOutTimeMissing": "Není nastaven čas check-outu",
-      "rentalReturnTimeMissing": "Není nastaven čas vrácení"
+      "rentalReturnTimeMissing": "Není nastaven čas vrácení",
+      "overnightArrivalBeyondItinerary": "Přílet je následující den, mimo itinerář"
     },
     "validation": {
       "titleRequired": "Název je povinný",
@@ -436,7 +437,9 @@
     "deletingItinerary": "Mazání...",
     "cancel": "Zrušit",
     "deleteError": "Itinerář se teď nepodařilo smazat.",
-    "backToView": "Zpět na náhled"
+    "backToView": "Zpět na náhled",
+    "overnightArrivalLabel": "Přílet",
+    "nextDayBadgeAria": "Následující den"
   },
   "itinerary": {
     "edit": {
@@ -559,7 +562,12 @@
         "direct": "Přímá",
         "other": "Jiná"
       },
-      "saveFailed": "Nepodařilo se uložit změny dne. Váš koncept je zachován."
+      "saveFailed": "Nepodařilo se uložit změny dne. Váš koncept je zachován.",
+      "overnightConfirm": {
+        "title": "Přílet přes noc?",
+        "message": "Čas konce je dřívější než čas začátku. Uložit jako přílet následující den?",
+        "confirm": "Ano, následující den"
+      }
     },
     "activityMeta": {
       "openReference": "Otevřít odkaz: {{label}}",

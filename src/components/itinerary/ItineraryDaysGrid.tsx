@@ -27,11 +27,12 @@ import { formatLocalDate, formatLocalTime, formatLocalTimeRange, formatWeekday, 
 import {
   getOvernightCoverageByGapDay,
   getVirtualSpanActivityCheckoutsByDay,
+  getOvernightArrivalsByDay,
   getVirtualCheckoutActivityIndex,
   type OvernightCoverage,
   type VirtualSpanActivityCheckout,
 } from '@/utils/itinerary-grouping'
-import { getSpanActivityConfig } from '@/components/itinerary/span-activity'
+import { getSpanActivityConfig, getClosureLabelKey } from '@/components/itinerary/span-activity'
 import { buildActivityFooterItems } from '@/components/itinerary/activity-validation'
 import { ACTIVITY_TYPE_ICON } from '@/components/itinerary/activity-presentation'
 import { ActivityTileDisplay, buildActivityTileLabels, requestActivityAutoEdit } from '@/tiptap/activity-tile-extension'
@@ -152,10 +153,15 @@ export function ItineraryDaysGrid({
     () => getOvernightCoverageByGapDay(sortedDays),
     [sortedDays],
   )
-  const virtualSpanActivityCheckoutsByDay = useMemo(
-    () => getVirtualSpanActivityCheckoutsByDay(sortedDays),
-    [sortedDays],
-  )
+  const virtualSpanActivityCheckoutsByDay = useMemo(() => {
+    // Span checkouts (accommodation/rental) and overnight journey arrivals
+    // (flight/transfer) both render as trailing tiles, so merge them per day.
+    const byDay = new globalThis.Map(getVirtualSpanActivityCheckoutsByDay(sortedDays))
+    for (const [dayNumber, arrivals] of getOvernightArrivalsByDay(sortedDays)) {
+      byDay.set(dayNumber, [...(byDay.get(dayNumber) ?? []), ...arrivals])
+    }
+    return byDay
+  }, [sortedDays])
   // Max day number — span activities (accommodation nights, rental days) whose
   // closure lands past this get a footer warning instead of a checkout tile.
   const lastDayNumber = sortedDays.length > 0 ? sortedDays[sortedDays.length - 1].dayNumber : 0
@@ -1572,7 +1578,7 @@ function VirtualSpanActivityCheckoutTile({
   const { t } = useTranslation('common')
   const config = getSpanActivityConfig(checkout.sourceType)
   const CheckoutIcon = config?.icon ?? ACTIVITY_TYPE_ICON[checkout.sourceType]
-  const checkOutLabel = t(config?.checkoutLabelKey ?? 'itineraryView.accommodationSummaryCheckOut')
+  const checkOutLabel = t(getClosureLabelKey(checkout.sourceType) ?? 'itineraryView.accommodationSummaryCheckOut')
   const checkOutTime = formatLocalTime(checkout.checkOutTime, locale)
   const renderedCheckOut = checkOutTime || t('itineraryView.accommodationSummaryEmpty')
   const title = `${checkout.title} - ${checkOutLabel}: ${renderedCheckOut}`

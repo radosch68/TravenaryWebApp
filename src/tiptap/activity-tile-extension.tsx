@@ -32,6 +32,8 @@ import type {
 import { ACTIVITY_TYPE_ICON } from '@/components/itinerary/activity-presentation'
 import {
   SPAN_ACTIVITY_CONFIGS,
+  OVERNIGHT_ARRIVAL_TYPES,
+  isOvernightArrival,
   type ActivityFooterItem,
   type ActivityFooterSeverity,
 } from '@/components/itinerary/span-activity'
@@ -93,6 +95,8 @@ export interface ActivityTileLabels {
     flightDeparture: string
     flightArrival: string
     flightDuration: string
+    // Accessible label for the "+1" next-day badge on an overnight arrival time.
+    nextDay: string
     platformOptions: Record<AccommodationPlatform, string>
     locationFallback: string
     openReferenceAria: (label: string) => string
@@ -167,6 +171,7 @@ export function buildActivityTileLabels(t: TranslateFn, locale: string): Activit
       flightDeparture: t('itineraryView.flightDeparture'),
       flightArrival: t('itineraryView.flightArrival'),
       flightDuration: t('itineraryView.flightDuration'),
+      nextDay: t('itineraryView.nextDayBadgeAria'),
       platformOptions: {
         booking: t('itineraryView.platformOptions.booking'),
         airbnb: t('itineraryView.platformOptions.airbnb'),
@@ -177,9 +182,15 @@ export function buildActivityTileLabels(t: TranslateFn, locale: string): Activit
       locationFallback: t('itineraryView.locationFallback'),
       openReferenceAria: (label) => t('itineraryView.openReferenceAria', { label }),
       openMapAria: (label) => t('itineraryView.openMapAria', { label }),
-      footerSpanBeyondItinerary: Object.fromEntries(
-        SPAN_ACTIVITY_CONFIGS.map((config) => [config.type, t(config.beyondItineraryLabelKey)]),
-      ) as Partial<Record<ActivityType, string>>,
+      footerSpanBeyondItinerary: {
+        ...Object.fromEntries(
+          SPAN_ACTIVITY_CONFIGS.map((config) => [config.type, t(config.beyondItineraryLabelKey)]),
+        ),
+        // Overnight journey types share one "arrival beyond itinerary" warning.
+        ...Object.fromEntries(
+          OVERNIGHT_ARRIVAL_TYPES.map((type) => [type, t('itineraryView.footer.overnightArrivalBeyondItinerary')]),
+        ),
+      } as Partial<Record<ActivityType, string>>,
       validationMessages: {
         ...Object.fromEntries(ACTIVITY_VALIDATION_MESSAGE_KEYS.map((key) => [key, t(key)])),
         ...Object.fromEntries(
@@ -790,6 +801,15 @@ const FOOTER_SEVERITY_ICON: Record<ActivityFooterSeverity, typeof TriangleAlert>
   error: CircleAlert,
 }
 
+// "+1" badge appended to an end/arrival time that falls on the next day.
+function NextDayBadge({ label }: { label: string }) {
+  return (
+    <sup className={styles.nextDayBadge} title={label} aria-label={label}>
+      +1
+    </sup>
+  )
+}
+
 export function ActivityTileDisplay({
   activity,
   labels,
@@ -860,7 +880,15 @@ export function ActivityTileDisplay({
             <Icon size={18} aria-hidden="true" />
           </span>
           <p className={styles.activityTitle}>{activity.title}</p>
-          {metaItems.length > 0 ? <span className={styles.activityTime}>{metaItems.join(' / ')}</span> : null}
+          {metaItems.length > 0 ? (
+            <span className={styles.activityTime}>
+              {metaItems.join(' / ')}
+              {/* Flight renders its own badge on the explicit arrival line. */}
+              {isOvernightArrival(activity) && !hasFlightSection ? (
+                <NextDayBadge label={labels.display.nextDay} />
+              ) : null}
+            </span>
+          ) : null}
         </div>
       </header>
 
@@ -1408,6 +1436,7 @@ function FlightDetails({
   const arrivalOffset = tzOffsetMinutes(details.arrivalAirport?.tz, reference)
   const tzDelta = departureOffset !== null && arrivalOffset !== null ? arrivalOffset - departureOffset : null
   const arrivalSuffix = tzDelta !== null && tzDelta !== 0 ? ` (${formatOffsetDelta(tzDelta)})` : ''
+  const isOvernight = isOvernightArrival(activity)
   const durationMinutes = flightDurationMinutes(activity, reference)
   const durationText = durationMinutes !== null ? formatHoursMinutes(durationMinutes) : ''
   const hasTimes = Boolean(departureTime || arrivalTime || durationText)
@@ -1435,7 +1464,12 @@ function FlightDetails({
         <div className={styles.flightTimes}>
           <div className={styles.flightTimesMain}>
             {departureTime ? <span>{labels.display.flightDeparture}: <strong>{departureTime}</strong></span> : null}
-            {arrivalTime ? <span>{labels.display.flightArrival}: <strong>{arrivalTime}{arrivalSuffix}</strong></span> : null}
+            {arrivalTime ? (
+              <span>
+                {labels.display.flightArrival}: <strong>{arrivalTime}{arrivalSuffix}</strong>
+                {isOvernight ? <NextDayBadge label={labels.display.nextDay} /> : null}
+              </span>
+            ) : null}
           </div>
           {durationText ? (
             <span className={styles.flightDuration}>{labels.display.flightDuration}: <strong>{durationText}</strong></span>
@@ -1709,6 +1743,7 @@ export const ActivityTile = Node.create<ActivityTileOptions>({
           flightDeparture: '',
           flightArrival: '',
           flightDuration: '',
+          nextDay: '',
           platformOptions: {
             booking: '',
             airbnb: '',

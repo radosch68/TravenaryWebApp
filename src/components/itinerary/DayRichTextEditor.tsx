@@ -33,7 +33,7 @@ import {
   getVirtualCheckoutActivityIndex,
   type VirtualSpanActivityCheckout,
 } from '@/utils/itinerary-grouping'
-import { getSpanActivityConfig, SPAN_ACTIVITY_CONFIGS } from '@/components/itinerary/span-activity'
+import { SPAN_ACTIVITY_CONFIGS, OVERNIGHT_ARRIVAL_TYPES, OVERNIGHT_ARRIVAL_LABEL_KEY, getTrailingTileIconSvg } from '@/components/itinerary/span-activity'
 import { buildActivityFooterItems } from '@/components/itinerary/activity-validation'
 import { isActivityTimed, planActivityReposition, type OrderableActivity } from '@/components/itinerary/activity-ordering'
 import { toDayActivities } from '@/utils/tiptap-compatibility'
@@ -368,7 +368,6 @@ function buildVirtualCheckoutWidget(
   checkout: VirtualSpanActivityCheckout,
   data: VirtualCheckoutDecorationData,
 ): HTMLElement {
-  const config = getSpanActivityConfig(checkout.sourceType)
   const checkOutLabel = data.checkoutLabelByType[checkout.sourceType] ?? ''
   const time = formatLocalTime(checkout.checkOutTime, data.locale) || data.emptyLabel
   const title = `${checkout.title} - ${checkOutLabel}: ${time}`
@@ -395,7 +394,7 @@ function buildVirtualCheckoutWidget(
   const icon = document.createElement('span')
   icon.className = gridStyles.activityIcon
   icon.setAttribute('aria-hidden', 'true')
-  icon.innerHTML = config?.iconSvg ?? ''
+  icon.innerHTML = getTrailingTileIconSvg(checkout.sourceType)
   const titleText = document.createElement('span')
   titleText.className = gridStyles.activityTitle
   titleText.textContent = checkout.title
@@ -503,6 +502,10 @@ export function DayRichTextEditor({
     const checkoutLabelByType: Partial<Record<ActivityType, string>> = {}
     for (const config of SPAN_ACTIVITY_CONFIGS) {
       checkoutLabelByType[config.type] = t(config.checkoutLabelKey)
+    }
+    // Overnight journey arrivals (flight/transfer) share one "Arrival" label.
+    for (const type of OVERNIGHT_ARRIVAL_TYPES) {
+      checkoutLabelByType[type] = t(OVERNIGHT_ARRIVAL_LABEL_KEY)
     }
     return {
       checkoutLabelByType,
