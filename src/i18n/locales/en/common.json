@@ -424,7 +424,7 @@
     "deletingItinerary": "Deleting...",
     "cancel": "Cancel",
     "deleteError": "Unable to delete itinerary right now.",
-    "backToView": "Back to view",
+    "backToView": "Back",
     "overnightArrivalLabel": "Arrival",
     "nextDayBadgeAria": "Next day"
   },
