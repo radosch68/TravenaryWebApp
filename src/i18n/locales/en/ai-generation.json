@@ -138,6 +138,12 @@
     "refineExample3": "Make day 2 less rushed and move one optional activity to the Activity Bench.",
     "advancedOptions": "Advanced Options",
     "modelLabel": "AI Model",
+    "models": {
+      "sol": "GPT-6.1 Sol (recommended)",
+      "luna": "GPT-6 Luna (economy)",
+      "astra": "GPT-6 Astra (advanced)",
+      "legacy": "GPT-5.5 (transition fallback)"
+    },
     "draftCountLabel": "Number of drafts",
     "controlsHint": "Higher draft count or detail level may increase generation time.",
     "languageLabel": "Draft language",

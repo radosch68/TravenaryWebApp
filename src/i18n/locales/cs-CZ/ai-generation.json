@@ -142,6 +142,12 @@
     "refineExample3": "Zvolni druhý den a přesuň jednu volitelnou aktivitu do Activity Bench.",
     "advancedOptions": "Pokročilé možnosti",
     "modelLabel": "Model AI",
+    "models": {
+      "sol": "GPT-6.1 Sol (doporučený)",
+      "luna": "GPT-6 Luna (úsporný)",
+      "astra": "GPT-6 Astra (pokročilý)",
+      "legacy": "GPT-5.5 (přechodná záloha)"
+    },
     "draftCountLabel": "Počet návrhů",
     "controlsHint": "Vyšší počet návrhů nebo úroveň detailu může prodloužit dobu generování.",
     "languageLabel": "Jazyk návrhů",

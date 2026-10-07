@@ -59,7 +59,7 @@ const BUDGET_VALUES = ['budget', 'midRange', 'premium', 'luxury', 'other'] as co
 
 const DEFAULT_FORM: FormState = {
   prompt: '',
-  model: 'gpt-5.5',
+  model: 'gpt-6.1-sol',
   draftCount: 2,
   languageMode: 'auto',
   languageCode: 'en',
@@ -74,6 +74,13 @@ const DEFAULT_FORM: FormState = {
   budgetProfile: '',
   budgetProfileOther: '',
   refinementMode: 'balanced',
+}
+
+const MODEL_LABEL_KEYS: Record<string, string> = {
+  'gpt-6.1-sol': 'ai-generation:start.models.sol',
+  'gpt-6-luna': 'ai-generation:start.models.luna',
+  'gpt-6-astra': 'ai-generation:start.models.astra',
+  'gpt-5.5': 'ai-generation:start.models.legacy',
 }
 
 const FLOW_GUIDE_COLLAPSED_KEY = 'travenary.aiFlowGuideCollapsed'
@@ -131,6 +138,9 @@ export function AiGenerationStartPage(): ReactElement {
   const [locating, setLocating] = useState(false)
   const [geoError, setGeoError] = useState<string | null>(null)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const selectedModel = availableModels.length > 0 && !availableModels.some((model) => model.id === form.model)
+    ? (availableModels.find((model) => model.id === 'gpt-6.1-sol') ?? availableModels[0]).id
+    : form.model
 
   useEffect(() => {
     let isMounted = true
@@ -142,19 +152,6 @@ export function AiGenerationStartPage(): ReactElement {
         }
 
         setAvailableModels(models)
-
-        setForm((previous) => {
-          const hasSelectedModel = models.some((model) => model.id === previous.model)
-          if (hasSelectedModel) {
-            return previous
-          }
-
-          const defaultModel = models.find((model) => model.id === 'gpt-5.5') ?? models[0]
-          return {
-            ...previous,
-            model: defaultModel.id,
-          }
-        })
       })
       .catch(() => {
         // If catalog fetch fails, generation still works with current model value.
@@ -348,7 +345,7 @@ export function AiGenerationStartPage(): ReactElement {
     try {
       const response = await startAiGeneration({
         prompt,
-        ...(form.model ? { model: form.model } : {}),
+        ...(selectedModel ? { model: selectedModel } : {}),
         draftCount: form.draftCount,
         outputDepth: 'detailed',
         languageMode: form.languageMode,
@@ -765,14 +762,14 @@ export function AiGenerationStartPage(): ReactElement {
               <label className={styles.fieldWide}>
                 <span>{t('ai-generation:start.modelLabel')}</span>
                 <select
-                  value={form.model}
+                  value={selectedModel}
                   onChange={(event) => {
                     updateField('model', event.target.value)
                   }}
                 >
                   {availableModels.map((model) => (
                     <option key={model.id} value={model.id}>
-                      {model.label}
+                      {MODEL_LABEL_KEYS[model.id] ? t(MODEL_LABEL_KEYS[model.id]) : model.label}
                     </option>
                   ))}
                 </select>
